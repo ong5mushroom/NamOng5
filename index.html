@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Nấm Ông 5 V59 - Platinum Ultimate</title>
+    <title>Nấm Ông 5 V60 - Platinum Elite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -18,7 +18,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; margin: 0; padding: 0; overflow: hidden; height: 100vh; width: 100vw; }
         .hidden { display: none !important; }
         
-        /* Layout Mobile Optimization V59 */
+        /* Layout Mobile Optimization V60 */
         header { 
             height: var(--header); 
             background: rgba(255,255,255,0.98); 
@@ -35,12 +35,12 @@
         }
         
         main { 
-            padding-top: calc(var(--header) + 10px); 
+            padding-top: calc(var(--header) + 15px); 
             height: 100vh;
             overflow-y: auto; 
             padding-left: 16px;
             padding-right: 16px;
-            padding-bottom: 130px; 
+            padding-bottom: 140px; 
             position: relative; 
             z-index: 10; 
             -webkit-overflow-scrolling: touch; 
@@ -90,13 +90,13 @@
             padding-bottom: calc(12px + env(safe-area-inset-bottom)); 
         }
 
-        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: white; width: 100%; max-width: 440px; border-radius: 40px; padding: 30px; max-height: 88vh; overflow-y: auto; position: relative; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(12px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: white; width: 100%; max-width: 440px; border-radius: 40px; padding: 30px; max-height: 88vh; overflow-y: auto; position: relative; border: 1px solid #f1f5f9; }
         
-        /* Toast Notification System (For Safari/iOS) */
+        /* Toast Notification System (Safari Fix) */
         #toast-container { position: fixed; top: 110px; left: 16px; right: 16px; z-index: 9999; pointer-events: none; }
-        .toast-msg { background: #1e293b; color: white; padding: 16px 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 12px; margin-bottom: 10px; animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast-msg { background: #1e293b; color: white; padding: 16px 20px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 12px; margin-bottom: 10px; animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes slideIn { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -107,7 +107,6 @@
 </head>
 <body>
 
-    <!-- Hệ thống thông báo In-App (Safari Fix) -->
     <div id="toast-container"></div>
 
     <header>
@@ -116,7 +115,7 @@
             <div class="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg">5</div>
             <div>
                 <h1 class="text-[12px] font-black uppercase tracking-tight leading-none text-slate-800">Nấm Ông 5</h1>
-                <p class="text-[7px] text-blue-600 font-bold uppercase mt-1 tracking-wider">● Platinum V59 Ultimate</p>
+                <p class="text-[7px] text-blue-600 font-bold uppercase mt-1 tracking-wider">● Platinum V60 Elite</p>
             </div>
         </div>
         <div class="flex items-center gap-3 text-right">
@@ -140,15 +139,14 @@
                         <p class="text-4xl font-black text-blue-600" id="stat-online">0</p>
                     </div>
                     <div class="glass-card p-6 text-center border-b-4 border-orange-500">
-                        <p class="text-[9px] text-slate-400 font-black uppercase mb-1 tracking-tighter">Việc chờ xử lý</p>
+                        <p class="text-[9px] text-slate-400 font-black uppercase mb-1 tracking-tighter">Lệnh chưa báo cáo</p>
                         <p class="text-4xl font-black text-orange-500" id="stat-pending">0</p>
                     </div>
                 </div>
 
-                <!-- BẢNG VÀNG -->
                 <div class="lb-card shadow-2xl">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em]">Bảng vàng thi đua 01/2026</h3>
+                        <h3 class="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em]">Bảng vàng thi đua</h3>
                         <i class="fas fa-crown text-yellow-500 text-xs"></i>
                     </div>
                     <div id="leaderboard-list" class="space-y-2"></div>
@@ -161,7 +159,7 @@
             <div id="tab-tasks" class="tab-content hidden space-y-5">
                 <div id="admin-form" class="hidden glass-card p-6 border-2 border-blue-100 space-y-4 shadow-xl bg-white">
                     <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest">Giao lệnh sản xuất</span>
+                        <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest">Phát lệnh nhanh</span>
                         <select id="assign-mode" onchange="app.ui.toggleMode()" class="text-[9px] font-bold bg-slate-50 p-2 px-3 rounded-xl outline-none border">
                             <option value="ind">Cá nhân</option>
                             <option value="team">Theo Tổ</option>
@@ -187,7 +185,7 @@
             <div id="tab-team" class="tab-content hidden space-y-6">
                 <div class="bg-blue-600 p-8 rounded-[40px] flex justify-between items-center text-white shadow-2xl">
                     <div>
-                        <h3 class="font-black text-2xl tracking-tighter">Vào ca làm việc</h3>
+                        <h3 class="font-black text-2xl tracking-tighter">Vào ca</h3>
                         <p class="text-[10px] opacity-90 uppercase font-black tracking-widest mt-1" id="ui-date">...</p>
                     </div>
                     <button onclick="app.actions.checkIn()" class="bg-white text-blue-600 px-10 py-5 rounded-3xl text-sm font-black active:scale-95 transition shadow-lg">XÁC NHẬN</button>
@@ -198,7 +196,7 @@
             <!-- TAB CHAT -->
             <div id="tab-chat" class="tab-content hidden shiitake-bg">
                 <div id="chat-box" class="no-scrollbar pb-32">
-                    <div id="chat-loading" class="text-center py-20 text-slate-400 font-bold text-[10px] uppercase tracking-widest"><i class="fas fa-circle-notch fa-spin mr-2"></i> Đang tải...</div>
+                    <div id="chat-loading" class="text-center py-20 text-slate-400 font-bold text-[10px] uppercase tracking-widest"><i class="fas fa-circle-notch fa-spin mr-2"></i> Đang tải tin nhắn...</div>
                 </div>
                 <div class="chat-input-container">
                     <input type="text" id="chat-input" onkeyup="if(event.key==='Enter') app.actions.sendChat()" placeholder="Trao đổi nội bộ..." class="flex-1 bg-white px-6 py-4 rounded-full outline-none text-sm font-bold border border-slate-200 shadow-lg">
@@ -253,7 +251,7 @@
     <!-- MODAL NHIỆT ĐỘ -->
     <div id="temp-modal" class="modal-overlay hidden" onclick="if(event.target===this) app.ui.hide('temp-modal')">
         <div class="modal-content text-center">
-            <h3 class="font-black text-2xl mb-2 uppercase text-slate-800">Nhiệt độ nhà nấm</h3>
+            <h3 class="font-black text-2xl mb-2 uppercase text-slate-800">Cập nhật Nhiệt độ</h3>
             <p id="temp-house-name" class="text-orange-500 font-black text-[12px] uppercase tracking-widest mb-10"></p>
             <input type="hidden" id="temp-house-id">
             <div class="grid grid-cols-2 gap-6 mb-10">
@@ -264,26 +262,40 @@
         </div>
     </div>
 
-    <!-- MODAL REPORT -->
+    <!-- MODAL REPORT (V60 UPDATE) -->
     <div id="report-modal" class="modal-overlay hidden" onclick="if(event.target===this) app.ui.hide('report-modal')">
         <div class="modal-content">
-            <h3 class="font-black text-center text-xl mb-2 uppercase text-slate-800">Hoàn thành lệnh</h3>
+            <h3 class="font-black text-center text-xl mb-2 uppercase text-slate-800">Báo cáo kết quả</h3>
             <p id="report-task-name" class="text-center text-[10px] text-blue-600 font-black mb-8 uppercase tracking-widest"></p>
             <input type="hidden" id="report-task-id">
-            <div class="space-y-8">
+            
+            <div class="space-y-6">
+                <!-- Chọn trạng thái -->
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="report-status" value="completed" checked class="hidden peer">
+                        <div class="peer-checked:bg-green-600 peer-checked:text-white bg-slate-100 text-slate-500 p-4 rounded-2xl text-center text-xs font-black transition uppercase">Hoàn thành</div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="report-status" value="unfinished" class="hidden peer">
+                        <div class="peer-checked:bg-red-600 peer-checked:text-white bg-slate-100 text-slate-500 p-4 rounded-2xl text-center text-xs font-black transition uppercase">Chưa xong</div>
+                    </label>
+                </div>
+
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-2 block">Sản lượng thực tế đạt</label>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-2 block">Sản lượng / Ghi chú</label>
                     <input type="number" id="report-val" placeholder="0" class="w-full bg-slate-50 border-4 border-slate-100 p-6 rounded-[32px] text-5xl font-black text-center shadow-inner focus:border-blue-400 outline-none transition">
                 </div>
+
                 <div class="text-center border-t border-b py-8 border-dashed border-slate-200">
                     <label id="camera-btn" class="w-full bg-blue-50 border-2 border-dashed border-blue-200 py-12 rounded-[32px] flex flex-col items-center cursor-pointer active:bg-blue-100 transition">
                         <i class="fas fa-camera text-4xl text-blue-400 mb-3"></i>
-                        <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Chụp ảnh minh chứng</span>
+                        <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Chụp minh chứng</span>
                         <input type="file" accept="image/*" capture="environment" class="hidden" onchange="app.actions.handlePhoto(this)">
                     </label>
                     <div id="photo-preview-container" class="hidden">
                         <img id="photo-preview" src="" class="rounded-3xl mx-auto border-4 border-white shadow-2xl max-h-60">
-                        <button onclick="app.actions.resetPhoto()" class="text-red-500 text-[11px] font-black mt-4 uppercase underline">Chụp lại ảnh</button>
+                        <button onclick="app.actions.resetPhoto()" class="text-red-500 text-[11px] font-black mt-4 uppercase underline">Chụp lại</button>
                     </div>
                 </div>
                 <button onclick="app.actions.submitReport()" class="w-full bg-blue-600 text-white py-6 rounded-[32px] font-black shadow-2xl uppercase active:scale-95 transition text-sm">Gửi báo cáo</button>
@@ -295,14 +307,14 @@
     <div id="login-screen" class="fixed inset-0 bg-slate-50 z-[9000] flex flex-col items-center justify-center p-8">
         <div class="w-full max-w-sm bg-white p-12 rounded-[56px] shadow-2xl text-center border border-slate-100">
             <div class="w-20 h-20 bg-blue-600 rounded-[32px] mx-auto mb-8 flex items-center justify-center text-white text-4xl font-black shadow-2xl">5</div>
-            <h1 class="text-2xl font-black mb-10 uppercase tracking-tighter text-slate-800 leading-none">Nấm Ông 5<br><span class="text-blue-600 text-sm">Platinum Enterprise</span></h1>
+            <h1 class="text-2xl font-black mb-10 uppercase tracking-tighter text-slate-800 leading-none">Nấm Ông 5<br><span class="text-blue-600 text-sm font-bold">Platinum Elite Enterprise</span></h1>
             <div id="step-1" class="space-y-5 w-full">
                 <select id="user-select" class="w-full p-6 border-2 border-slate-100 rounded-3xl font-bold bg-slate-50 outline-none appearance-none shadow-sm text-center"></select>
                 <button onclick="app.ui.nextStep()" class="w-full bg-blue-600 text-white font-black py-6 rounded-[32px] shadow-2xl active:scale-95 transition uppercase tracking-widest text-sm">Xác nhận tên</button>
             </div>
             <div id="step-2" class="hidden space-y-5 w-full">
                 <input type="password" id="user-pin" maxlength="4" inputmode="numeric" class="w-full p-6 border-2 border-slate-100 text-4xl text-center rounded-3xl tracking-[0.6em] font-black outline-none bg-slate-50 shadow-inner" placeholder="••••">
-                <button onclick="app.doLogin()" class="w-full bg-green-600 text-white font-black py-6 rounded-[32px] shadow-2xl active:scale-95 transition uppercase tracking-widest text-sm">Đăng Nhập</button>
+                <button onclick="app.doLogin()" class="w-full bg-green-600 text-white font-black py-6 rounded-[32px] shadow-2xl active:scale-95 transition uppercase tracking-widest text-sm text-center">Đăng Nhập</button>
                 <button onclick="app.ui.prevStep()" class="text-[11px] font-bold text-slate-400 uppercase underline mt-8 block mx-auto tracking-widest">Chọn lại tên</button>
             </div>
         </div>
@@ -334,28 +346,20 @@
                     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
                     app.ui.show('tab-'+id);
                     event.currentTarget?.classList.add('nav-active');
-                    
                     const nav = document.getElementById('main-nav');
                     const backBtn = document.getElementById('btn-back-chat');
-                    if(id === 'chat') {
-                        nav.classList.add('hidden'); backBtn.classList.remove('hidden');
-                    } else {
-                        nav.classList.remove('hidden'); backBtn.classList.add('hidden');
-                    }
+                    if(id === 'chat') { nav.classList.add('hidden'); backBtn.classList.remove('hidden'); }
+                    else { nav.classList.remove('hidden'); backBtn.classList.add('hidden'); }
                     if(id === 'chat') app.ui.scrollChat();
                 },
                 nextStep: () => { if(!document.getElementById('user-select').value) return; app.ui.hide('step-1'); app.ui.show('step-2'); },
                 prevStep: () => { app.ui.hide('step-2'); app.ui.show('step-1'); },
                 toggleMode: () => {
-                    const mode = document.getElementById('assign-mode').value;
-                    app.assignMode = mode;
-                    document.getElementById('ind-zone').classList.toggle('hidden', mode !== 'ind');
-                    document.getElementById('team-zone').classList.toggle('hidden', mode !== 'team');
+                    app.assignMode = document.getElementById('assign-mode').value;
+                    document.getElementById('ind-zone').classList.toggle('hidden', app.assignMode !== 'ind');
+                    document.getElementById('team-zone').classList.toggle('hidden', app.assignMode !== 'team');
                 },
-                scrollChat: () => { 
-                    const b = document.getElementById('chat-box'); 
-                    setTimeout(() => { b.scrollTop = b.scrollHeight; }, 150);
-                },
+                scrollChat: () => { const b = document.getElementById('chat-box'); setTimeout(() => { b.scrollTop = b.scrollHeight; }, 150); },
                 toast: (title, msg) => {
                     const container = document.getElementById('toast-container');
                     const toast = document.createElement('div');
@@ -363,11 +367,12 @@
                     toast.innerHTML = `<div class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-bell text-white text-xs"></i></div><div><p class="text-[10px] font-black uppercase text-blue-400">${title}</p><p class="text-xs font-bold leading-tight">${msg}</p></div>`;
                     container.appendChild(toast);
                     setTimeout(() => toast.remove(), 5000);
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                 }
             },
 
             init: () => {
-                signInAnonymously(auth).catch(err => console.error("Auth Error:", err));
+                signInAnonymously(auth).catch(err => console.error(err));
                 onAuthStateChanged(auth, u => { if(u) app.sync(); });
                 if(app.user) app.render();
             },
@@ -376,28 +381,23 @@
                 const sub = (c, k) => onSnapshot(collection(db, `${ROOT}/${c}`), s => { 
                     const oldLen = app.data[k]?.length || 0;
                     app.data[k] = s.docs.map(d => ({...d.data(), _id: d.id})); 
-                    
                     if (k === 'tasks' && app.data.tasks.length > oldLen) {
                         const lastTask = app.data.tasks[app.data.tasks.length - 1];
                         if (lastTask.time > app.pageStartTime && lastTask.assignee == app.user?.id) {
-                            app.actions.pushNotify("LỆNH MỚI 📢", lastTask.title);
                             app.ui.toast("LỆNH MỚI 📢", lastTask.title);
                         }
                     }
                     app.render(); 
                 });
                 ['employees', 'tasks', 'houses', 'sop'].forEach(x => sub(x, x));
-                
                 const qChat = query(collection(db, `${ROOT}/chat`), orderBy("time", "asc"));
                 onSnapshot(qChat, s => { 
                     const oldChatLen = app.data.chat?.length || 0;
                     app.data.chat = s.docs.map(d => ({...d.data(), _id: d.id})); 
                     document.getElementById('chat-loading')?.remove();
-                    
                     if (app.data.chat.length > oldChatLen) {
                         const lastMsg = app.data.chat[app.data.chat.length - 1];
                         if (lastMsg.time > app.pageStartTime && lastMsg.senderId != app.user?.id) {
-                            app.actions.pushNotify("TIN NHẮN 💬", lastMsg.text);
                             app.ui.toast("TIN NHẮN 💬", lastMsg.text);
                         }
                     }
@@ -409,35 +409,25 @@
                 const id = document.getElementById('user-select').value;
                 const pin = document.getElementById('user-pin').value;
                 const emp = app.data.employees.find(e => e.id == id && e.pin == pin);
-                if(emp) {
-                    app.user = emp;
-                    localStorage.setItem('n5_v51_user', JSON.stringify(emp));
-                    app.render();
-                } else alert("Mã PIN không đúng!");
+                if(emp) { app.user = emp; localStorage.setItem('n5_v51_user', JSON.stringify(emp)); app.render(); }
+                else alert("Mã PIN không đúng!");
             },
 
             render: () => {
                 if(!app.user) { app.renderLogin(); return; }
                 app.ui.hide('login-screen'); app.ui.show('app-body');
-                
                 const todayStr = new Date().toISOString().split('T')[0];
                 document.getElementById('stat-online').innerText = app.data.employees.filter(e => e.lastLogin === todayStr).length;
-                document.getElementById('stat-pending').innerText = app.data.tasks.filter(t => t.status !== 'completed').length;
+                document.getElementById('stat-pending').innerText = app.data.tasks.filter(t => !['completed', 'unfinished'].includes(t.status)).length;
                 document.getElementById('ui-username').innerText = app.user.name;
                 document.getElementById('ui-role').innerText = app.user.role;
                 document.getElementById('ui-date').innerText = new Date().toLocaleDateString('vi-VN', {weekday: 'long', day: 'numeric', month: 'long'});
 
-                const userRole = (app.user.role || "").toLowerCase().trim();
-                const isAdmin = ["giám đốc", "quản lý"].includes(userRole);
-                
+                const isAdmin = ["giám đốc", "quản lý"].includes(app.user.role.toLowerCase());
                 const cog = document.getElementById('admin-cog');
                 const adminForm = document.getElementById('admin-form');
-                if(isAdmin) {
-                    cog?.classList.remove('hidden'); adminForm?.classList.remove('hidden');
-                    app.renderAdminTools();
-                } else {
-                    cog?.classList.add('hidden'); adminForm?.classList.add('hidden');
-                }
+                if(isAdmin) { cog?.classList.remove('hidden'); adminForm?.classList.remove('hidden'); app.renderAdminTools(); }
+                else { cog?.classList.add('hidden'); adminForm?.classList.add('hidden'); }
 
                 app.renderHouses(); app.renderTasks(); app.renderTeam(); app.renderLeaderboard();
             },
@@ -445,8 +435,7 @@
             renderLogin: () => {
                 const s = document.getElementById('user-select');
                 if(!s.innerHTML || s.options.length <= 1) {
-                    s.innerHTML = '<option value="">Chọn tên của bạn...</option>' + 
-                        app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+                    s.innerHTML = '<option value="">Chọn tên của bạn...</option>' + app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
                 }
                 app.ui.show('login-screen');
             },
@@ -454,41 +443,41 @@
             renderLeaderboard: () => {
                 const top = [...app.data.employees].sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 3);
                 document.getElementById('leaderboard-list').innerHTML = top.map((p, i) => `
-                    <div class="lb-item">
-                        <div class="flex items-center gap-3"><span class="font-black text-[10px] text-white/30">#${i+1}</span><span class="text-sm font-black text-slate-200">${p.name}</span></div>
-                        <span class="font-black text-yellow-400 text-sm tracking-wider">${p.score || 0}đ</span>
-                    </div>`).join('');
+                    <div class="lb-item"><div class="flex items-center gap-3"><span class="font-black text-[10px] text-white/30">TOP ${i+1}</span><span class="text-sm font-black text-slate-200">${p.name}</span></div><span class="font-black text-yellow-400 text-sm tracking-wider">${p.score || 0}đ</span></div>`).join('');
             },
 
             renderHouses: () => {
-                const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
+                const isAdmin = ["giám đốc", "quản lý"].includes(app.user.role.toLowerCase());
                 document.getElementById('house-grid').innerHTML = app.data.houses.map(h => `
-                    <div class="glass-card p-5 flex justify-between items-center border-l-8 border-slate-900 shadow-md">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shadow-xl">${h.name.substring(0,2).toUpperCase()}</div>
-                            <div>
-                                <p class="font-black text-sm text-slate-800">${h.name}</p>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-tighter">Sáng: ${h.temp?.am||'--'}° | Chiều: ${h.temp?.pm||'--'}°</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                             <button onclick="app.actions.openTemp('${h._id}','${h.name}')" class="text-orange-500 bg-orange-50 w-11 h-11 rounded-2xl flex items-center justify-center active:scale-90 transition border border-orange-100 shadow-inner"><i class="fas fa-thermometer-half"></i></button>
-                             ${isAdmin ? `<button onclick="app.actions.exportLog('${h.name}')" class="text-blue-600 bg-blue-50 w-11 h-11 rounded-2xl flex items-center justify-center active:scale-90 transition border border-blue-100 shadow-inner"><i class="fas fa-file-csv"></i></button>` : ''}
-                        </div>
-                    </div>`).join('');
+                    <div class="glass-card p-5 flex justify-between items-center border-l-8 border-slate-900 shadow-lg"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shadow-xl">${h.name.substring(0,2).toUpperCase()}</div><div><p class="font-black text-sm text-slate-800">${h.name}</p><p class="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-tighter">Sáng: ${h.temp?.am||'--'}° | Chiều: ${h.temp?.pm||'--'}°</p></div></div><div class="flex gap-2"><button onclick="app.actions.openTemp('${h._id}','${h.name}')" class="text-orange-500 bg-orange-50 w-11 h-11 rounded-2xl flex items-center justify-center active:scale-90 transition border border-orange-100 shadow-inner"><i class="fas fa-thermometer-half"></i></button>${isAdmin ? `<button onclick="app.actions.exportLog('${h.name}')" class="text-blue-600 bg-blue-50 w-11 h-11 rounded-2xl flex items-center justify-center active:scale-90 transition border border-blue-100 shadow-inner"><i class="fas fa-file-csv"></i></button>` : ''}</div></div>`).join('');
             },
 
             renderTasks: () => {
-                const userRole = (app.user.role || "").toLowerCase().trim();
-                const isAdmin = ["giám đốc", "quản lý"].includes(userRole);
-                let tasks = app.data.tasks.filter(t => t.status !== 'completed');
-                if(!isAdmin) tasks = tasks.filter(t => t.assignee == app.user.id);
+                const userRoleLower = app.user.role.toLowerCase();
+                const isAdmin = ["giám đốc", "quản lý"].includes(userRoleLower);
+                const isLead = userRoleLower === "tổ trưởng";
+                
+                // Lọc danh sách việc hiển thị:
+                // Nhân viên & Tổ trưởng chỉ thấy việc chưa xong
+                let tasks = app.data.tasks.filter(t => !['completed', 'unfinished'].includes(t.status));
+                
+                if(!isAdmin) {
+                    if (isLead) {
+                        // Tổ trưởng thấy việc của bản thân + việc của nhân viên cùng Team
+                        tasks = tasks.filter(t => t.assignee == app.user.id || app.data.employees.find(e => e.id == t.assignee)?.team === app.user.team);
+                    } else {
+                        // Nhân viên chỉ thấy việc của mình
+                        tasks = tasks.filter(t => t.assignee == app.user.id);
+                    }
+                }
                 
                 document.getElementById('task-list').innerHTML = tasks.map(t => {
-                    const worker = app.data.employees.find(e => e.id == t.assignee)?.name || "N/A";
+                    const worker = app.data.employees.find(e => e.id == t.assignee);
+                    const canReport = t.assignee == app.user.id || (isLead && worker?.team === app.user.team);
+                    
                     return `<div class="bg-white p-6 rounded-[32px] flex justify-between items-center shadow-lg border border-slate-50 relative overflow-hidden">
-                        <div class="flex-1"><p class="font-black text-[10px] text-blue-600 uppercase mb-1 tracking-widest">${worker}</p><p class="font-black text-sm text-slate-800 leading-tight">${t.title}</p><span class="inline-block mt-2 bg-slate-900 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-wider">${t.houseId || 'Khu chung'}</span></div>
-                        <div class="flex gap-2 relative z-10">${isAdmin ? `<button onclick="app.actions.nudge('${t._id}', '${t.assignee}')" class="w-12 h-12 bg-red-50 text-red-500 rounded-[20px] flex items-center justify-center border border-red-100 active:scale-90 transition"><i class="fas fa-bell"></i></button>` : ''}<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-6 py-4 rounded-[20px] text-[10px] font-black uppercase shadow-xl shadow-blue-200 active:scale-90 transition">XONG</button></div>
+                        <div class="flex-1"><p class="font-black text-[10px] text-blue-600 uppercase mb-1 tracking-widest">${worker?.name || t.assignee}</p><p class="font-black text-sm text-slate-800 leading-tight">${t.title}</p><span class="inline-block mt-2 bg-slate-900 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-wider">${t.houseId || 'Chung'}</span></div>
+                        <div class="flex gap-2 relative z-10">${isAdmin ? `<button onclick="app.actions.nudge('${t._id}', '${t.assignee}')" class="w-12 h-12 bg-red-50 text-red-500 rounded-[20px] flex items-center justify-center border border-red-100 active:scale-90 transition"><i class="fas fa-bell"></i></button>` : ''}${canReport ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-6 py-4 rounded-[20px] text-[10px] font-black uppercase shadow-xl shadow-blue-200 active:scale-90 transition">BÁO CÁO</button>` : ''}</div>
                         <div class="absolute -left-1 top-0 bottom-0 w-2 bg-blue-600"></div>
                     </div>`}).join('');
             },
@@ -497,10 +486,7 @@
                 const todayStr = new Date().toISOString().split('T')[0];
                 document.getElementById('team-list').innerHTML = app.data.employees.map(e => `
                     <div class="glass-card p-5 flex items-center justify-between shadow-md border border-slate-50">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-[18px] bg-slate-100 flex items-center justify-center font-black text-slate-400 border border-slate-200">${e.name.charAt(0)}</div>
-                            <div><p class="text-[15px] font-black text-slate-800 leading-none">${e.name}</p><p class="text-[10px] text-slate-400 font-bold uppercase mt-2 tracking-tighter">${e.role} | Score: ${e.score||0}đ</p></div>
-                        </div>
+                        <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-[18px] bg-slate-100 flex items-center justify-center font-black text-slate-400 border border-slate-200">${e.name.charAt(0)}</div><div><p class="text-[15px] font-black text-slate-800 leading-none">${e.name}</p><p class="text-[10px] text-slate-400 font-bold uppercase mt-2 tracking-tighter">${e.role} | Score: ${e.score||0}đ</p></div></div>
                         <div class="w-4 h-4 rounded-full ${e.lastLogin === todayStr ? 'bg-green-500 shadow-xl animate-pulse' : 'bg-slate-200'}"></div>
                     </div>`).join('');
             },
@@ -509,7 +495,7 @@
                 const c = document.getElementById('chat-box');
                 c.innerHTML = app.data.chat.map(m => {
                     const isMe = m.senderId == app.user.id;
-                    const sender = app.data.employees.find(e => e.id == m.senderId)?.name || "Live System";
+                    const sender = app.data.employees.find(e => e.id == m.senderId)?.name || "Hệ thống";
                     const reacts = m.reactions || { heart: 0, like: 0, unlike: 0 };
                     return `<div class="chat-bubble ${isMe ? 'me' : 'other'}"><p class="text-[8px] font-black opacity-60 uppercase mb-1 tracking-widest">${sender}</p><p class="font-bold leading-relaxed">${m.text}</p>${m.photo ? `<img src="${m.photo}" class="mt-3 rounded-2xl border border-white/30 shadow-xl max-h-60 w-full object-cover">` : ''}<div class="reaction-bar"><div onclick="app.actions.react('${m._id}', 'heart')" class="react-btn">❤️ <span>${reacts.heart || ''}</span></div><div onclick="app.actions.react('${m._id}', 'like')" class="react-btn">👍 <span>${reacts.like || ''}</span></div><div onclick="app.actions.react('${m._id}', 'unlike')" class="react-btn">👎 <span>${reacts.unlike || ''}</span></div></div></div>`}).join('');
                 app.ui.scrollChat();
@@ -539,12 +525,6 @@
                     const id = document.getElementById('temp-house-id').value;
                     await updateDoc(doc(db, `${ROOT}/houses`, id), { 'temp.am': document.getElementById('temp-am').value, 'temp.pm': document.getElementById('temp-pm').value });
                     app.ui.hide('temp-modal');
-                },
-                requestNotify: () => { if ("Notification" in window) Notification.requestPermission(); },
-                pushNotify: (title, body) => {
-                    if (Notification.permission === "granted") {
-                        new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968204.png' });
-                    }
                 },
                 addTask: async () => {
                     const title = document.getElementById('task-name').value;
@@ -577,12 +557,18 @@
                 submitReport: async () => {
                     const docId = document.getElementById('report-task-id').value;
                     const val = Number(document.getElementById('report-val').value);
-                    if(!val) return alert("Nhập sản lượng!");
+                    const status = document.querySelector('input[name="report-status"]:checked').value;
+                    if(!val && status === 'completed') return alert("Vui lòng nhập sản lượng thực tế!");
+                    
                     const task = app.data.tasks.find(t => t._id === docId);
-                    await updateDoc(doc(db, `${ROOT}/tasks`, docId), { actual: val, status: 'completed', photo: app.currentPhoto, finishTime: Date.now() });
+                    await updateDoc(doc(db, `${ROOT}/tasks`, docId), { actual: val, status: status, photo: app.currentPhoto, finishTime: Date.now() });
+                    
                     const emp = app.data.employees.find(e => e.id == task.assignee);
-                    await updateDoc(doc(db, `${ROOT}/employees`, emp._id), { score: (emp.score || 0) + 10 });
-                    await addDoc(collection(db, `${ROOT}/chat`), { senderId: app.user.id, text: `✅ HOÀN THÀNH: ${task.title} - SL: ${val}`, photo: app.currentPhoto, time: Date.now() });
+                    const scoreChange = status === 'completed' ? 10 : -2;
+                    await updateDoc(doc(db, `${ROOT}/employees`, emp._id), { score: (emp.score || 0) + scoreChange });
+                    
+                    const logTxt = status === 'completed' ? `✅ XÁC NHẬN XONG: ${task.title} (SL: ${val})` : `⚠️ BÁO CHƯA XONG: ${task.title}`;
+                    await addDoc(collection(db, `${ROOT}/chat`), { senderId: app.user.id, text: logTxt, photo: app.currentPhoto, time: Date.now() });
                     app.ui.hide('report-modal');
                 },
                 sendChat: async () => {
@@ -590,24 +576,23 @@
                     await addDoc(collection(db, `${ROOT}/chat`), { senderId: app.user.id, text: input.value, time: Date.now(), reactions: { heart: 0, like: 0, unlike: 0 } });
                     input.value = "";
                 },
-                react: async (msgId, type) => {
-                    await updateDoc(doc(db, `${ROOT}/chat`, msgId), { [`reactions.${type}`]: increment(1) });
-                },
+                react: async (msgId, type) => { await updateDoc(doc(db, `${ROOT}/chat`, msgId), { [`reactions.${type}`]: increment(1) }); },
                 exportEOD: () => {
                     const now = new Date();
-                    const dayTasks = app.data.tasks.filter(t => t.status === 'completed' && t.finishTime >= new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime());
+                    const dayTasks = app.data.tasks.filter(t => ['completed', 'unfinished'].includes(t.status) && t.finishTime >= new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime());
                     if(dayTasks.length === 0) return alert("Chưa có nhật ký!");
-                    let csv = "Ngày;Giờ;Nhân Viên;Công Việc;Nhà;Sản Lượng\n";
+                    let csv = "Ngày;Giờ;Nhân Viên;Công Việc;Nhà;Sản Lượng;Trạng Thái\n";
                     dayTasks.forEach(t => {
-                        csv += `${new Date(t.finishTime).toLocaleDateString('vi-VN')};${new Date(t.finishTime).toLocaleTimeString('vi-VN')};"${app.data.employees.find(e => e.id == t.assignee)?.name || t.assignee}";"${t.title}";"${t.houseId}";${t.actual}\n`;
+                        const sTxt = t.status === 'completed' ? 'Xong' : 'Chưa xong';
+                        csv += `${new Date(t.finishTime).toLocaleDateString('vi-VN')};${new Date(t.finishTime).toLocaleTimeString('vi-VN')};"${app.data.employees.find(e => e.id == t.assignee)?.name || t.assignee}";"${t.title}";"${t.houseId}";${t.actual};${sTxt}\n`;
                     });
                     const link = document.createElement("a");
                     link.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' }));
-                    link.download = `Bao_Cao_Tong_${now.toLocaleDateString('vi-VN').replace(/\//g, '-')}.csv`;
+                    link.download = `Bao_Cao_${now.toLocaleDateString('vi-VN').replace(/\//g, '-')}.csv`;
                     link.click();
                 },
                 exportLog: (hName) => {
-                    const logs = app.data.tasks.filter(t => t.houseId === hName && t.status === 'completed');
+                    const logs = app.data.tasks.filter(t => t.houseId === hName && ['completed', 'unfinished'].includes(t.status));
                     let csv = "Ngày;Việc;Số lượng;Người thực hiện\n";
                     logs.forEach(l => csv += `${new Date(l.finishTime||l.time).toLocaleDateString()};"${l.title}";${l.actual||0};"${l.assignee}"\n`);
                     const link = document.createElement("a");
@@ -615,7 +600,7 @@
                     link.download = `Log_${hName}.csv`;
                     link.click();
                 },
-                checkIn: async () => { if(app.user._id) { await updateDoc(doc(db, `${ROOT}/employees`, app.user._id), { lastLogin: new Date().toISOString().split('T')[0] }); alert("Đã điểm danh!"); } },
+                checkIn: async () => { if(app.user._id) { await updateDoc(doc(db, `${ROOT}/employees`, app.user._id), { lastLogin: new Date().toISOString().split('T')[0] }); alert("Đã điểm danh vào ca!"); } },
                 fillSOP: () => { const item = app.data.sop.find(s => s.title === document.getElementById('task-name').value); if(item) document.getElementById('task-target').value = item.sop; },
                 addEmployee: async () => {
                     const n = document.getElementById('new-emp-name').value;
