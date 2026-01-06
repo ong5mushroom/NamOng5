@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Nấm Ông 5 V51.1 - Platinum Final Enterprise</title>
+    <title>Nấm Ông 5 V51.2 - Platinum Final Enterprise</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -30,7 +30,6 @@
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(5px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 32px; padding: 24px; max-height: 85vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
         
-        /* Scrollbar hide */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -42,7 +41,7 @@
             <div class="bg-blue-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-black shadow-lg">5</div>
             <div>
                 <h1 class="text-xs font-black uppercase tracking-tight">Nấm Ông 5</h1>
-                <p class="text-[7px] text-green-500 font-bold uppercase">● Platinum Final V51.1</p>
+                <p class="text-[7px] text-green-500 font-bold uppercase">● Platinum Final V51.2</p>
             </div>
         </div>
         <div class="flex items-center gap-3">
@@ -79,6 +78,7 @@
 
             <!-- TAB TASKS -->
             <div id="tab-tasks" class="tab-content hidden space-y-4">
+                <!-- PHẦN GIAO VIỆC (ADMIN FORM) -->
                 <div id="admin-form" class="hidden glass-card p-5 border-2 border-blue-50 space-y-3 shadow-md">
                     <div class="flex justify-between items-center">
                         <span class="text-[10px] font-black text-blue-600 uppercase">Giao lệnh sản xuất</span>
@@ -154,12 +154,6 @@
                     </div>
                     <button onclick="app.actions.addEmployee()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition">Thêm nhân viên</button>
                 </div>
-                <div class="space-y-3">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cấu hình việc mẫu (SOP)</p>
-                    <input type="text" id="new-sop-name" placeholder="Tên việc mẫu..." class="w-full p-4 border rounded-2xl text-sm font-bold bg-slate-50">
-                    <input type="number" id="new-sop-val" placeholder="Định mức chuẩn" class="w-full p-4 border rounded-2xl text-sm font-bold bg-slate-50">
-                    <button onclick="app.actions.addSOP()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition">Lưu SOP</button>
-                </div>
             </div>
         </div>
     </div>
@@ -204,7 +198,7 @@
         </div>
     </div>
 
-    <!-- LOGIN -->
+    <!-- LOGIN SCREEN -->
     <div id="login-screen" class="fixed inset-0 bg-slate-50 z-[9000] flex flex-col items-center justify-center p-6">
         <div class="w-full max-w-sm bg-white p-8 rounded-[40px] shadow-2xl text-center border border-slate-100">
             <div class="w-16 h-16 bg-blue-600 rounded-3xl mx-auto mb-6 flex items-center justify-center text-white text-3xl font-black shadow-xl">5</div>
@@ -239,14 +233,8 @@
             assignMode: 'ind',
 
             ui: {
-                show: id => {
-                    const el = document.getElementById(id);
-                    if(el) el.classList.remove('hidden');
-                },
-                hide: id => {
-                    const el = document.getElementById(id);
-                    if(el) el.classList.add('hidden');
-                },
+                show: id => { document.getElementById(id)?.classList.remove('hidden'); },
+                hide: id => { document.getElementById(id)?.classList.add('hidden'); },
                 tab: id => {
                     document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
                     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
@@ -278,11 +266,8 @@
                 const sub = (c, k) => onSnapshot(collection(db, `${ROOT}/${c}`), s => { 
                     app.data[k] = s.docs.map(d => ({...d.data(), _id: d.id})); 
                     app.render(); 
-                }, (err) => console.error("Sync Error:", c, err));
-                
+                });
                 ['employees', 'tasks', 'houses', 'sop'].forEach(x => sub(x, x));
-                
-                // Khắc phục lỗi chat trắng: Tải toàn bộ lịch sử
                 const qChat = query(collection(db, `${ROOT}/chat`), orderBy("time", "asc"));
                 onSnapshot(qChat, s => { 
                     app.data.chat = s.docs.map(d => d.data()); 
@@ -312,12 +297,20 @@
                 document.getElementById('ui-role').innerText = app.user.role;
                 document.getElementById('ui-date').innerText = new Date().toLocaleDateString('vi-VN', {weekday: 'long', day: 'numeric', month: 'long'});
 
-                // Fix nút cài đặt: Hiển thị cho Admin
                 const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
+                
+                // FIX LỖI MẤT PHẦN GIAO VIỆC & BÁNH XE
                 const cog = document.getElementById('admin-cog');
-                if(isAdmin) cog.classList.remove('hidden'); else cog.classList.add('hidden');
+                const adminForm = document.getElementById('admin-form');
+                if(isAdmin) {
+                    cog?.classList.remove('hidden');
+                    adminForm?.classList.remove('hidden');
+                    app.renderAdminTools();
+                } else {
+                    cog?.classList.add('hidden');
+                    adminForm?.classList.add('hidden');
+                }
 
-                if(isAdmin) app.renderAdminTools();
                 app.renderHouses(); app.renderTasks(); app.renderTeam(); app.renderLeaderboard();
             },
 
@@ -409,9 +402,11 @@
 
             renderAdminTools: () => {
                 const hSelect = document.getElementById('task-house-id');
-                if(!hSelect.innerHTML) hSelect.innerHTML = '<option value="">Chọn nhà...</option>' + app.data.houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
+                hSelect.innerHTML = '<option value="">Chọn nhà...</option>' + app.data.houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
+                
                 const wList = document.getElementById('ind-zone');
-                if(!wList.innerHTML) wList.innerHTML = app.data.employees.map(e => `<label class="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><input type="checkbox" name="assign-check" value="${e.id}" class="w-5 h-5 rounded text-blue-600"> <span class="text-xs font-black text-slate-700">${e.name}</span></label>`).join('');
+                wList.innerHTML = app.data.employees.map(e => `<label class="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><input type="checkbox" name="assign-check" value="${e.id}" class="w-5 h-5 rounded text-blue-600"> <span class="text-xs font-black text-slate-700">${e.name}</span></label>`).join('');
+                
                 const dl = document.getElementById('sop-list');
                 dl.innerHTML = app.data.sop.map(s => `<option value="${s.title}">`).join('');
             },
@@ -437,7 +432,6 @@
                     if(!confirm(`Giục việc ${emp.name}? (-5đ thi đua)`)) return;
                     await updateDoc(doc(db, `${ROOT}/employees`, emp._id), { score: (emp.score || 0) - 5 });
                     await addDoc(collection(db, `${ROOT}/chat`), { senderId: "System", text: `🔔 GIỤC VIỆC: @${emp.name} đang chậm trễ tiến độ! (-5đ)`, time: Date.now() });
-                    alert("Đã nhắc nhở!");
                 },
                 openTemp: (id, name) => {
                     const h = app.data.houses.find(x => x._id === id);
@@ -484,16 +478,13 @@
                     const now = new Date();
                     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
                     const dayTasks = app.data.tasks.filter(t => t.status === 'completed' && t.finishTime >= startOfDay);
-                    
                     if(dayTasks.length === 0) return alert("Hôm nay chưa có dữ liệu hoàn thành!");
-
                     let csv = "Thời gian,Nhân viên,Công việc,Nhà,Sản lượng\n";
                     dayTasks.forEach(t => {
                         const time = new Date(t.finishTime).toLocaleTimeString('vi-VN');
                         const emp = app.data.employees.find(e => e.id == t.assignee)?.name || t.assignee;
                         csv += `${time},${emp},${t.title},${t.houseId},${t.actual}\n`;
                     });
-                    
                     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement("a");
                     link.href = URL.createObjectURL(blob);
@@ -513,10 +504,7 @@
                 },
                 checkIn: async () => {
                     const today = new Date().toISOString().split('T')[0];
-                    if(app.user._id) { 
-                        await updateDoc(doc(db, `${ROOT}/employees`, app.user._id), { lastLogin: today }); 
-                        alert("Điểm danh thành công!"); 
-                    }
+                    if(app.user._id) { await updateDoc(doc(db, `${ROOT}/employees`, app.user._id), { lastLogin: today }); alert("Đã điểm danh!"); }
                 },
                 fillSOP: () => {
                     const val = document.getElementById('task-name').value;
@@ -527,21 +515,9 @@
                     const n = document.getElementById('new-emp-name').value;
                     const id = document.getElementById('new-emp-id').value;
                     const p = document.getElementById('new-emp-pin').value;
-                    if(!n || !id || !p) return alert("Vui lòng điền đủ thông tin!");
+                    if(!n || !id || !p) return alert("Vui lòng điền đủ!");
                     await addDoc(collection(db, `${ROOT}/employees`), { id: Number(id), name: n, pin: p, role: "Nhân viên", score: 100 });
-                    alert("Đã thêm nhân viên!");
-                    document.getElementById('new-emp-name').value = "";
-                    document.getElementById('new-emp-id').value = "";
-                    document.getElementById('new-emp-pin').value = "";
-                },
-                addSOP: async () => {
-                    const t = document.getElementById('new-sop-name').value;
-                    const v = Number(document.getElementById('new-sop-val').value);
-                    if(!t || !v) return alert("Nhập đủ tên việc và định mức!");
-                    await addDoc(collection(db, `${ROOT}/sop`), { title: t, sop: v });
-                    alert("Đã lưu việc mẫu!");
-                    document.getElementById('new-sop-name').value = "";
-                    document.getElementById('new-sop-val').value = "";
+                    alert("Đã thêm!");
                 }
             }
         };
