@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- PWA Meta tags cho iOS/Android Notifications -->
+    <!-- PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Nấm Ông 5">
     
-    <title>Nấm Ông 5 V65 - Platinum Elite Ultimate</title>
+    <title>Nấm Ông 5 V67 - Platinum Elite Supreme</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -22,7 +22,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; margin: 0; padding: 0; overflow: hidden; height: 100vh; width: 100vw; }
         .hidden { display: none !important; }
         
-        /* Layout Mobile Optimization V65 */
+        /* Layout */
         header { 
             height: var(--header); 
             background: rgba(255,255,255,0.98); 
@@ -73,7 +73,8 @@
             background-color: var(--shiitake);
             background-image: 
                 radial-gradient(circle at 100% 150%, var(--shiitake) 24%, #e9e2d7 25%, #e9e2d7 28%, var(--shiitake) 29%, var(--shiitake) 36%, #e9e2d7 36%, #e9e2d7 40%, transparent 40%),
-                radial-gradient(circle at 50%  100%, #e9e2d7 10%, var(--shiitake) 11%, var(--shiitake) 23%, #e9e2d7 24%, #e9e2d7 30%, var(--shiitake) 31%, var(--shiitake) 43%, #e9e2d7 44%, #e9e2d7 50%, transparent 50%);
+                radial-gradient(circle at 50%  100%, #e9e2d7 10%, var(--shiitake) 11%, var(--shiitake) 23%, #e9e2d7 24%, #e9e2d7 30%, var(--shiitake) 31%, var(--shiitake) 43%, #e9e2d7 44%, #e9e2d7 50%, transparent 50%),
+                radial-gradient(circle at 50%  0, #e9e2d7 10%, var(--shiitake) 11%, var(--shiitake) 23%, #e9e2d7 24%, #e9e2d7 30%, var(--shiitake) 31%, var(--shiitake) 43%, #e9e2d7 44%, #e9e2d7 50%, transparent 50%);
             background-size: 60px 60px;
         }
         
@@ -84,6 +85,7 @@
         .chat-bubble.me { background: var(--blue); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .chat-bubble.other { background: white; color: #1e293b; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
         .chat-bubble.sos { background: #ef4444; color: white; border: 2px solid #fee2e2; animation: sos-pulse 1s infinite; }
+        .chat-bubble.warning { background: #f59e0b; color: white; border: 2px solid #fcd34d; font-weight: bold; }
         
         @keyframes sos-pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
@@ -100,6 +102,7 @@
         
         #toast-container { position: fixed; top: 130px; left: 16px; right: 16px; z-index: 9999; pointer-events: none; }
         .toast-msg { background: #0f172a; color: white; padding: 18px 22px; border-radius: 22px; box-shadow: 0 15px 45px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 14px; margin-bottom: 12px; animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .toast-msg.warning { background: #f59e0b; color: white; }
         @keyframes slideIn { from { transform: translateY(-130px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -111,6 +114,8 @@
         .sos-btn { background: #ef4444; color: white; font-weight: 900; padding: 16px 0; border-radius: 26px; width: 100%; text-transform: uppercase; letter-spacing: 1.5px; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 12px 30px rgba(239, 68, 68, 0.3); border: 2px solid rgba(255,255,255,0.2); }
         
         .multi-select-box { max-height: 160px; overflow-y: auto; border: 2px solid #f1f5f9; border-radius: 20px; padding: 10px; background: #fafafa; }
+        
+        .name-online { color: var(--blue) !important; font-weight: 900 !important; text-shadow: 0 0 10px rgba(37, 99, 235, 0.2); }
     </style>
 </head>
 <body>
@@ -122,8 +127,8 @@
             <div id="btn-back-chat" onclick="app.ui.tab('home')" class="hidden mr-1 text-slate-400 active:text-blue-600 p-2"><i class="fas fa-chevron-left text-xl"></i></div>
             <div class="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg">5</div>
             <div>
-                <h1 class="text-[12px] font-black uppercase tracking-tight leading-none text-slate-800 text-nowrap">Nấm Ông 5</h1>
-                <p class="text-[7px] text-blue-600 font-bold uppercase mt-1 tracking-widest text-nowrap">● Elite Ultimate V65</p>
+                <h1 class="text-[12px] font-black uppercase tracking-tight leading-none text-slate-800">Nấm Ông 5</h1>
+                <p class="text-[7px] text-blue-600 font-bold uppercase mt-1 tracking-widest">● Elite V67</p>
             </div>
         </div>
         <div class="flex items-center gap-2 text-right">
@@ -247,10 +252,18 @@
     <div id="settings-modal" class="modal-overlay hidden" onclick="if(event.target===this) app.ui.hide('settings-modal')">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-8">
-                <h3 class="font-black uppercase text-sm tracking-widest text-slate-800">Quản lý trung tâm</h3>
+                <h3 class="font-black uppercase text-sm tracking-widest text-slate-800">Cấu hình doanh nghiệp</h3>
                 <button onclick="app.ui.hide('settings-modal')" class="p-2 text-slate-300"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="space-y-8">
+                <!-- NHÓM QUẢN LÝ CHẤM CÔNG (MỚI) -->
+                <div class="space-y-3">
+                    <p class="text-[11px] font-black text-red-600 uppercase tracking-widest">Quản lý chấm công</p>
+                    <button onclick="app.actions.remindAttendance()" class="w-full bg-red-50 text-red-600 py-4 rounded-2xl font-black text-xs uppercase shadow-sm border border-red-100 flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i class="fas fa-bullhorn"></i> Quét nhân sự chưa vào ca
+                    </button>
+                </div>
+                
                 <div class="space-y-3">
                     <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Dữ liệu Excel</p>
                     <button onclick="app.actions.exportEOD()" class="w-full bg-green-600 text-white py-5 rounded-3xl font-black text-xs uppercase shadow-xl flex items-center justify-center gap-3">
@@ -267,10 +280,10 @@
                 </div>
 
                 <div class="space-y-4">
-                    <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Quản lý nhân sự</p>
+                    <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Thêm nhân sự mới</p>
                     <input type="text" id="new-emp-name" placeholder="Họ tên nhân viên..." class="w-full p-4 border-2 border-slate-100 rounded-2xl text-sm font-bold bg-slate-50 outline-none">
                     <div class="grid grid-cols-2 gap-3">
-                        <input type="number" id="new-emp-id" placeholder="ID" class="p-4 border-2 border-slate-100 rounded-2xl text-sm font-bold bg-slate-50 outline-none">
+                        <input type="number" id="new-emp-id" placeholder="ID Số" class="p-4 border-2 border-slate-100 rounded-2xl text-sm font-bold bg-slate-50 outline-none">
                         <input type="number" id="new-emp-pin" placeholder="PIN" class="p-4 border-2 border-slate-100 rounded-2xl text-sm font-bold bg-slate-50 outline-none">
                     </div>
                     <button onclick="app.actions.addEmployee()" class="w-full bg-slate-800 text-white py-5 rounded-3xl font-black text-xs uppercase shadow-xl">Cấp Tài Khoản</button>
@@ -293,11 +306,11 @@
         </div>
     </div>
 
-    <!-- MODAL REPORT (V65 UPDATE - GHI CHÚ) -->
+    <!-- MODAL REPORT -->
     <div id="report-modal" class="modal-overlay hidden" onclick="if(event.target===this) app.ui.hide('report-modal')">
         <div class="modal-content">
             <h3 class="font-black text-center text-xl mb-2 uppercase text-slate-800 tracking-tighter">Báo cáo kết quả</h3>
-            <p id="report-task-name" class="text-center text-[10px] text-blue-600 font-black mb-6 uppercase tracking-widest"></p>
+            <p id="report-task-name" class="text-center text-[10px] text-blue-600 font-black mb-8 uppercase tracking-widest"></p>
             <input type="hidden" id="report-task-id">
             
             <div class="space-y-5">
@@ -313,14 +326,13 @@
                 </div>
 
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-1 block">Sản lượng đạt</label>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-1 block">Sản lượng / Ghi chú</label>
                     <input type="number" id="report-val" placeholder="0" class="w-full bg-slate-50 border-4 border-slate-100 p-4 rounded-[24px] text-4xl font-black text-center shadow-inner focus:border-blue-400 outline-none">
                 </div>
 
-                <!-- Bổ sung thông tin ngoài số lượng và ảnh -->
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-1 block">Thông tin bổ sung / Ghi chú</label>
-                    <textarea id="report-info" placeholder="Nhập thêm chi tiết công việc hoặc lý do chưa xong..." class="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-[20px] text-sm font-medium outline-none focus:border-blue-400 h-24 no-scrollbar"></textarea>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-1 block">Thông tin bổ sung / Lý do</label>
+                    <textarea id="report-info" placeholder="Nhập thêm chi tiết..." class="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-[20px] text-sm font-medium outline-none focus:border-blue-400 h-24 no-scrollbar"></textarea>
                 </div>
 
                 <div class="text-center border-t border-b py-4 border-dashed border-slate-200">
@@ -330,7 +342,7 @@
                         <input type="file" accept="image/*" capture="environment" class="hidden" onchange="app.actions.handlePhoto(this)">
                     </label>
                     <div id="photo-preview-container" class="hidden text-center">
-                        <img id="photo-preview" src="" class="rounded-3xl mx-auto border-4 border-white shadow-2xl max-h-48">
+                        <img id="photo-preview" src="" class="rounded-3xl mx-auto border-4 border-white shadow-2xl max-h-60">
                         <button onclick="app.actions.resetPhoto()" class="text-red-500 text-[11px] font-black mt-4 uppercase underline">Chụp lại</button>
                     </div>
                 </div>
@@ -349,15 +361,15 @@
     <div id="login-screen" class="fixed inset-0 bg-slate-50 z-[9000] flex flex-col items-center justify-center p-8">
         <div class="w-full max-w-sm bg-white p-12 rounded-[56px] shadow-2xl text-center border border-slate-100">
             <div class="w-20 h-20 bg-blue-600 rounded-[32px] mx-auto mb-8 flex items-center justify-center text-white text-4xl font-black shadow-2xl">5</div>
-            <h1 class="text-2xl font-black mb-10 uppercase tracking-tighter text-slate-800 leading-none">Nấm Ông 5<br><span class="text-blue-600 text-sm font-bold">Platinum Elite Enterprise</span></h1>
+            <h1 class="text-2xl font-black mb-10 uppercase tracking-tighter text-slate-800 leading-none">Nấm Ông 5<br><span class="text-blue-600 text-sm font-bold">Platinum Elite V67</span></h1>
             <div id="step-1" class="space-y-5 w-full">
                 <select id="user-select" class="w-full p-6 border-2 border-slate-100 rounded-3xl font-bold bg-slate-50 outline-none appearance-none shadow-sm text-center"></select>
                 <button onclick="app.ui.nextStep()" class="w-full bg-blue-600 text-white font-black py-6 rounded-[32px] shadow-2xl active:scale-95 transition uppercase tracking-widest text-sm text-center">Xác nhận tên</button>
             </div>
             <div id="step-2" class="hidden space-y-5 w-full">
-                <input type="password" id="user-pin" maxlength="4" inputmode="numeric" class="w-full p-6 border-2 border-slate-100 text-4xl text-center rounded-3xl tracking-[0.6em] font-black outline-none bg-slate-50 shadow-inner text-center" placeholder="••••">
+                <input type="password" id="user-pin" maxlength="4" inputmode="numeric" class="w-full p-6 border-2 border-slate-100 text-4xl text-center rounded-3xl tracking-[0.6em] font-black outline-none bg-slate-50 shadow-inner" placeholder="••••">
                 <button onclick="app.doLogin()" class="w-full bg-green-600 text-white font-black py-6 rounded-[32px] shadow-2xl active:scale-95 transition uppercase tracking-widest text-sm text-center">Vào Ca</button>
-                <button onclick="app.ui.prevStep()" class="text-[11px] font-bold text-slate-400 uppercase underline mt-8 block mx-auto tracking-widest">Chọn lại</button>
+                <button onclick="app.ui.prevStep()" class="text-[11px] font-bold text-slate-400 uppercase underline mt-8 block mx-auto tracking-widest">Chọn lại tên</button>
             </div>
         </div>
     </div>
@@ -365,7 +377,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, query, orderBy, limit, increment, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, query, orderBy, limit, increment, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const fbConfig = { apiKey: "AIzaSyBQDQfYuhf0AWOtmcdufVGeXlzwnSJ33Vw", authDomain: "ong5mushroom-vietnam.firebaseapp.com", projectId: "ong5mushroom-vietnam", storageBucket: "ong5mushroom-vietnam.firebasestorage.app", messagingSenderId: "931399604992", appId: "1:931399604992:web:134c9bfbddbfef97cd31e5" };
         const fbApp = initializeApp(fbConfig);
@@ -373,18 +385,11 @@
         const db = getFirestore(fbApp);
         const ROOT = "artifacts/namong5_production/public/data";
 
-        // Tích hợp Service Worker Inline Cực Mạnh cho Background Notification
+        // Service Worker cho Thông báo
         if ('serviceWorker' in navigator) {
-            const swCode = `
-                self.addEventListener('push', e => {
-                    const data = e.data ? e.data.json() : { title: 'Nấm Ông 5', body: 'Bạn có thông báo mới!' };
-                    e.waitUntil(self.registration.showNotification(data.title, { body: data.body, icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968204.png' }));
-                });
-            `;
+            const swCode = `self.addEventListener('push', e => { const d = e.data ? e.data.json() : { title: 'Nấm Ông 5', body: 'Thông báo' }; e.waitUntil(self.registration.showNotification(d.title, { body: d.body, icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968204.png' })); });`;
             const blob = new Blob([swCode], { type: 'application/javascript' });
-            navigator.serviceWorker.register(URL.createObjectURL(blob)).then(reg => {
-                console.log('SW registered');
-            }).catch(err => console.log('SW error:', err));
+            navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log('SW error:', err));
         }
 
         window.app = {
@@ -414,17 +419,17 @@
                     app.assignMode = document.getElementById('assign-mode').value;
                     document.getElementById('ind-zone').classList.toggle('hidden', app.assignMode !== 'ind');
                     document.getElementById('team-zone').classList.toggle('hidden', app.assignMode !== 'team');
-                    document.getElementById('assignee-label').innerText = app.assignMode === 'ind' ? 'Người thực hiện' : 'Tổ thực hiện';
                 },
                 scrollChat: () => { const b = document.getElementById('chat-box'); setTimeout(() => { b.scrollTop = b.scrollHeight; }, 200); },
-                toast: (title, msg, isSOS = false) => {
+                toast: (title, msg, isSOS = false, isWarning = false) => {
                     const container = document.getElementById('toast-container');
                     const toast = document.createElement('div');
-                    toast.className = `toast-msg ${isSOS ? 'sos' : ''}`;
-                    toast.innerHTML = `<div class="${isSOS ? 'bg-white text-red-600' : 'bg-blue-600 text-white'} w-11 h-11 rounded-xl flex items-center justify-center shadow-lg"><i class="fas ${isSOS ? 'fa-ambulance' : 'fa-bell'} text-sm"></i></div><div><p class="text-[10px] font-black uppercase ${isSOS ? 'text-white/80' : 'text-blue-400'}">${title}</p><p class="text-xs font-bold leading-tight">${msg}</p></div>`;
+                    toast.className = `toast-msg ${isSOS ? 'sos' : ''} ${isWarning ? 'warning' : ''}`;
+                    const icon = isSOS ? 'fa-ambulance' : (isWarning ? 'fa-exclamation-circle' : 'fa-bell');
+                    toast.innerHTML = `<div class="${isSOS ? 'bg-white text-red-600' : 'bg-blue-600 text-white'} w-11 h-11 rounded-xl flex items-center justify-center shadow-lg"><i class="fas ${icon} text-sm"></i></div><div><p class="text-[10px] font-black uppercase ${isSOS ? 'text-white/80' : 'text-blue-400'}">${title}</p><p class="text-xs font-bold leading-tight">${msg}</p></div>`;
                     container.appendChild(toast);
                     setTimeout(() => toast.remove(), 6000);
-                    if (navigator.vibrate) navigator.vibrate(isSOS ? [500, 200, 500, 200, 500] : [100, 50, 100]);
+                    if (navigator.vibrate) navigator.vibrate(isSOS ? [500, 200, 500] : [100, 50, 100]);
                 }
             },
 
@@ -441,8 +446,8 @@
                     if (k === 'tasks' && app.data.tasks.length > oldLen) {
                         const lastTask = app.data.tasks[app.data.tasks.length - 1];
                         if (lastTask.time > app.pageStartTime && lastTask.assignee == app.user?.id) {
-                            app.ui.toast("LỆNH MỚI 📢", lastTask.title);
                             app.actions.pushNotify("LỆNH MỚI 📢", lastTask.title);
+                            app.ui.toast("LỆNH MỚI 📢", lastTask.title);
                         }
                     }
                     app.render(); 
@@ -456,12 +461,13 @@
                     if (app.data.chat.length > oldChatLen) {
                         const lastMsg = app.data.chat[app.data.chat.length - 1];
                         if (lastMsg.time > app.pageStartTime && lastMsg.senderId != app.user?.id) {
-                            app.ui.toast(lastMsg.isSOS ? "SOS KHẨN CẤP 🆘" : "TIN NHẮN 💬", lastMsg.text, lastMsg.isSOS);
-                            app.actions.pushNotify(lastMsg.isSOS ? "SOS KHẨN CẤP 🆘" : "TIN NHẮN 💬", lastMsg.text);
+                            const title = lastMsg.isSOS ? "SOS CỨU TRỢ 🆘" : "TIN NHẮN 💬";
+                            app.ui.toast(title, lastMsg.text, lastMsg.isSOS);
+                            app.actions.pushNotify(title, lastMsg.text);
                         }
                     }
                     app.renderChat(); 
-                }, (err) => console.error(err));
+                });
             },
 
             doLogin: () => {
@@ -469,7 +475,7 @@
                 const pin = document.getElementById('user-pin').value;
                 const emp = app.data.employees.find(e => e.id == id && e.pin == pin);
                 if(emp) { app.user = emp; localStorage.setItem('n5_v51_user', JSON.stringify(emp)); app.render(); app.actions.requestNotify(); }
-                else alert("Mã PIN không chính xác!");
+                else alert("Mã PIN không đúng!");
             },
 
             render: () => {
@@ -482,8 +488,7 @@
                 document.getElementById('ui-role').innerText = app.user.role;
                 document.getElementById('ui-date').innerText = new Date().toLocaleDateString('vi-VN', {weekday: 'long', day: 'numeric', month: 'long'});
 
-                const userRoleLower = (app.user.role || "").toLowerCase();
-                const isAdmin = ["giám đốc", "quản lý"].includes(userRoleLower);
+                const isAdmin = ["giám đốc", "quản lý"].includes(app.user.role.toLowerCase());
                 const cog = document.getElementById('admin-cog');
                 const adminForm = document.getElementById('admin-form');
                 if(isAdmin) { cog?.classList.remove('hidden'); adminForm?.classList.remove('hidden'); app.renderAdminTools(); }
@@ -495,7 +500,7 @@
             renderLogin: () => {
                 const s = document.getElementById('user-select');
                 if(!s.innerHTML || s.options.length <= 1) {
-                    s.innerHTML = '<option value="">Ai đang vào ca?</option>' + app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+                    s.innerHTML = '<option value="">Chọn tên của bạn...</option>' + app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
                 }
                 app.ui.show('login-screen');
             },
@@ -509,7 +514,7 @@
             renderHouses: () => {
                 const isAdmin = ["giám đốc", "quản lý"].includes(app.user.role.toLowerCase());
                 document.getElementById('house-grid').innerHTML = app.data.houses.map(h => `
-                    <div class="glass-card p-5 flex justify-between items-center border-l-8 border-slate-900 shadow-lg"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shadow-xl">${h.name.substring(0,2).toUpperCase()}</div><div><p class="font-black text-sm text-slate-800 uppercase">${h.name}</p><p class="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-tighter">Sáng: ${h.temp?.am||'--'}° | Chiều: ${h.temp?.pm||'--'}°</p></div></div><div class="flex gap-2"><button onclick="app.actions.openTemp('${h._id}','${h.name}')" class="text-orange-500 bg-orange-50 w-11 h-11 rounded-2xl flex items-center justify-center active:scale-90 transition border border-orange-100 shadow-inner"><i class="fas fa-thermometer-half"></i></button>${isAdmin ? `<button onclick="app.actions.exportLog('${h.name}')" class="text-blue-600 bg-blue-50 w-11 h-11 rounded-2xl flex items-center justify-center active:scale-90 transition border border-blue-100 shadow-inner"><i class="fas fa-file-csv"></i></button>` : ''}</div></div>`).join('');
+                    <div class="glass-card p-5 flex justify-between items-center border-l-8 border-slate-900 shadow-lg"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shadow-xl uppercase">${h.name.substring(0,2).toUpperCase()}</div><div><p class="font-black text-sm text-slate-800 uppercase">${h.name}</p><p class="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-tighter">S: ${h.temp?.am||'--'}° | C: ${h.temp?.pm||'--'}°</p></div></div><div class="flex gap-2"><button onclick="app.actions.openTemp('${h._id}','${h.name}')" class="text-orange-500 bg-orange-50 w-11 h-11 rounded-2xl flex items-center justify-center active:scale-90 transition border border-orange-100 shadow-inner"><i class="fas fa-thermometer-half"></i></button>${isAdmin ? `<button onclick="app.actions.exportLog('${h.name}')" class="text-blue-600 bg-blue-50 w-11 h-11 rounded-2xl flex items-center justify-center active:scale-90 transition border border-blue-100 shadow-inner"><i class="fas fa-file-csv"></i></button>` : ''}</div></div>`).join('');
             },
 
             renderTasks: () => {
@@ -529,7 +534,11 @@
                     
                     return `<div class="bg-white p-6 rounded-[32px] flex justify-between items-center shadow-lg border border-slate-50 relative overflow-hidden">
                         <div class="flex-1"><p class="font-black text-[10px] text-blue-600 uppercase mb-1 tracking-widest">${worker?.name || t.assignee}</p><p class="font-black text-sm text-slate-800 leading-tight">${t.title}</p><span class="inline-block mt-2 bg-slate-900 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-wider">${t.houseId || 'Hệ thống'}</span></div>
-                        <div class="flex gap-2 relative z-10">${canNudge ? `<button onclick="app.actions.nudge('${t._id}', '${t.assignee}')" class="w-12 h-12 bg-red-50 text-red-500 rounded-[20px] flex items-center justify-center border border-red-100 active:scale-90 transition shadow-sm"><i class="fas fa-bell"></i></button>` : ''}${canReport ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-6 py-4 rounded-[20px] text-[10px] font-black uppercase shadow-xl shadow-blue-200 active:scale-90 transition">BÁO CÁO</button>` : ''}</div>
+                        <div class="flex gap-2 relative z-10">
+                            ${isAdmin ? `<button onclick="app.actions.deleteTask('${t._id}')" class="w-10 h-10 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center border active:scale-90 transition"><i class="fas fa-trash-alt text-xs"></i></button>` : ''}
+                            ${canNudge ? `<button onclick="app.actions.nudge('${t._id}', '${t.assignee}')" class="w-11 h-11 bg-red-50 text-red-500 rounded-[20px] flex items-center justify-center border border-red-100 active:scale-90 transition"><i class="fas fa-bell"></i></button>` : ''}
+                            ${canReport ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-6 py-4 rounded-[20px] text-[10px] font-black uppercase shadow-xl shadow-blue-200 active:scale-90 transition">BÁO CÁO</button>` : ''}
+                        </div>
                         <div class="absolute -left-1 top-0 bottom-0 w-2 bg-blue-600"></div>
                     </div>`}).join('');
             },
@@ -538,7 +547,7 @@
                 const todayStr = new Date().toISOString().split('T')[0];
                 document.getElementById('team-list').innerHTML = app.data.employees.map(e => `
                     <div class="glass-card p-5 flex items-center justify-between shadow-md border border-slate-50">
-                        <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-[18px] bg-slate-100 flex items-center justify-center font-black text-slate-400 border border-slate-200">${e.name.charAt(0)}</div><div><p class="text-[15px] font-black text-slate-800 leading-none uppercase">${e.name}</p><p class="text-[10px] text-slate-400 font-bold uppercase mt-2 tracking-tighter">${e.role} | Score: ${e.score||0}đ</p></div></div>
+                        <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-[18px] bg-slate-100 flex items-center justify-center font-black text-slate-400 border border-slate-200">${e.name.charAt(0)}</div><div><p class="text-[15px] font-black leading-none uppercase ${e.lastLogin === todayStr ? 'text-blue-600' : 'text-slate-800'}">${e.name}</p><p class="text-[10px] text-slate-400 font-bold uppercase mt-2 tracking-tighter">${e.role} | Score: ${e.score||0}đ</p></div></div>
                         <div class="w-4 h-4 rounded-full ${e.lastLogin === todayStr ? 'bg-green-500 shadow-xl animate-pulse' : 'bg-slate-200'}"></div>
                     </div>`).join('');
             },
@@ -556,16 +565,66 @@
             renderAdminTools: () => {
                 const houseZone = document.getElementById('house-multi-zone');
                 if (houseZone) houseZone.innerHTML = app.data.houses.map(h => `<label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-100 shadow-sm"><input type="checkbox" name="assign-house" value="${h.name}" class="w-4 h-4 accent-blue-600"><span class="text-[10px] font-black text-slate-700 uppercase">${h.name}</span></label>`).join('');
-
                 const wList = document.getElementById('ind-zone');
                 if (wList) wList.innerHTML = app.data.employees.map(e => `<label class="flex items-center gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"><input type="checkbox" name="assign-check" value="${e.id}" class="w-6 h-6 rounded-lg accent-blue-600 shadow-sm"> <span class="text-xs font-black text-slate-700 uppercase text-nowrap">${e.name}</span></label>`).join('');
-                
                 const dl = document.getElementById('sop-list');
                 if (dl) dl.innerHTML = app.data.sop.map(s => `<option value="${s.title}">`).join('');
             },
 
             actions: {
-                logout: () => { if(confirm("Bạn muốn đăng xuất khỏi máy này?")) { localStorage.removeItem('n5_v51_user'); location.reload(); } },
+                logout: () => { if(confirm("Xác nhận thoát tài khoản?")) { localStorage.removeItem('n5_v51_user'); location.reload(); } },
+                deleteTask: async (id) => {
+                    if(!confirm("Xóa lệnh sản xuất này?")) return;
+                    await deleteDoc(doc(db, `${ROOT}/tasks`, id));
+                    app.ui.toast("HỆ THỐNG", "Đã xóa lệnh thành công!");
+                },
+                remindAttendance: async () => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const missing = app.data.employees.filter(e => e.lastLogin !== today);
+                    if(missing.length === 0) return alert("Tuyệt vời! Tất cả nhân sự đã vào ca.");
+                    
+                    const names = missing.map(e => e.name).join(', ');
+                    await addDoc(collection(db, `${ROOT}/chat`), { 
+                        senderId: "System", 
+                        text: `⚠️ CẢNH BÁO ĐIỂM DANH: Các nhân sự sau chưa vào ca: ${names}. Vui lòng đăng nhập ngay!`, 
+                        time: Date.now() 
+                    });
+                    app.actions.pushNotify("CẢNH BÁO", "Vui lòng vào ca làm việc ngay!");
+                    alert(`Đã nhắc nhở ${missing.length} nhân sự!`);
+                },
+                // ... (Các hàm khác giữ nguyên như V66) ...
+                requestNotify: () => { if ("Notification" in window) Notification.requestPermission(); },
+                testNotify: () => { app.ui.toast("TEST", "Thông báo Toast hoạt động!"); app.actions.pushNotify("TEST", "Banner hoạt động!"); },
+                pushNotify: (title, body) => {
+                    if ('serviceWorker' in navigator && Notification.permission === "granted") {
+                        navigator.serviceWorker.ready.then(reg => { reg.showNotification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968204.png' }); });
+                    }
+                },
+                addTask: async () => {
+                    const title = document.getElementById('task-name').value;
+                    const houses = Array.from(document.querySelectorAll('input[name="assign-house"]:checked')).map(i => i.value);
+                    let uids = Array.from(document.querySelectorAll('input[name="assign-check"]:checked')).map(i => i.value);
+                    if(app.assignMode === 'team') uids = app.data.employees.filter(e => e.team === document.querySelector('input[name="team-radio"]:checked').value).map(e => e.id);
+                    if(!title || uids.length === 0 || houses.length === 0) return alert("Vui lòng điền đủ!");
+                    for(let house of houses) {
+                        for(let uid of uids) {
+                            await addDoc(collection(db, `${ROOT}/tasks`), { title, houseId: house, assignee: uid, status: 'pending', time: Date.now() });
+                        }
+                    }
+                    await addDoc(collection(db, `${ROOT}/chat`), { senderId: "System", text: `📢 LỆNH MỚI: [${title}] tại [${houses.join(', ')}].`, time: Date.now() });
+                    alert("Đã ban hành lệnh thành công!");
+                },
+                nudge: async (taskId, workerId) => {
+                    const emp = app.data.employees.find(e => e.id == workerId);
+                    if(!confirm(`Giục việc ${emp.name}? (-5đ thi đua)`)) return;
+                    await updateDoc(doc(db, `${ROOT}/employees`, emp._id), { score: (emp.score || 0) - 5 });
+                    await addDoc(collection(db, `${ROOT}/chat`), { senderId: app.user.id, text: `🔔 GIỤC VIỆC: @${emp.name.toUpperCase()} đang chậm tiến độ! (-5đ)`, time: Date.now() });
+                },
+                saveTemp: async () => {
+                    const id = document.getElementById('temp-house-id').value;
+                    await updateDoc(doc(db, `${ROOT}/houses`, id), { 'temp.am': document.getElementById('temp-am').value, 'temp.pm': document.getElementById('temp-pm').value });
+                    alert("Đã lưu!"); app.ui.hide('temp-modal');
+                },
                 openTemp: (id, name) => {
                     const h = app.data.houses.find(x => x._id == id);
                     if (!h) return;
@@ -574,47 +633,6 @@
                     document.getElementById('temp-am').value = h.temp?.am || "";
                     document.getElementById('temp-pm').value = h.temp?.pm || "";
                     app.ui.show('temp-modal');
-                },
-                saveTemp: async () => {
-                    const id = document.getElementById('temp-house-id').value;
-                    await updateDoc(doc(db, `${ROOT}/houses`, id), { 'temp.am': document.getElementById('temp-am').value, 'temp.pm': document.getElementById('temp-pm').value });
-                    app.ui.hide('temp-modal');
-                    alert("Đã lưu nhiệt độ!");
-                },
-                requestNotify: () => { if ("Notification" in window) Notification.requestPermission(); },
-                testNotify: () => { 
-                    app.ui.toast("TEST", "Thông báo Toast hoạt động tốt!"); 
-                    app.actions.pushNotify("Hệ thống", "Thông báo banner hoạt động!"); 
-                },
-                pushNotify: (title, body) => {
-                    // Logic mới: Gọi thông báo từ Service Worker Registration để chạy ngầm
-                    if ('serviceWorker' in navigator && Notification.permission === "granted") {
-                        navigator.serviceWorker.ready.then(reg => {
-                            reg.showNotification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968204.png' });
-                        });
-                    } else if (Notification.permission === "granted") {
-                        new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968204.png' });
-                    }
-                },
-                addTask: async () => {
-                    const title = document.getElementById('task-name').value;
-                    const selectedHouses = Array.from(document.querySelectorAll('input[name="assign-house"]:checked')).map(i => i.value);
-                    let uids = Array.from(document.querySelectorAll('input[name="assign-check"]:checked')).map(i => i.value);
-                    if(app.assignMode === 'team') uids = app.data.employees.filter(e => e.team === document.querySelector('input[name="team-radio"]:checked').value).map(e => e.id);
-                    if(!title || uids.length === 0 || selectedHouses.length === 0) return alert("Vui lòng nhập tên việc, chọn nhà và chọn người!");
-                    for(let house of selectedHouses) {
-                        for(let uid of uids) {
-                            await addDoc(collection(db, `${ROOT}/tasks`), { title, houseId: house, assignee: uid, status: 'pending', time: Date.now() });
-                        }
-                    }
-                    await addDoc(collection(db, `${ROOT}/chat`), { senderId: "System", text: `📢 LỆNH MỚI: [${title}] tại [${selectedHouses.join(', ')}].`, time: Date.now() });
-                    alert("Đã ban hành lệnh thành công!");
-                },
-                nudge: async (taskId, workerId) => {
-                    const emp = app.data.employees.find(e => e.id == workerId);
-                    if(!confirm(`Giục việc ${emp.name}? (-5đ thi đua)`)) return;
-                    await updateDoc(doc(db, `${ROOT}/employees`, emp._id), { score: (emp.score || 0) - 5 });
-                    await addDoc(collection(db, `${ROOT}/chat`), { senderId: app.user.id, text: `🔔 GIỤC VIỆC: @${emp.name.toUpperCase()} đang chậm tiến độ! (-5đ)`, time: Date.now() });
                 },
                 handlePhoto: input => {
                     const reader = new FileReader();
@@ -633,13 +651,13 @@
                     const val = Number(document.getElementById('report-val').value);
                     const info = document.getElementById('report-info').value;
                     const status = document.querySelector('input[name="report-status"]:checked').value;
-                    if(!val && status === 'completed') return alert("Nhập sản lượng thực tế!");
+                    if(!val && status === 'completed') return alert("Nhập sản lượng!");
                     const task = app.data.tasks.find(t => t._id === docId);
                     await updateDoc(doc(db, `${ROOT}/tasks`, docId), { actual: val, status: status, note: info, photo: app.currentPhoto, finishTime: Date.now() });
                     const emp = app.data.employees.find(e => e.id == task.assignee);
                     const scoreChange = status === 'completed' ? 10 : -2;
                     await updateDoc(doc(db, `${ROOT}/employees`, emp._id), { score: (emp.score || 0) + scoreChange });
-                    const logTxt = status === 'completed' ? `✅ XÁC NHẬN XONG: ${task.title} (SL: ${val}) - ${info}` : `⚠️ BÁO CHƯA XONG: ${task.title} - ${info}`;
+                    const logTxt = status === 'completed' ? `✅ XONG: ${task.title} (SL: ${val})` : `⚠️ CHƯA XONG: ${task.title}`;
                     await addDoc(collection(db, `${ROOT}/chat`), { senderId: app.user.id, text: logTxt, photo: app.currentPhoto, time: Date.now() });
                     app.ui.hide('report-modal');
                 },
@@ -647,7 +665,7 @@
                     const taskId = document.getElementById('report-task-id').value;
                     const task = app.data.tasks.find(t => t._id === taskId);
                     const msg = `🆘 SOS: ${app.user.name.toUpperCase()} CẦN HỖ TRỢ GẤP TẠI [${task.houseId}] CHO VIỆC [${task.title}]!`;
-                    if(!confirm("Xác nhận phát tín hiệu SOS khẩn cấp?")) return;
+                    if(!confirm("Gửi SOS khẩn cấp?")) return;
                     await addDoc(collection(db, `${ROOT}/chat`), { senderId: app.user.id, text: msg, isSOS: true, time: Date.now() });
                     app.ui.toast("SOS KHẨN CẤP 🆘", "Đã phát tín hiệu cứu trợ!", true);
                     app.ui.hide('report-modal');
@@ -672,6 +690,15 @@
                     link.download = `Report_${now.toLocaleDateString('vi-VN').replace(/\//g, '-')}.csv`;
                     link.click();
                 },
+                exportLog: (hName) => {
+                    const logs = app.data.tasks.filter(t => t.houseId === hName && ['completed', 'unfinished'].includes(t.status));
+                    let csv = "Ngày;Việc;Số lượng;Người thực hiện\n";
+                    logs.forEach(l => csv += `${new Date(l.finishTime||l.time).toLocaleDateString()};"${l.title}";${l.actual||0};"${l.assignee}"\n`);
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' }));
+                    link.download = `Log_${hName}.csv`;
+                    link.click();
+                },
                 checkIn: async () => { if(app.user._id) { await updateDoc(doc(db, `${ROOT}/employees`, app.user._id), { lastLogin: new Date().toISOString().split('T')[0] }); alert("Điểm danh thành công!"); } },
                 fillSOP: () => { const item = app.data.sop.find(s => s.title === document.getElementById('task-name').value); if(item) document.getElementById('task-target').value = item.sop; },
                 addEmployee: async () => {
@@ -687,7 +714,7 @@
                     const v = Number(document.getElementById('new-sop-val').value);
                     if(!t || !v) return alert("Nhập đủ!");
                     await addDoc(collection(db, `${ROOT}/sop`), { title: t, sop: v });
-                    alert("Đã lưu!");
+                    alert("Đã lưu!"); document.getElementById('new-sop-name').value = ""; document.getElementById('new-sop-val').value = "";
                 }
             }
         };
