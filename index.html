@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
-    <title>Nấm Ông 5 V71 - Enterprise Master</title>
+    <title>Nấm Ông 5 V72 - Enterprise Master</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -37,16 +40,23 @@
 
         /* Chat */
         .shiitake-bg { background-color: var(--shiitake); background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px); background-size: 20px 20px; }
-        .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 14px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 14px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .chat-bubble.me { background: var(--blue); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .chat-bubble.other { background: white; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
         .chat-input-container { background: white; border-top: 1px solid #e2e8f0; padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: fixed; bottom: 0; width: 100%; z-index: 1100; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+        
+        .reaction-bar { display: flex; gap: 6px; margin-top: 4px; opacity: 0.8; }
+        .reaction-btn { font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.2); border-radius: 10px; cursor: pointer; }
 
         /* Modal */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; }
         .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 32px; padding: 24px; max-height: 85vh; overflow-y: auto; }
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Stats Percentage */
+        .stat-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: #eff6ff; color: #1d4ed8; margin-top: 2px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -56,7 +66,7 @@
             <div class="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg text-xl">5</div>
             <div>
                 <h1 class="text-xs font-black uppercase tracking-tight text-slate-800">Nấm Ông 5</h1>
-                <p class="text-[8px] text-blue-600 font-bold uppercase tracking-widest">● Master V71</p>
+                <p class="text-[8px] text-blue-600 font-bold uppercase tracking-widest">● Master V72</p>
             </div>
         </div>
         <div class="flex items-center gap-3">
@@ -84,8 +94,8 @@
                     </div>
                 </div>
 
-                 <!-- Bảng Vàng (Khôi phục) -->
-                 <div class="glass-card p-4 border border-yellow-100">
+                 <!-- Bảng Vàng -->
+                 <div class="glass-card p-4 border border-yellow-100 shadow-sm">
                     <h3 class="text-[10px] font-black text-yellow-600 uppercase mb-3 tracking-widest flex items-center gap-2"><i class="fas fa-crown"></i> Bảng Vàng Thi Đua</h3>
                     <div id="leaderboard-list" class="space-y-2"></div>
                 </div>
@@ -109,7 +119,7 @@
 
             <!-- TAB: GIAO VIỆC (TASKS) -->
             <div id="tab-tasks" class="tab-content hidden space-y-4">
-                <!-- Admin Form (Khôi phục) -->
+                <!-- Admin Form -->
                 <div id="admin-form" class="hidden glass-card p-5 border-2 border-blue-100 space-y-3">
                     <div class="flex justify-between items-center">
                         <span class="text-[10px] font-black text-blue-600 uppercase">Giao lệnh mới</span>
@@ -131,7 +141,7 @@
                     </div>
                     <button onclick="app.actions.addTask()" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition">Ban hành lệnh</button>
                 </div>
-                <!-- Danh sách công việc theo nhân viên -->
+                <!-- Danh sách công việc theo nhân viên (Grouped) -->
                 <div id="task-list" class="space-y-4 pb-20"></div>
             </div>
 
@@ -189,9 +199,7 @@
                                 <div class="input-group"><label class="text-center">B2-F</label><input type="number" id="th-b2f" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
                             </div>
                              <!-- Vùng hiển thị % -->
-                            <div id="th-percent-display" class="grid grid-cols-4 gap-2 mt-1 text-[8px] text-gray-500 font-bold text-center h-4">
-                                <!-- JS auto fill -->
-                            </div>
+                            <div id="th-percent-display" class="grid grid-cols-4 gap-2 mt-1 text-[8px] text-gray-500 font-bold text-center"></div>
                         </div>
                         
                         <div class="flex justify-between items-center bg-green-50 p-3 rounded-xl">
@@ -206,13 +214,11 @@
                 <div id="th-list" class="space-y-3 pb-20"></div>
             </div>
 
-             <!-- TAB: CHAT (Khôi phục) -->
+             <!-- TAB: CHAT -->
             <div id="tab-chat" class="tab-content hidden flex flex-col h-full shiitake-bg">
-                <div id="chat-box" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 pb-24"></div>
-                <div class="chat-input flex items-center gap-3">
+                <div id="chat-box" class="flex-1 overflow-y-auto p-4 pb-24"></div>
+                <div class="chat-input-container">
                     <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." class="flex-1 bg-slate-100 px-4 py-3 rounded-full text-sm font-medium outline-none border">
-                    <!-- Icon chat -->
-                    <button class="text-slate-400 text-lg"><i class="far fa-smile"></i></button>
                     <button onclick="app.actions.sendChat()" class="bg-blue-600 w-10 h-10 rounded-full text-white flex items-center justify-center shadow-lg"><i class="fas fa-paper-plane text-xs"></i></button>
                 </div>
             </div>
@@ -233,7 +239,6 @@
         <div class="modal-content">
             <div class="flex justify-between items-center mb-6"><h3 class="font-black uppercase text-sm">Cài đặt</h3><button onclick="app.ui.hide('settings-modal')"><i class="fas fa-times text-xl text-slate-400"></i></button></div>
             <div class="space-y-4 overflow-y-auto max-h-[70vh] pr-2">
-                <!-- Nút xuất nhật ký tổng hợp -->
                  <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
                     <p class="text-[10px] font-bold text-blue-600 uppercase mb-2">Báo cáo tổng hợp</p>
                     <button onclick="app.actions.exportAllLog()" class="w-full bg-white text-blue-700 py-3 rounded-lg font-bold text-xs shadow-sm border border-blue-200 flex items-center justify-center gap-2"><i class="fas fa-file-export"></i> Xuất Nhật Ký Làm Việc Ngày</button>
@@ -284,7 +289,7 @@
         </div>
     </div>
 
-    <!-- MODAL HR (Leave/Purchase) -->
+    <!-- MODAL HR -->
     <div id="modal-leave" class="modal-overlay hidden" onclick="if(event.target===this) app.ui.hide('modal-leave')">
         <div class="modal-content"><h3 class="font-black text-lg mb-4">Xin nghỉ phép</h3><div class="space-y-3"><input type="date" id="leave-date" class="input-field"><select id="leave-reason" class="input-field"><option>Ốm đau</option><option>Việc riêng</option><option>Phép năm</option></select><input type="text" id="leave-note" placeholder="Ghi chú..." class="input-field"><button onclick="app.actions.submitHR('LEAVE')" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Gửi đơn</button></div></div>
     </div>
@@ -294,7 +299,6 @@
      <div id="modal-hr-approve" class="modal-overlay hidden" onclick="if(event.target===this) app.ui.hide('modal-hr-approve')">
         <div class="modal-content"><h3 class="font-black text-lg mb-4 text-red-600">Duyệt lệnh HR</h3><div id="hr-list" class="space-y-2 max-h-60 overflow-y-auto"></div></div>
     </div>
-
 
     <!-- LOGIN -->
     <div id="login-screen" class="fixed inset-0 bg-white z-[2000] flex flex-col items-center justify-center p-8">
@@ -351,25 +355,17 @@
                     const ids = ['th-b2','th-a1','th-a2','th-b1','th-d1','th-ht','th-abf','th-b2f'];
                     let sum = 0;
                     let html = '';
+                    ids.forEach(id => { const val = Number(document.getElementById(id).value) || 0; sum += val; });
                     
-                    ids.forEach(id => {
-                        const val = Number(document.getElementById(id).value) || 0;
-                        sum += val;
-                    });
-                    
-                    // Calc %
                     if (sum > 0) {
                          ids.forEach(id => {
                             const val = Number(document.getElementById(id).value) || 0;
                             if(val > 0) {
                                 const pct = ((val / sum) * 100).toFixed(0);
-                                html += `<div>${id.replace('th-','').toUpperCase()}: ${pct}%</div>`;
-                            } else {
-                                html += `<div></div>`; 
+                                html += `<div class="stat-badge">${id.replace('th-','').toUpperCase()}: ${pct}%</div>`;
                             }
                          });
                     }
-                    
                     document.getElementById('th-total-display').innerText = sum + ' kg';
                     document.getElementById('th-percent-display').innerHTML = html;
                 }
@@ -403,7 +399,7 @@
                 const emp = app.data.employees.find(e => e.id == id && e.pin == pin);
                 if(emp) {
                     app.user = emp;
-                    localStorage.setItem('n5_v70_user', JSON.stringify(emp));
+                    localStorage.setItem('n5_v70_2_user', JSON.stringify(emp));
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('app-body').classList.remove('hidden');
                     app.render();
@@ -456,7 +452,6 @@
                 let tasks = app.data.tasks.filter(t => t.status !== 'completed');
                 if(app.user.role === 'Nhân viên') tasks = tasks.filter(t => t.assignee == app.user.id);
                 
-                // Grouping Logic
                 const groups = {};
                 tasks.forEach(t => { if(!groups[t.assignee]) groups[t.assignee] = []; groups[t.assignee].push(t); });
                 
@@ -512,7 +507,15 @@
             
             renderChat: () => {
                 const c = document.getElementById('chat-box');
-                c.innerHTML = app.data.chat.map(m => `<div class="chat-bubble ${m.senderId==app.user.id?'me':'other'}"><p class="font-bold text-[10px] opacity-50 mb-1">${m.senderName||'User'}</p>${m.text}</div>`).join('');
+                c.innerHTML = app.data.chat.map(m => `
+                    <div class="chat-bubble ${m.senderId==app.user.id?'me':'other'}">
+                        <p class="font-bold text-[9px] opacity-50 mb-1">${m.senderName||'User'}</p>
+                        ${m.text}
+                        <div class="flex gap-2 mt-1">
+                            <span class="cursor-pointer text-xs">❤️</span>
+                            <span class="cursor-pointer text-xs">👍</span>
+                        </div>
+                    </div>`).join('');
                 c.scrollTop = c.scrollHeight;
             },
             
@@ -536,8 +539,6 @@
             },
 
             actions: {
-                // ... (Existing actions from V69) ...
-                
                 submitHR: async (type) => {
                     let content = '';
                     if(type === 'LEAVE') {
@@ -557,15 +558,13 @@
                     alert("Đã xử lý!");
                 },
 
-                // Other actions (submitSX, submitTH, sendChat, openTemp, saveTemp, addTask, exportSX, exportTH, checkIn, logout, addEmployee, addSOP, deleteTask, nudge)...
-                // (Keeping these same as V69 for brevity, but they are included in the full logic)
                 submitSX: async () => { /* ... */ }, // Same as V69
                 submitTH: async () => { /* ... */ }, // Same as V69
                 sendChat: async () => { 
-                    const txt = document.querySelector('.chat-input input').value;
+                    const txt = document.querySelector('#chat-input').value;
                     if(!txt) return;
                     await addDoc(collection(db, `${ROOT}/chat`), { text: txt, senderId: app.user.id, senderName: app.user.name, time: Date.now() });
-                    document.querySelector('.chat-input input').value = "";
+                    document.querySelector('#chat-input').value = "";
                 },
                 openTemp: (id, name) => { /* ... */ }, // Same as V69
                 saveTemp: async () => { /* ... */ }, // Same as V69
@@ -574,8 +573,7 @@
                 deleteTask: async (id) => { if(confirm("Xóa?")) await deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
                 exportSX: () => { /* ... */ },
                 exportTH: () => { /* ... */ },
-                exportAllLog: () => { /* ... */ }, // New action for wheel button
-                checkIn: async () => { /* ... */ },
+                exportAllLog: () => { /* ... */ }, 
                 addEmployee: async () => { /* ... */ },
                 addSOP: async () => { /* ... */ },
                 logout: () => { localStorage.removeItem('n5_v70_user'); location.reload(); }
