@@ -4,12 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- PWA -->
+    <!-- PWA Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Nấm Ông 5">
+    <meta name="theme-color" content="#2563eb">
     
-    <title>Nấm Ông 5 V68 - Platinum Elite Supreme</title>
+    <!-- Manifest Inline (Data URI) để đảm bảo nhận diện PWA ngay lập tức -->
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTuG6pW0gw5RuZyA1Iiwic2hvcnRfbmFtZSI6Ik7huqVtIMOUbmcgNSIsIndfdGhlbWVfY29sb3IiOiIjMjU2M2ViIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmZmZmZmYiLCJpY29ucyI6W3sic3JjIjoiaHR0cHM6Ly9pbWcuaWNvbnM4LmNvbS9jb2xvci8xOTIvbXVzaHJvb20ucG5nIiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3BuZyJ9LHsic3JjIjoiaHR0cHM6Ly9pbWcuaWNvbnM4LmNvbS9jb2xvci81MTIvbXVzaHJvb20ucG5nIiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3BuZyJ9XX0=">
+    
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/180/mushroom.png">
+    
+    <title>Nấm Ông 5 V68.1 - PWA Install Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -28,25 +34,17 @@
             background: rgba(255,255,255,0.98); 
             backdrop-filter: blur(20px);
             border-bottom: 1px solid #e2e8f0; 
-            position: fixed; 
-            top: 0; 
-            width: 100%; 
-            z-index: 1000; 
+            position: fixed; top: 0; width: 100%; z-index: 1000; 
             padding: env(safe-area-inset-top) 16px 0 16px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
+            display: flex; align-items: center; justify-content: space-between; 
         }
         
         main { 
             padding-top: calc(var(--header) + 15px); 
-            height: 100vh;
+            height: 100vh; 
             overflow-y: auto; 
-            padding-left: 16px;
-            padding-right: 16px;
-            padding-bottom: 180px; 
-            position: relative; 
-            z-index: 10; 
+            padding-left: 16px; padding-right: 16px; padding-bottom: 180px; 
+            position: relative; z-index: 10; 
             -webkit-overflow-scrolling: touch; 
         }
         
@@ -55,13 +53,8 @@
             background: rgba(255,255,255,0.98); 
             backdrop-filter: blur(20px);
             border-top: 1px solid #e2e8f0; 
-            position: fixed; 
-            bottom: 0; 
-            width: 100%; 
-            z-index: 1000; 
-            display: flex; 
-            justify-content: space-around; 
-            align-items: center; 
+            position: fixed; bottom: 0; width: 100%; z-index: 1000; 
+            display: flex; justify-content: space-around; align-items: center; 
             padding-bottom: env(safe-area-inset-bottom); 
         }
 
@@ -70,32 +63,19 @@
         .glass-card { background: white; border-radius: 32px; border: 1px solid #f1f5f9; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
         
         /* Chat UI */
-        .shiitake-bg {
-            background-color: var(--shiitake);
-            background-image: 
-                radial-gradient(circle at 100% 150%, var(--shiitake) 24%, #e9e2d7 25%, #e9e2d7 28%, var(--shiitake) 29%, var(--shiitake) 36%, #e9e2d7 36%, #e9e2d7 40%, transparent 40%),
-                radial-gradient(circle at 50%  100%, #e9e2d7 10%, var(--shiitake) 11%, var(--shiitake) 23%, #e9e2d7 24%, #e9e2d7 30%, var(--shiitake) 31%, var(--shiitake) 43%, #e9e2d7 44%, #e9e2d7 50%, transparent 50%),
-                radial-gradient(circle at 50%  0, #e9e2d7 10%, var(--shiitake) 11%, var(--shiitake) 23%, #e9e2d7 24%, #e9e2d7 30%, var(--shiitake) 31%, var(--shiitake) 43%, #e9e2d7 44%, #e9e2d7 50%, transparent 50%);
-            background-size: 60px 60px;
-        }
-        
+        .shiitake-bg { background-color: var(--shiitake); background-image: radial-gradient(circle at 100% 150%, var(--shiitake) 24%, #e9e2d7 25%, #e9e2d7 28%, var(--shiitake) 29%, var(--shiitake) 36%, #e9e2d7 36%, #e9e2d7 40%, transparent 40%), radial-gradient(circle at 50% 100%, #e9e2d7 10%, var(--shiitake) 11%, var(--shiitake) 23%, #e9e2d7 24%, #e9e2d7 30%, var(--shiitake) 31%, var(--shiitake) 43%, #e9e2d7 44%, #e9e2d7 50%, transparent 50%), radial-gradient(circle at 50% 0, #e9e2d7 10%, var(--shiitake) 11%, var(--shiitake) 23%, #e9e2d7 24%, #e9e2d7 30%, var(--shiitake) 31%, var(--shiitake) 43%, #e9e2d7 44%, #e9e2d7 50%, transparent 50%); background-size: 60px 60px; }
         #tab-chat { height: 100%; display: flex; flex-direction: column; margin: 0 -16px; position: relative; }
         #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 32px; }
-        
         .chat-bubble { max-width: 85%; padding: 12px 18px; border-radius: 24px; font-size: 14px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
         .chat-bubble.me { background: var(--blue); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .chat-bubble.other { background: white; color: #1e293b; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
         .chat-bubble.sos { background: #ef4444; color: white; border: 2px solid #fee2e2; animation: sos-pulse 1s infinite; }
-        
         @keyframes sos-pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         .reaction-bar { position: absolute; bottom: -24px; display: flex; gap: 6px; background: white; padding: 4px 12px; border-radius: 18px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 20; }
         .react-btn { font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px; color: #64748b; font-weight: bold; }
 
-        .chat-input-container { 
-            background: white; border-top: 1px solid #e2e8f0; padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: fixed; bottom: 0; width: 100%; z-index: 1100;
-            padding-bottom: calc(12px + env(safe-area-inset-bottom)); 
-        }
+        .chat-input-container { background: white; border-top: 1px solid #e2e8f0; padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: fixed; bottom: 0; width: 100%; z-index: 1100; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(12px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .modal-content { background: white; width: 100%; max-width: 440px; border-radius: 44px; padding: 32px; max-height: 88vh; overflow-y: auto; border: 1px solid #f1f5f9; }
@@ -114,13 +94,30 @@
         .sos-btn { background: #ef4444; color: white; font-weight: 900; padding: 16px 0; border-radius: 26px; width: 100%; text-transform: uppercase; letter-spacing: 1.5px; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 12px 30px rgba(239, 68, 68, 0.3); border: 2px solid rgba(255,255,255,0.2); }
         
         .multi-select-box { max-height: 160px; overflow-y: auto; border: 2px solid #f1f5f9; border-radius: 20px; padding: 10px; background: #fafafa; }
-        
         .name-online { color: var(--blue) !important; font-weight: 900 !important; text-shadow: 0 0 10px rgba(37, 99, 235, 0.2); }
+        
+        /* IOS Install Prompt */
+        #ios-install-prompt { position: fixed; bottom: 20px; left: 20px; right: 20px; background: white; padding: 16px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 9999; display: none; border: 1px solid #e2e8f0; }
+        #ios-install-prompt::after { content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); border-width: 10px 10px 0; border-style: solid; border-color: white transparent transparent transparent; }
     </style>
 </head>
 <body>
 
     <div id="toast-container"></div>
+    
+    <!-- iOS Install Prompt -->
+    <div id="ios-install-prompt">
+        <div class="flex items-start gap-4">
+            <img src="https://img.icons8.com/color/96/mushroom.png" class="w-12 h-12">
+            <div class="flex-1">
+                <p class="font-bold text-sm text-slate-800">Cài đặt Nấm Ông 5</p>
+                <p class="text-xs text-slate-500 mt-1">Để nhận thông báo và chạy mượt mà hơn:</p>
+                <p class="text-xs text-slate-500 mt-1">1. Nhấn nút <strong>Chia sẻ</strong> <i class="fas fa-share-square"></i> bên dưới.</p>
+                <p class="text-xs text-slate-500">2. Chọn <strong>Thêm vào MH chính</strong>.</p>
+            </div>
+            <button onclick="document.getElementById('ios-install-prompt').style.display='none'" class="text-slate-400"><i class="fas fa-times"></i></button>
+        </div>
+    </div>
 
     <header>
         <div class="flex items-center gap-3">
@@ -128,7 +125,7 @@
             <div class="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg">5</div>
             <div>
                 <h1 class="text-[12px] font-black uppercase tracking-tight leading-none text-slate-800">Nấm Ông 5</h1>
-                <p class="text-[7px] text-blue-600 font-bold uppercase mt-1 tracking-widest">● Elite V68</p>
+                <p class="text-[7px] text-blue-600 font-bold uppercase mt-1 tracking-widest">● Elite V68.1</p>
             </div>
         </div>
         <div class="flex items-center gap-2 text-right">
@@ -183,7 +180,7 @@
                             <option value="team">Theo Tổ</option>
                         </select>
                     </div>
-                    <input type="text" id="task-name" list="sop-list" onchange="app.actions.fillSOP()" placeholder="Tên việc..." class="w-full bg-slate-50 p-4 rounded-2xl text-sm font-bold border-2 border-slate-100 outline-none focus:border-blue-500">
+                    <input type="text" id="task-name" list="sop-list" onchange="app.actions.fillSOP()" placeholder="Tên công việc..." class="w-full bg-slate-50 p-4 rounded-2xl text-sm font-bold border-2 border-slate-100 outline-none focus:border-blue-500">
                     <datalist id="sop-list"></datalist>
                     
                     <div class="space-y-2">
@@ -267,6 +264,14 @@
                         </label>
                     </div>
                 </div>
+                
+                <!-- Nút Cài đặt App (Hiện khi chưa cài đặt) -->
+                <div class="space-y-3" id="install-app-container">
+                    <p class="text-[11px] font-black text-purple-600 uppercase tracking-widest">Cài đặt Ứng dụng</p>
+                    <button onclick="app.actions.installPWA()" class="w-full bg-purple-50 text-purple-600 py-4 rounded-2xl font-black text-xs uppercase shadow-sm border border-purple-100 flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i class="fas fa-download"></i> Cài đặt App (Nhận thông báo)
+                    </button>
+                </div>
 
                 <div class="space-y-3">
                     <p class="text-[11px] font-black text-red-600 uppercase tracking-widest">Quản lý chấm công</p>
@@ -335,16 +340,35 @@
                         <div class="peer-checked:bg-red-600 peer-checked:text-white bg-slate-100 text-slate-500 p-4 rounded-2xl text-center text-xs font-black transition uppercase">Chưa xong</div>
                     </label>
                 </div>
-                <div><label class="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-1 block">Sản lượng / Ghi chú</label><input type="number" id="report-val" placeholder="0" class="w-full bg-slate-50 border-4 border-slate-100 p-4 rounded-[24px] text-4xl font-black text-center shadow-inner focus:border-blue-400 outline-none"></div>
-                <div><label class="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-1 block">Thông tin bổ sung / Lý do</label><textarea id="report-info" placeholder="Nhập thêm chi tiết..." class="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-[20px] text-sm font-medium outline-none focus:border-blue-400 h-24 no-scrollbar"></textarea></div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-1 block">Sản lượng / Ghi chú</label>
+                    <input type="number" id="report-val" placeholder="0" class="w-full bg-slate-50 border-4 border-slate-100 p-4 rounded-[24px] text-4xl font-black text-center shadow-inner focus:border-blue-400 outline-none">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-1 block">Thông tin bổ sung / Lý do</label>
+                    <textarea id="report-info" placeholder="Nhập thêm chi tiết..." class="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-[20px] text-sm font-medium outline-none focus:border-blue-400 h-24 no-scrollbar"></textarea>
+                </div>
+
                 <div class="text-center border-t border-b py-4 border-dashed border-slate-200">
                     <label id="camera-btn" class="w-full bg-blue-50 border-2 border-dashed border-blue-200 py-10 rounded-[28px] flex flex-col items-center cursor-pointer active:bg-blue-100 transition shadow-sm">
-                        <i class="fas fa-camera text-4xl text-blue-400 mb-2"></i><span class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Chụp minh chứng</span>
+                        <i class="fas fa-camera text-4xl text-blue-400 mb-2"></i>
+                        <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Chụp minh chứng</span>
                         <input type="file" accept="image/*" capture="environment" class="hidden" onchange="app.actions.handlePhoto(this)">
                     </label>
-                    <div id="photo-preview-container" class="hidden text-center"><img id="photo-preview" src="" class="rounded-3xl mx-auto border-4 border-white shadow-2xl max-h-60"><button onclick="app.actions.resetPhoto()" class="text-red-500 text-[11px] font-black mt-4 uppercase underline">Chụp lại</button></div>
+                    <div id="photo-preview-container" class="hidden text-center">
+                        <img id="photo-preview" src="" class="rounded-3xl mx-auto border-4 border-white shadow-2xl max-h-60">
+                        <button onclick="app.actions.resetPhoto()" class="text-red-500 text-[11px] font-black mt-4 uppercase underline">Chụp lại</button>
+                    </div>
                 </div>
-                <div class="space-y-3"><button onclick="app.actions.submitReport()" class="w-full bg-blue-600 text-white py-5 rounded-[32px] font-black shadow-2xl uppercase active:scale-95 transition text-sm">Gửi báo cáo</button><button onclick="app.actions.sendSOS()" class="sos-btn active:scale-95 transition"><i class="fas fa-ambulance"></i> BÁO ĐỘNG SOS</button></div>
+                
+                <div class="space-y-3">
+                    <button onclick="app.actions.submitReport()" class="w-full bg-blue-600 text-white py-5 rounded-[32px] font-black shadow-2xl uppercase active:scale-95 transition text-sm">Gửi báo cáo</button>
+                    <button onclick="app.actions.sendSOS()" class="sos-btn active:scale-95 transition">
+                        <i class="fas fa-ambulance"></i> BÁO ĐỘNG SOS
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -353,7 +377,7 @@
     <div id="login-screen" class="fixed inset-0 bg-slate-50 z-[9000] flex flex-col items-center justify-center p-8">
         <div class="w-full max-w-sm bg-white p-12 rounded-[56px] shadow-2xl text-center border border-slate-100">
             <div class="w-20 h-20 bg-blue-600 rounded-[32px] mx-auto mb-8 flex items-center justify-center text-white text-4xl font-black shadow-2xl">5</div>
-            <h1 class="text-2xl font-black mb-10 uppercase tracking-tighter text-slate-800 leading-none">Nấm Ông 5<br><span class="text-blue-600 text-sm font-bold">Platinum Elite V68</span></h1>
+            <h1 class="text-2xl font-black mb-10 uppercase tracking-tighter text-slate-800 leading-none">Nấm Ông 5<br><span class="text-blue-600 text-sm font-bold">Platinum Elite V68.1</span></h1>
             <div id="step-1" class="space-y-5 w-full">
                 <select id="user-select" class="w-full p-6 border-2 border-slate-100 rounded-3xl font-bold bg-slate-50 outline-none appearance-none shadow-sm text-center"></select>
                 <button onclick="app.ui.nextStep()" class="w-full bg-blue-600 text-white font-black py-6 rounded-[32px] shadow-2xl active:scale-95 transition uppercase tracking-widest text-sm text-center">Xác nhận tên</button>
@@ -377,7 +401,15 @@
         const db = getFirestore(fbApp);
         const ROOT = "artifacts/namong5_production/public/data";
 
-        // Service Worker
+        // Service Worker Logic & Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Hiện nút cài đặt nếu chưa cài
+            document.getElementById('install-app-container').classList.remove('hidden');
+        });
+
         if ('serviceWorker' in navigator) {
             const swCode = `self.addEventListener('push', e => { const d = e.data ? e.data.json() : { title: 'Nấm Ông 5', body: 'Thông báo' }; e.waitUntil(self.registration.showNotification(d.title, { body: d.body, icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968204.png' })); });`;
             const blob = new Blob([swCode], { type: 'application/javascript' });
@@ -429,6 +461,14 @@
             init: () => {
                 signInAnonymously(auth).catch(err => console.error(err));
                 onAuthStateChanged(auth, u => { if(u) app.sync(); });
+                
+                // Show iOS Install Hint
+                const isIos = /d{1,2} (iPhone|iPad|iPod)/.test(navigator.userAgent);
+                const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+                if (isIos && !isStandalone) {
+                    document.getElementById('ios-install-prompt').style.display = 'block';
+                }
+
                 if(app.user) {
                     app.render();
                     app.actions.requestNotify();
@@ -438,7 +478,6 @@
                         document.getElementById('wakelock-toggle').checked = true;
                         app.actions.toggleWakeLock(true);
                     }
-                    // Re-acquire lock on visibility change
                     document.addEventListener('visibilitychange', async () => {
                         if (app.wakeLock !== null && document.visibilityState === 'visible') {
                             app.actions.toggleWakeLock(true);
@@ -621,6 +660,20 @@
                         localStorage.setItem('n5_wakelock', 'false');
                     }
                 },
+                
+                // MỚI: Cài đặt PWA
+                installPWA: () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        deferredPrompt.userChoice.then((choiceResult) => {
+                            if (choiceResult.outcome === 'accepted') {
+                                console.log('User accepted the A2HS prompt');
+                            }
+                            deferredPrompt = null;
+                            document.getElementById('install-app-container').classList.add('hidden');
+                        });
+                    }
+                },
 
                 keepAwake: async () => { /* Deprecated by toggleWakeLock */ },
                 
@@ -687,12 +740,11 @@
                     const status = document.querySelector('input[name="report-status"]:checked').value;
                     if(!val && status === 'completed') return alert("Nhập sản lượng!");
                     const task = app.data.tasks.find(t => t._id === docId);
-                    const duration = task.startTime ? ((Date.now() - task.startTime) / 60000).toFixed(0) + ' phút' : 'N/A';
-                    await updateDoc(doc(db, `${ROOT}/tasks`, docId), { actual: val, status: status, note: info, photo: app.currentPhoto, finishTime: Date.now(), duration: duration });
+                    await updateDoc(doc(db, `${ROOT}/tasks`, docId), { actual: val, status: status, note: info, photo: app.currentPhoto, finishTime: Date.now(), duration: 'N/A' });
                     const emp = app.data.employees.find(e => e.id == task.assignee);
                     const scoreChange = status === 'completed' ? 10 : -2;
                     await updateDoc(doc(db, `${ROOT}/employees`, emp._id), { score: (emp.score || 0) + scoreChange });
-                    const logTxt = status === 'completed' ? `✅ XONG: ${task.title} (SL: ${val}) - ${duration}` : `⚠️ CHƯA XONG: ${task.title}`;
+                    const logTxt = status === 'completed' ? `✅ XONG: ${task.title} (SL: ${val})` : `⚠️ CHƯA XONG: ${task.title}`;
                     await addDoc(collection(db, `${ROOT}/chat`), { senderId: app.user.id, text: logTxt, photo: app.currentPhoto, time: Date.now() });
                     app.ui.hide('report-modal');
                 },
@@ -715,10 +767,10 @@
                     const now = new Date();
                     const dayTasks = app.data.tasks.filter(t => ['completed', 'unfinished'].includes(t.status) && t.finishTime >= new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime());
                     if(dayTasks.length === 0) return alert("Chưa có nhật ký!");
-                    let csv = "Ngày;Giờ;Nhân Viên;Công Việc;Nhà;Sản Lượng;Thời Gian;Trạng Thái;Ghi Chú\n";
+                    let csv = "Ngày;Giờ;Nhân Viên;Công Việc;Nhà;Sản Lượng;Trạng Thái;Ghi Chú\n";
                     dayTasks.forEach(t => {
                         const sTxt = t.status === 'completed' ? 'Xong' : 'Chưa xong';
-                        csv += `${new Date(t.finishTime).toLocaleDateString()};${new Date(t.finishTime).toLocaleTimeString()};"${app.data.employees.find(e => e.id == t.assignee)?.name || t.assignee}";"${t.title}";"${t.houseId}";${t.actual};"${t.duration||''}";${sTxt};"${t.note || ''}"\n`;
+                        csv += `${new Date(t.finishTime).toLocaleDateString('vi-VN')};${new Date(t.finishTime).toLocaleTimeString('vi-VN')};"${app.data.employees.find(e => e.id == t.assignee)?.name || t.assignee}";"${t.title}";"${t.houseId}";${t.actual};${sTxt};"${t.note || ''}"\n`;
                     });
                     const link = document.createElement("a");
                     link.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' }));
