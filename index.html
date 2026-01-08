@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
-    <title>Nấm Ông 5 V73.1 - Login Fix</title>
+    <title>Nấm Ông 5 V73.2 - Login Fix</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -29,6 +29,7 @@
         .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
         .status-loading { background: #eab308; animation: pulse 1s infinite; }
         .status-ok { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+        .status-error { background: #ef4444; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
@@ -56,7 +57,7 @@
                 ĐĂNG NHẬP
             </button>
         </div>
-        <p class="mt-8 text-[10px] text-slate-400">V73.1 Secure Login System</p>
+        <p class="mt-8 text-[10px] text-slate-400">V73.2 Secure Login System</p>
     </div>
 
     <!-- MAIN APP -->
@@ -65,7 +66,7 @@
             <div class="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg text-xl">5</div>
             <div>
                 <h1 class="text-xs font-black uppercase text-slate-800">Nấm Ông 5</h1>
-                <p class="text-[8px] text-green-600 font-bold uppercase tracking-widest">● Master V73.1</p>
+                <p class="text-[8px] text-green-600 font-bold uppercase tracking-widest">● Master V73.2</p>
             </div>
         </div>
         <div class="text-right flex items-center gap-3">
@@ -110,7 +111,7 @@
                 <div id="task-list" class="space-y-4 pb-20"></div>
             </div>
 
-            <!-- SX & TH Tabs (Simplified for brevity but fully functional in logic) -->
+            <!-- SX & TH Tabs -->
             <div id="tab-sx" class="tab-content hidden space-y-4"><div class="glass-card p-5 border-2 border-blue-50"><h3 class="text-xs font-black text-blue-600 mb-4">NHẬT KÝ SẢN XUẤT</h3><div class="space-y-3"><input type="date" id="sx-date" class="input-field"><input type="text" id="sx-type" placeholder="Loại phôi..." class="input-field"><div class="grid grid-cols-2 gap-3"><input type="number" id="sx-qty" placeholder="Số lượng" class="input-field"><input type="text" id="sx-batch" placeholder="Lô cấy" class="input-field"></div><input type="text" id="sx-note" placeholder="Nơi nhập/xuất" class="input-field"><div class="grid grid-cols-2 gap-2"><button onclick="app.actions.submitSX('NHẬP')" class="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs">NHẬP KHO</button><button onclick="app.actions.submitSX('XUẤT')" class="bg-orange-500 text-white py-3 rounded-xl font-bold text-xs">XUẤT KHO</button></div></div></div></div>
             <div id="tab-th" class="tab-content hidden space-y-4"><div class="glass-card p-5 border-2 border-green-50"><h3 class="text-xs font-black text-green-600 mb-4">THU HOẠCH (KG)</h3><div class="space-y-4"><select id="th-area" class="input-field"></select><div class="grid grid-cols-4 gap-2 text-center"><input type="number" id="th-b2" placeholder="B2" class="input-field px-1 text-center"><input type="number" id="th-a1" placeholder="A1" class="input-field px-1 text-center"><input type="number" id="th-a2" placeholder="A2" class="input-field px-1 text-center"><input type="number" id="th-b1" placeholder="B1" class="input-field px-1 text-center"></div><div class="grid grid-cols-4 gap-2 text-center"><input type="number" id="th-d1" placeholder="D1" class="input-field px-1 text-center"><input type="number" id="th-ht" placeholder="HT" class="input-field px-1 text-center"><input type="number" id="th-abf" placeholder="ABF" class="input-field px-1 text-center"><input type="number" id="th-b2f" placeholder="B2F" class="input-field px-1 text-center"></div><button onclick="app.actions.submitTH()" class="w-full bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-lg">CẬP NHẬT KHO</button></div></div></div>
             <div id="tab-chat" class="tab-content hidden flex flex-col h-full"><div id="chat-box" class="flex-1 overflow-y-auto p-4 pb-24"></div><div class="chat-input-container"><input type="text" id="chat-input" placeholder="Nhập tin nhắn..." class="flex-1 bg-slate-100 px-4 py-3 rounded-full text-sm outline-none"><button onclick="app.actions.sendChat()" class="bg-blue-600 w-10 h-10 rounded-full text-white shadow-lg"><i class="fas fa-paper-plane text-xs"></i></button></div></div>
@@ -142,7 +143,8 @@
 
         window.app = {
             data: { employees: [], houses: [], chat: [], tasks: [] },
-            user: JSON.parse(localStorage.getItem('n5_v73_user')) || null,
+            user: JSON.parse(localStorage.getItem('n5_v73_2_user')) || null,
+            assignMode: 'ind',
 
             ui: {
                 show: id => document.getElementById(id).classList.remove('hidden'),
@@ -162,43 +164,50 @@
             },
 
             init: () => {
+                const statusDot = document.getElementById('status-indicator');
+                const statusText = document.getElementById('status-text');
+
                 signInAnonymously(getAuth(appInstance))
                     .then(() => {
-                        document.getElementById('status-indicator').classList.replace('status-loading', 'status-ready');
-                        document.getElementById('status-text').innerText = "Máy chủ sẵn sàng";
+                        statusDot.classList.replace('status-loading', 'status-ok');
+                        statusText.innerText = "Đã kết nối";
                         app.sync();
                     })
                     .catch(e => {
-                        document.getElementById('status-indicator').classList.replace('status-loading', 'status-error');
-                        document.getElementById('status-text').innerText = "Lỗi mạng!";
+                        statusDot.classList.replace('status-loading', 'status-error');
+                        statusText.innerText = "Lỗi kết nối!";
+                        statusText.classList.add('text-red-500');
                     });
+                
+                document.getElementById('sx-date').valueAsDate = new Date();
             },
 
             sync: () => {
-                // Sync Employees & Update Login UI immediately
-                onSnapshot(collection(db, `${ROOT}/employees`), s => {
-                    app.data.employees = s.docs.map(d => ({...d.data(), _id: d.id}));
-                    app.renderLoginList(); // CẬP NHẬT DANH SÁCH TÊN NGAY KHI CÓ DATA
-                    if(app.user) app.render();
-                });
-
-                ['houses', 'tasks', 'production_logs', 'harvest_logs'].forEach(c => 
-                    onSnapshot(collection(db, `${ROOT}/${c}`), s => { app.data[c] = s.docs.map(d => ({...d.data(), _id: d.id})); if(app.user) app.render(); })
-                );
+                const sub = (c, k) => onSnapshot(collection(db, `${ROOT}/${c}`), s => { 
+                    app.data[k] = s.docs.map(d => ({...d.data(), _id: d.id})); 
+                    app.renderDynamic();
+                    
+                    if(c==='employees') {
+                        app.renderLoginSelect();
+                    }
+                }, (err) => console.error(err));
+                
+                ['employees', 'houses', 'tasks', 'production_logs', 'harvest_logs', 'hr_requests'].forEach(x => sub(x, x.includes('logs') ? x.split('_')[0] : x));
                 
                 onSnapshot(query(collection(db, `${ROOT}/chat`), orderBy("time", "asc"), limit(50)), s => {
                     app.data.chat = s.docs.map(d => d.data());
-                    if(app.user) app.renderChat();
+                    app.renderChat();
                 });
             },
 
             // --- QUAN TRỌNG: HÀM RENDER DANH SÁCH ĐĂNG NHẬP ĐƯỢC TÁCH RIÊNG ---
-            renderLoginList: () => {
+            renderLoginSelect: () => {
                 const s = document.getElementById('user-select');
                 const btn = document.getElementById('btn-login');
                 const pin = document.getElementById('user-pin');
                 
-                if (app.data.employees.length > 0) {
+                // Kiểm tra dữ liệu và cập nhật UI
+                if (app.data.employees && app.data.employees.length > 0) {
                     s.innerHTML = '<option value="">-- Chọn tên của bạn --</option>' + 
                         app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
                     s.disabled = false;
@@ -207,6 +216,7 @@
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 } else {
                     s.innerHTML = '<option>Chưa có dữ liệu nhân viên</option>';
+                    // Vẫn giữ disabled nếu chưa có dữ liệu
                 }
             },
 
@@ -218,11 +228,11 @@
                 if(!pin) return alert("Vui lòng nhập mã PIN!");
 
                 // So sánh chuỗi an toàn
-                const emp = app.data.employees.find(e => String(e.id) === String(id) && String(e.pin) === String(pin));
+                const emp = app.data.employees.find(e => String(e.id) === String(id) && String(e.pin).trim() === String(pin));
                 
                 if(emp) {
                     app.user = emp;
-                    localStorage.setItem('n5_v73_user', JSON.stringify(emp));
+                    localStorage.setItem('n5_v73_2_user', JSON.stringify(emp));
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('app-body').classList.remove('hidden');
                     app.render();
@@ -233,7 +243,7 @@
             },
 
             render: () => {
-                if(!app.user) { app.renderLoginList(); document.getElementById('login-screen').classList.remove('hidden'); return; }
+                if(!app.user) { app.renderLoginSelect(); document.getElementById('login-screen').classList.remove('hidden'); return; }
                 
                 document.getElementById('ui-user').innerText = app.user.name;
                 document.getElementById('ui-role').innerText = app.user.role;
@@ -344,7 +354,7 @@
                 exportSX: () => { /* Excel logic here */ alert("Đang xuất file SX..."); },
                 exportTH: () => { /* Excel logic here */ alert("Đang xuất file TH..."); },
                 exportAll: () => { /* Excel logic here */ alert("Đang xuất báo cáo ngày..."); },
-                logout: () => { localStorage.removeItem('n5_v73_user'); location.reload(); }
+                logout: () => { localStorage.removeItem('n5_v73_2_user'); location.reload(); }
             }
         };
         
