@@ -11,30 +11,24 @@
     <meta name="theme-color" content="#2563eb">
     <link rel="apple-touch-icon" href="https://img.icons8.com/color/180/mushroom.png">
     
-    <title>Nấm Ông 5 V76 - Final Polish</title>
+    <title>Nấm Ông 5 V77 - Core Stability</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { 
-            --blue: #2563eb; 
-            --header: 110px; 
-            --nav: 85px; 
-            --bg: #f8fafc;
-            --shiitake: #faf8f5;
-        }
+        :root { --blue: #2563eb; --header: 110px; --nav: 85px; --bg: #f8fafc; --shiitake: #faf8f5; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #1e293b; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
         .hidden { display: none !important; }
         
         /* Layout */
         header { height: var(--header); background: rgba(255,255,255,0.98); backdrop-filter: blur(15px); border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; width: 100%; z-index: 1000; padding: env(safe-area-inset-top) 16px 0 16px; display: flex; align-items: center; justify-content: space-between; }
-        main { margin-top: var(--header); height: calc(100vh - var(--header) - var(--nav)); overflow-y: auto; padding: 16px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
+        main { margin-top: var(--header); height: calc(100vh - var(--header) - var(--nav)); overflow-y: auto; padding: 16px; padding-bottom: 100px; -webkit-overflow-scrolling: touch; }
         nav { height: var(--nav); background: white; border-top: 1px solid #e2e8f0; position: fixed; bottom: 0; width: 100%; z-index: 1000; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); }
-        .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; font-size: 9px; font-weight: 800; transition: all 0.2s; }
+        .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; font-size: 9px; font-weight: 800; transition: all 0.3s; }
         .nav-active { color: var(--blue); transform: translateY(-3px); }
         .glass-card { background: white; border-radius: 24px; border: 1px solid #f1f5f9; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
         
-        /* Inputs */
+        /* Input & Form */
         .input-group label { display: block; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
         .input-field { width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600; outline: none; }
         .input-field:focus { border-color: var(--blue); background: white; ring: 2px solid var(--blue); }
@@ -43,44 +37,68 @@
         /* Chat */
         .shiitake-bg { background-color: var(--shiitake); background-image: radial-gradient(#e5e7eb 1px, transparent 1px); background-size: 20px 20px; }
         #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-        .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 14px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .chat-bubble.me { background: var(--blue); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .chat-bubble.other { background: white; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
         .chat-input-container { background: white; border-top: 1px solid #e2e8f0; padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: fixed; bottom: 0; width: 100%; z-index: 1100; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
 
-        /* Modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+        /* Modal & Overlays */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(5px); }
         .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 32px; padding: 24px; max-height: 85vh; overflow-y: auto; }
-        
         .stat-badge { font-size: 9px; padding: 2px 4px; border-radius: 4px; font-weight: bold; background: #eff6ff; color: #1d4ed8; margin-top: 2px; display: block; text-align: center; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .status-ok { background: #22c55e; }
         .multi-select-box { max-height: 120px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 12px; padding: 8px; background: #f8fafc; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        
+        /* Login Status Indicators */
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-loading { background: #eab308; animation: pulse 1s infinite; }
+        .status-ok { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+        .status-error { background: #ef4444; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- LOGIN SCREEN (CODE ĐÃ KHÓA - ỔN ĐỊNH) -->
+    <!-- LOGIN SCREEN (REBUILT) -->
     <div id="login-screen" class="fixed inset-0 bg-white z-[3000] flex flex-col items-center justify-center p-8 transition-opacity duration-500">
         <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl font-black mb-6 shadow-xl">5</div>
         <h1 class="text-2xl font-black mb-2 text-slate-800">Nấm Ông 5 <span class="text-blue-600">Pro</span></h1>
-        <div id="login-status" class="mb-4 text-center text-xs font-bold text-slate-400"><span class="status-dot bg-yellow-400" id="status-indicator"></span><span id="status-text">Đang tải dữ liệu...</span></div>
-        <select id="user-select" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-white outline-none text-center disabled:opacity-50" disabled><option value="">Vui lòng đợi...</option></select>
-        <input type="password" id="user-pin" placeholder="Nhập mã PIN" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-white text-center text-xl outline-none disabled:opacity-50 mt-4" disabled inputmode="numeric">
-        <button id="btn-login" onclick="app.doLogin()" class="w-full max-w-xs bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition mt-4 disabled:opacity-50 disabled:cursor-not-allowed" disabled>ĐĂNG NHẬP</button>
-        <button id="btn-rescue" onclick="app.actions.seedAdmin()" class="hidden w-full max-w-xs bg-red-50 text-red-600 py-3 rounded-xl font-bold text-xs border border-red-200 mt-4"><i class="fas fa-user-shield mr-2"></i> KHỞI TẠO ADMIN</button>
-        <button onclick="localStorage.clear(); location.reload()" class="mt-8 text-xs text-slate-400 underline">Tải lại trang (Reset)</button>
+        
+        <div id="connection-status" class="mb-6 text-xs font-bold text-slate-400 flex items-center bg-slate-50 px-4 py-2 rounded-full border">
+            <span class="status-dot status-loading" id="status-indicator"></span>
+            <span id="status-text">Đang kết nối máy chủ...</span>
+        </div>
+
+        <div class="w-full max-w-xs space-y-4">
+            <select id="user-select" class="w-full p-4 border-2 border-slate-200 rounded-2xl font-bold bg-white outline-none text-center disabled:opacity-50" disabled>
+                <option value="">Đang tải danh sách...</option>
+            </select>
+            
+            <input type="password" id="user-pin" placeholder="Nhập mã PIN" class="w-full p-4 border-2 border-slate-200 rounded-2xl font-bold bg-white text-center text-xl outline-none disabled:opacity-50" disabled inputmode="numeric">
+            
+            <button id="btn-login" onclick="app.doLogin()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                ĐĂNG NHẬP
+            </button>
+
+            <!-- Nút Cứu hộ -->
+            <button id="btn-rescue" onclick="app.actions.seedAdmin()" class="hidden w-full max-w-xs bg-red-50 text-red-600 py-3 rounded-xl font-bold text-xs border border-red-200 mt-4">
+                <i class="fas fa-user-shield mr-2"></i> TẠO ADMIN KHẨN CẤP (9999)
+            </button>
+            
+             <button onclick="localStorage.clear(); location.reload()" class="w-full text-slate-400 text-xs font-bold underline mt-4">Đặt lại ứng dụng (Reset)</button>
+        </div>
+        <p class="mt-8 text-[10px] text-slate-400">V77 Core Stability</p>
     </div>
 
-    <!-- HEADER -->
+    <!-- MAIN APP HEADER -->
     <header>
         <div class="flex items-center gap-3">
             <button id="back-home-btn" onclick="app.ui.tab('home')" class="hidden text-slate-500 p-2"><i class="fas fa-chevron-left text-xl"></i></button>
             <div class="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg text-xl">5</div>
             <div>
                 <h1 class="text-xs font-black uppercase tracking-tight text-slate-800">Nấm Ông 5</h1>
-                <p class="text-[8px] text-green-600 font-bold uppercase tracking-widest">● V76 Final</p>
+                <p class="text-[8px] text-green-600 font-bold uppercase tracking-widest">● Ultimate V77</p>
             </div>
         </div>
         <div class="text-right flex items-center gap-3">
@@ -89,9 +107,9 @@
         </div>
     </header>
 
+    <!-- APP BODY -->
     <div id="app-body" class="hidden h-full">
         <main class="no-scrollbar">
-            
             <!-- TAB: HOME -->
             <div id="tab-home" class="tab-content space-y-4">
                 <div class="grid grid-cols-2 gap-3">
@@ -104,59 +122,31 @@
                         <p class="text-3xl font-black text-green-600" id="stat-yield">0</p>
                     </div>
                 </div>
-
                  <div class="glass-card p-4 border border-yellow-100 shadow-sm">
                     <h3 class="text-[10px] font-black text-yellow-600 uppercase mb-3 tracking-widest flex items-center gap-2"><i class="fas fa-crown"></i> Bảng Vàng Thi Đua</h3>
                     <div id="leaderboard-list" class="space-y-2"></div>
                 </div>
-                
                 <div class="glass-card p-4">
                     <h3 class="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest">Lối tắt</h3>
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="app.ui.tab('sx')" class="bg-blue-50 p-4 rounded-2xl flex flex-col items-center gap-2 border border-blue-100 active:scale-95 transition">
-                            <i class="fas fa-industry text-2xl text-blue-600"></i><span class="text-[10px] font-bold text-blue-700">SẢN XUẤT</span>
-                        </button>
-                        <button onclick="app.ui.tab('th')" class="bg-green-50 p-4 rounded-2xl flex flex-col items-center gap-2 border border-green-100 active:scale-95 transition">
-                            <i class="fas fa-box-open text-2xl text-green-600"></i><span class="text-[10px] font-bold text-green-700">THU HOẠCH</span>
-                        </button>
+                        <button onclick="app.ui.tab('sx')" class="bg-blue-50 p-4 rounded-2xl flex flex-col items-center gap-2 border border-blue-100 active:scale-95 transition"><i class="fas fa-industry text-2xl text-blue-600"></i><span class="text-[10px] font-bold text-blue-700">SẢN XUẤT</span></button>
+                        <button onclick="app.ui.tab('th')" class="bg-green-50 p-4 rounded-2xl flex flex-col items-center gap-2 border border-green-100 active:scale-95 transition"><i class="fas fa-box-open text-2xl text-green-600"></i><span class="text-[10px] font-bold text-green-700">THU HOẠCH</span></button>
                     </div>
                 </div>
-                
                 <div id="house-grid" class="space-y-3 pb-8"></div>
             </div>
 
             <!-- TAB: GIAO VIỆC (TASKS) -->
             <div id="tab-tasks" class="tab-content hidden space-y-4">
-                <!-- Admin Form -->
                 <div id="admin-form" class="hidden glass-card p-5 border-2 border-blue-100 space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-black text-blue-600 uppercase">Giao lệnh mới</span>
-                        <select id="assign-mode" onchange="app.ui.toggleMode()" class="text-[9px] font-bold bg-slate-100 p-1 px-2 rounded-lg outline-none">
-                            <option value="ind">Cá nhân</option>
-                            <option value="team">Theo Tổ</option>
-                        </select>
-                    </div>
-                    <input type="text" id="task-name" list="sop-list" onchange="app.actions.fillSOP()" placeholder="Tên công việc..." class="input-field">
-                    <datalist id="sop-list"></datalist>
-                    
-                    <!-- Chọn nhiều nhà -->
-                    <div class="input-group">
-                        <label>Chọn Nhà (Đa chọn)</label>
-                        <div id="multi-house-zone" class="multi-select-box bg-white p-2"></div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-2 mt-2">
-                        <div class="input-group"><label>Định mức</label><input type="number" id="task-target" placeholder="Số" class="input-field"></div>
-                    </div>
-
+                    <div class="flex justify-between items-center"><span class="text-[10px] font-black text-blue-600 uppercase">Giao lệnh mới</span><select id="assign-mode" onchange="app.ui.toggleMode()" class="text-[9px] font-bold bg-slate-100 p-1 px-2 rounded-lg outline-none"><option value="ind">Cá nhân</option><option value="team">Theo Tổ</option></select></div>
+                    <input type="text" id="task-name" list="sop-list" onchange="app.actions.fillSOP()" placeholder="Tên công việc..." class="input-field"><datalist id="sop-list"></datalist>
+                    <div class="input-group"><label>Chọn Nhà (Đa chọn)</label><div id="multi-house-zone" class="multi-select-box bg-white p-2"></div></div>
+                    <div class="grid grid-cols-2 gap-2 mt-2"><div class="input-group"><label>Định mức</label><input type="number" id="task-target" placeholder="Số" class="input-field"></div></div>
                     <div id="ind-zone" class="p-3 bg-slate-50 rounded-xl border max-h-40 overflow-y-auto space-y-2 multi-select-box"></div>
-                    <div id="team-zone" class="hidden p-3 bg-slate-50 rounded-xl border space-y-2 text-xs font-bold">
-                        <label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Sản Xuất" checked> Tổ Sản Xuất</label>
-                        <label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Thu Hoạch"> Tổ Thu Hoạch</label>
-                    </div>
+                    <div id="team-zone" class="hidden p-3 bg-slate-50 rounded-xl border space-y-2 text-xs font-bold"><label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Sản Xuất" checked> Tổ Sản Xuất</label><label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Thu Hoạch"> Tổ Thu Hoạch</label></div>
                     <button onclick="app.actions.addTask()" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition">Ban hành lệnh</button>
                 </div>
-                <!-- Danh sách công việc theo nhân viên (Grouped) -->
                 <div id="task-list" class="space-y-4 pb-20"></div>
             </div>
 
@@ -204,7 +194,6 @@
                         <div class="input-group"><label>Khu vực / Nhà</label><select id="th-area" class="input-field font-bold"></select></div>
                         
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                            <!-- Matrix nhập liệu chuẩn mẫu -->
                             <div class="grid grid-cols-4 gap-2 mb-2 items-end">
                                 <div class="input-group"><label class="text-center">B2</label><input type="number" id="th-b2" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
                                 <div class="input-group"><label class="text-center">A1</label><input type="number" id="th-a1" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
@@ -218,8 +207,7 @@
                                 <div class="input-group"><label class="text-center">B2-F</label><input type="number" id="th-b2f" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
                                 <div class="input-group"><label class="text-center">B1-F</label><input type="number" id="th-b1f" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
                             </div>
-                             <!-- Vùng hiển thị % -->
-                            <div id="th-percent-display" class="grid grid-cols-4 gap-2 mt-2 text-center border-t pt-2"></div>
+                             <div id="th-percent-display" class="grid grid-cols-4 gap-2 mt-2 text-center border-t pt-2"></div>
                         </div>
                         
                         <div class="flex justify-between items-center bg-green-50 p-3 rounded-xl">
@@ -227,9 +215,11 @@
                             <span id="th-total-display" class="font-black text-xl text-green-600">0 kg</span>
                         </div>
                         
-                        <!-- Ghi chú chi tiết -->
-                        <div class="input-group"><label>Hàng trả / Lỗi</label><input type="text" id="th-note-err" class="input-field" placeholder="..."></div>
-                        <div class="input-group"><label>Xuất sấy / Snack</label><input type="text" id="th-note-snack" class="input-field" placeholder="..."></div>
+                        <div class="input-group"><label>Ghi chú</label><input type="text" id="th-note" class="input-field" placeholder="..."></div>
+                        <div class="grid grid-cols-2 gap-2">
+                             <div class="input-group"><label class="text-red-500">Hàng lỗi</label><input type="text" id="th-note-err" class="input-field text-xs" placeholder="..."></div>
+                             <div class="input-group"><label class="text-orange-500">Xuất Snack</label><input type="text" id="th-note-snack" class="input-field text-xs" placeholder="..."></div>
+                        </div>
                         
                         <button onclick="app.actions.submitTH()" class="w-full bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-lg active:scale-95 transition">CẬP NHẬT KHO</button>
                     </div>
@@ -335,9 +325,8 @@
 
         window.app = {
             data: { employees: [], houses: [], chat: [], tasks: [], production: [], harvest: [], hr_requests: [] },
-            user: JSON.parse(localStorage.getItem('n5_v76_user')) || null,
+            user: JSON.parse(localStorage.getItem('n5_v77_user')) || null,
             assignMode: 'ind',
-            currentPhoto: null,
 
             ui: {
                 show: (id) => document.getElementById(id).classList.remove('hidden'),
@@ -386,7 +375,7 @@
                 const statusDot = document.getElementById('status-indicator');
                 const statusText = document.getElementById('status-text');
                 
-                // Fallback cứu hộ
+                // Fallback cứu hộ sau 8 giây nếu không tải được
                 setTimeout(() => {
                     if (app.data.employees.length === 0) {
                         document.getElementById('btn-rescue').classList.remove('hidden');
@@ -402,7 +391,7 @@
                 }).catch(e => {
                      statusDot.classList.replace('status-loading', 'status-error');
                      statusText.innerText = "Lỗi kết nối!";
-                     console.error(e);
+                     statusText.classList.add('text-red-500');
                 });
                 document.getElementById('sx-date').valueAsDate = new Date();
             },
@@ -433,7 +422,7 @@
                     s.disabled = false;
                     pin.disabled = false;
                     btn.disabled = false;
-                    btn.classList.remove('opacity-50');
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     document.getElementById('status-text').innerText = "Sẵn sàng";
                     document.getElementById('btn-rescue').classList.add('hidden');
                 } else {
@@ -452,7 +441,7 @@
                 
                 if(emp) {
                     app.user = emp;
-                    localStorage.setItem('n5_v76_user', JSON.stringify(emp));
+                    localStorage.setItem('n5_v77_user', JSON.stringify(emp));
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('app-body').classList.remove('hidden');
                     app.render();
@@ -482,9 +471,7 @@
                 const houseOpts = app.data.houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
                 const hSelect = document.getElementById('th-area'); if(hSelect.innerHTML==="") hSelect.innerHTML=houseOpts;
                 const hSelectTask = document.getElementById('task-house-id'); if(hSelectTask.innerHTML==="") hSelectTask.innerHTML=houseOpts;
-                
-                const houseMulti = document.getElementById('multi-house-zone');
-                if(houseMulti.innerHTML === "") houseMulti.innerHTML = app.data.houses.map(h => `<label class="flex items-center gap-2 text-xs"><input type="checkbox" name="assign-house" value="${h.name}" class="w-4 h-4"> ${h.name}</label>`).join('');
+                const houseMulti = document.getElementById('multi-house-zone'); if(houseMulti.innerHTML==="") houseMulti.innerHTML=app.data.houses.map(h => `<label class="flex items-center gap-2 text-xs"><input type="checkbox" name="assign-house" value="${h.name}" class="w-4 h-4"> ${h.name}</label>`).join('');
                 
                 // House Grid
                 const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user?.role);
@@ -503,18 +490,7 @@
                 const groups = {}; tasks.forEach(t => { if(!groups[t.assignee]) groups[t.assignee] = []; groups[t.assignee].push(t); });
                 document.getElementById('task-list').innerHTML = Object.keys(groups).map(k => {
                      const worker = app.data.employees.find(e => String(e.id) === String(k))?.name || k;
-                     const items = groups[k].map(t => {
-                         const canReport = t.assignee == app.user.id;
-                         const isStarted = t.status === 'in_progress';
-                         return `
-                            <div class="p-3 bg-slate-50 rounded-xl mb-2 text-xs border flex justify-between items-center shadow-sm">
-                                <div><p class="font-bold text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao lúc: ${new Date(t.time).toLocaleTimeString()}</p></div>
-                                <div class="flex gap-2">
-                                    ${isAdmin ? `<button onclick="app.actions.deleteTask('${t._id}')" class="text-red-500 bg-red-50 p-1.5 rounded-lg"><i class="fas fa-trash"></i></button>` : ''}
-                                    ${canReport ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-md active:scale-90 transition">BÁO CÁO</button>` : `<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-md active:scale-90 transition animate-pulse">NHẬN VIỆC</button>`) : ''}
-                                </div>
-                            </div>`
-                     }).join('');
+                     const items = groups[k].map(t => `<div class="p-2 bg-slate-50 rounded mb-1 text-xs border flex justify-between"><span>${t.title} (${t.houseId})</span>${isAdmin ? `<button onclick="app.actions.deleteTask('${t._id}')" class="text-red-500"><i class="fas fa-trash"></i></button>` : ''}</div>`).join('');
                      return `<div class="glass-card p-4 border-l-4 border-blue-600 mb-3"><p class="text-[10px] text-blue-600 font-bold uppercase mb-2">${worker}</p>${items}</div>`;
                 }).join('');
                 
@@ -549,6 +525,18 @@
                 c.scrollTop = c.scrollHeight;
             },
             
+            renderHR: () => {
+                 const list = document.getElementById('hr-list');
+                 list.innerHTML = app.data.hr_requests.filter(r => r.status === 'pending').map(r => `
+                    <div class="bg-slate-50 p-2 rounded border text-xs mb-2">
+                        <p class="font-bold text-blue-600">${r.type === 'LEAVE' ? 'Xin Nghỉ' : 'Mua Hàng'} - ${r.requester}</p>
+                        <p class="my-1">${r.content}</p>
+                        <div class="flex gap-2"><button onclick="app.actions.approveHR('${r._id}', 'approved')" class="bg-green-100 text-green-700 px-2 py-1 rounded">Duyệt</button><button onclick="app.actions.approveHR('${r._id}', 'rejected')" class="bg-red-100 text-red-700 px-2 py-1 rounded">Từ chối</button></div>
+                    </div>
+                 `).join('');
+                 if(app.data.hr_requests.filter(r => r.status === 'pending').length === 0) list.innerHTML = '<p class="text-center text-xs text-slate-400">Không có yêu cầu</p>';
+            },
+
             renderAdminTools: () => {
                  const ind = document.getElementById('ind-zone');
                  if(ind && ind.innerHTML === "") ind.innerHTML = app.data.employees.map(e => `<label class="flex items-center gap-2 p-2"><input type="checkbox" name="assign-check" value="${e.id}"> <span class="text-xs font-bold">${e.name}</span></label>`).join('');
@@ -580,30 +568,6 @@
                     const houses = Array.from(document.querySelectorAll('input[name="assign-house"]:checked')).map(i => i.value);
                     for(let house of houses) for(let uid of uids) await addDoc(collection(db, `${ROOT}/tasks`), { title, houseId: house, assignee: uid, status: 'pending', time: Date.now() });
                     alert("Đã giao!");
-                },
-                startTask: async (id) => {
-                    await updateDoc(doc(db, `${ROOT}/tasks`, id), { status: 'in_progress', startTime: Date.now() });
-                },
-                openReport: (id, name) => {
-                    document.getElementById('report-task-id').value = id;
-                    document.getElementById('report-task-name').innerText = name;
-                    document.getElementById('report-val').value = "";
-                    document.getElementById('report-info').value = "";
-                    app.ui.show('report-modal');
-                },
-                submitReport: async () => {
-                    const id = document.getElementById('report-task-id').value;
-                    const val = Number(document.getElementById('report-val').value);
-                    const info = document.getElementById('report-info').value;
-                    const status = document.querySelector('input[name="report-status"]:checked').value;
-                    const task = app.data.tasks.find(t => t._id === id);
-                    const duration = task.startTime ? ((Date.now() - task.startTime) / 60000).toFixed(0) + ' phút' : 'N/A';
-                    await updateDoc(doc(db, `${ROOT}/tasks`, id), { status, actual: val, note: info, photo: app.currentPhoto, finishTime: Date.now(), duration });
-                    if(status === 'completed') {
-                         const emp = app.data.employees.find(e => e.id == task.assignee);
-                         await updateDoc(doc(db, `${ROOT}/employees`, emp._id), { score: (emp.score || 0) + 10 });
-                    }
-                    app.ui.hide('report-modal');
                 },
                 openTemp: (id, name) => {
                     const h = app.data.houses.find(x => x._id == id);
@@ -689,7 +653,7 @@
                 requestNotify: () => { if ("Notification" in window) Notification.requestPermission(); },
                 testNotify: () => { app.ui.toast("TEST", "Thông báo hoạt động!"); },
                 
-                logout: () => { localStorage.removeItem('n5_v76_user'); location.reload(); },
+                logout: () => { localStorage.removeItem('n5_v77_user'); location.reload(); },
                 // Seed Admin if DB is empty
                 seedAdmin: async () => {
                     if (confirm("Tạo tài khoản Admin khẩn cấp? (ID: 9999, PIN: 9999)")) {
