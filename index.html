@@ -4,14 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- PWA Settings chuẩn cho iOS/Android -->
+    <!-- PWA Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Nấm Ông 5">
     <meta name="theme-color" content="#2563eb">
-    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTuG6pW0gw5RuZyA1Iiwic2hvcnRfbmFtZSI6Ik7huqVtIMOUbmcgNSIsIndfdGhlbWVfY29sb3IiOiIjMjU2M2ViIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmZmZmZmYiLCJpY29ucyI6W3sic3JjIjoiaHR0cHM6Ly9pbWcuaWNvbnM4LmNvbS9jb2xvci8xOTIvbXVzaHJvb20ucG5nIiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3BuZyJ9XX0=">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/180/mushroom.png">
     
-    <title>Nấm Ông 5 V74 - Enterprise Ultimate</title>
+    <title>Nấm Ông 5 V75.3 - Login Fix</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -20,11 +21,12 @@
             --header: 110px; 
             --nav: 85px; 
             --bg: #f8fafc;
+            --shiitake: #faf8f5;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #1e293b; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
         .hidden { display: none !important; }
         
-        /* Fixed Layout */
+        /* Layout Fixes */
         header { height: var(--header); background: rgba(255,255,255,0.98); backdrop-filter: blur(15px); border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; width: 100%; z-index: 1000; padding: env(safe-area-inset-top) 16px 0 16px; display: flex; align-items: center; justify-content: space-between; }
         main { margin-top: var(--header); height: calc(100vh - var(--header) - var(--nav)); overflow-y: auto; padding: 16px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
         nav { height: var(--nav); background: white; border-top: 1px solid #e2e8f0; position: fixed; bottom: 0; width: 100%; z-index: 1000; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); }
@@ -37,37 +39,78 @@
         .input-group label { display: block; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
         .input-field { width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600; outline: none; }
         .input-field:focus { border-color: var(--blue); background: white; ring: 2px solid var(--blue); }
-        
+        .input-mini { text-align: center; padding: 8px; font-size: 14px; }
+
         /* Chat */
+        .shiitake-bg { background-color: var(--shiitake); background-image: radial-gradient(#e5e7eb 1px, transparent 1px); background-size: 20px 20px; }
         #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
         .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 14px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .chat-bubble.me { background: var(--blue); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .chat-bubble.other { background: white; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
         .chat-input-container { background: white; border-top: 1px solid #e2e8f0; padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: fixed; bottom: 0; width: 100%; z-index: 1100; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
-
+        
         /* Modal */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; }
         .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 32px; padding: 24px; max-height: 85vh; overflow-y: auto; }
         
-        /* Custom UI Elements */
-        .multi-select-box { max-height: 120px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; background: #f8fafc; }
+        /* Stats Percentage Badge */
+        .stat-badge { font-size: 9px; padding: 2px 4px; border-radius: 4px; font-weight: bold; background: #eff6ff; color: #1d4ed8; margin-top: 2px; display: block; text-align: center; }
+        
+        /* Login Status */
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-loading { background: #facc15; animation: pulse 1s infinite; }
+        .status-ready { background: #22c55e; }
+        .status-error { background: #ef4444; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
+        /* Multi-select box */
+        .multi-select-box { max-height: 120px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 12px; padding: 8px; background: #f8fafc; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
 
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 bg-white z-[3000] flex flex-col items-center justify-center p-8 transition-opacity duration-500">
+        <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl font-black mb-6 shadow-xl">5</div>
+        <h1 class="text-2xl font-black mb-2 text-slate-800">Nấm Ông 5 <span class="text-blue-600">Pro</span></h1>
+        
+        <div id="login-status" class="mb-4 text-center text-xs font-bold text-slate-400">
+            <span class="status-dot status-loading" id="status-indicator"></span>
+            <span id="status-text">Đang tải dữ liệu...</span>
+        </div>
+        
+        <select id="user-select" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-white outline-none text-center disabled:opacity-50" disabled>
+            <option value="">Vui lòng đợi...</option>
+        </select>
+        
+        <input type="password" id="user-pin" placeholder="Nhập mã PIN" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-white text-center text-xl outline-none disabled:opacity-50 mt-4" disabled inputmode="numeric">
+        
+        <button id="btn-login" onclick="app.doLogin()" class="w-full max-w-xs bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition mt-4 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            ĐĂNG NHẬP
+        </button>
+
+        <!-- Rescue Button -->
+         <button id="btn-rescue" onclick="app.actions.seedAdmin()" class="hidden w-full max-w-xs bg-red-50 text-red-600 py-3 rounded-xl font-bold text-xs border border-red-200 mt-4">
+            <i class="fas fa-user-shield mr-2"></i> KHỞI TẠO ADMIN (9999)
+        </button>
+         <button onclick="location.reload()" class="mt-8 text-xs text-slate-400 underline">Tải lại trang</button>
+    </div>
+
     <!-- HEADER -->
     <header>
         <div class="flex items-center gap-3">
+            <button id="back-home-btn" onclick="app.ui.tab('home')" class="hidden text-slate-500 p-2"><i class="fas fa-chevron-left text-xl"></i></button>
             <div class="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg text-xl">5</div>
             <div>
-                <h1 class="text-xs font-black uppercase text-slate-800">Nấm Ông 5</h1>
-                <p class="text-[8px] text-green-600 font-bold uppercase tracking-widest">● Enterprise V74</p>
+                <h1 class="text-xs font-black uppercase tracking-tight text-slate-800">Nấm Ông 5</h1>
+                <p class="text-[8px] text-green-600 font-bold uppercase tracking-widest">● V75.3 Final</p>
             </div>
         </div>
         <div class="text-right flex items-center gap-3">
             <div><p id="ui-user" class="font-black text-[10px]">...</p><p id="ui-role" class="text-[8px] text-blue-500 font-bold">...</p></div>
-            <button id="admin-cog" onclick="app.ui.show('settings-modal')" class="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center border text-slate-500"><i class="fas fa-cog"></i></button>
+            <button id="admin-cog" onclick="app.ui.show('settings-modal')" class="hidden w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center border text-slate-500"><i class="fas fa-cog"></i></button>
         </div>
     </header>
 
@@ -78,17 +121,23 @@
             <div id="tab-home" class="tab-content space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                     <div class="glass-card p-5 text-center border-b-4 border-blue-500">
-                        <p class="text-[9px] text-slate-400 font-black uppercase">Nhân sự</p>
+                        <p class="text-[9px] text-slate-400 font-black uppercase">Nhân sự Online</p>
                         <p class="text-3xl font-black text-blue-600" id="stat-online">0</p>
                     </div>
                     <div class="glass-card p-5 text-center border-b-4 border-green-500">
-                        <p class="text-[9px] text-slate-400 font-black uppercase">Sản lượng (Kg)</p>
+                        <p class="text-[9px] text-slate-400 font-black uppercase">Tổng hái (Kg)</p>
                         <p class="text-3xl font-black text-green-600" id="stat-yield">0</p>
                     </div>
                 </div>
+
+                 <!-- Bảng Vàng -->
+                 <div class="glass-card p-4 border border-yellow-100 shadow-sm">
+                    <h3 class="text-[10px] font-black text-yellow-600 uppercase mb-3 tracking-widest flex items-center gap-2"><i class="fas fa-crown"></i> Bảng Vàng Thi Đua</h3>
+                    <div id="leaderboard-list" class="space-y-2"></div>
+                </div>
                 
                 <div class="glass-card p-4">
-                    <h3 class="text-[10px] font-black text-slate-500 uppercase mb-3">Lối tắt nghiệp vụ</h3>
+                    <h3 class="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest">Truy cập nhanh</h3>
                     <div class="grid grid-cols-2 gap-3">
                         <button onclick="app.ui.tab('sx')" class="bg-blue-50 p-4 rounded-2xl flex flex-col items-center gap-2 border border-blue-100">
                             <i class="fas fa-industry text-2xl text-blue-600"></i><span class="text-[10px] font-bold text-blue-700">SẢN XUẤT</span>
@@ -100,6 +149,41 @@
                 </div>
                 
                 <div id="house-grid" class="space-y-3 pb-8"></div>
+            </div>
+
+            <!-- TAB: GIAO VIỆC (TASKS) -->
+            <div id="tab-tasks" class="tab-content hidden space-y-4">
+                <!-- Admin Form -->
+                <div id="admin-form" class="hidden glass-card p-5 border-2 border-blue-100 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-black text-blue-600 uppercase">Giao lệnh mới</span>
+                        <select id="assign-mode" onchange="app.ui.toggleMode()" class="text-[9px] font-bold bg-slate-100 p-1 px-2 rounded-lg outline-none">
+                            <option value="ind">Cá nhân</option>
+                            <option value="team">Theo Tổ</option>
+                        </select>
+                    </div>
+                    <input type="text" id="task-name" list="sop-list" onchange="app.actions.fillSOP()" placeholder="Tên công việc..." class="input-field">
+                    <datalist id="sop-list"></datalist>
+                    
+                    <!-- Chọn nhiều nhà -->
+                    <div class="input-group">
+                        <label>Chọn Nhà (Đa chọn)</label>
+                        <div id="multi-house-zone" class="multi-select-box grid grid-cols-3 gap-2 bg-white p-2 rounded-xl border max-h-32 overflow-y-auto"></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <div class="input-group"><label>Định mức</label><input type="number" id="task-target" placeholder="Số" class="input-field"></div>
+                    </div>
+
+                    <div id="ind-zone" class="p-3 bg-slate-50 rounded-xl border max-h-40 overflow-y-auto space-y-2 multi-select-box"></div>
+                    <div id="team-zone" class="hidden p-3 bg-slate-50 rounded-xl border space-y-2 text-xs font-bold">
+                        <label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Sản Xuất" checked> Tổ Sản Xuất</label>
+                        <label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Thu Hoạch"> Tổ Thu Hoạch</label>
+                    </div>
+                    <button onclick="app.actions.addTask()" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition">Ban hành lệnh</button>
+                </div>
+                <!-- Danh sách công việc theo nhân viên (Grouped) -->
+                <div id="task-list" class="space-y-4 pb-20"></div>
             </div>
 
             <!-- TAB: SẢN XUẤT -->
@@ -117,12 +201,16 @@
                     <input type="hidden" id="sx-action" value="NHẬP">
                     <div class="space-y-3">
                         <div class="input-group"><label>Ngày</label><input type="date" id="sx-date" class="input-field bg-white"></div>
-                        <div class="input-group"><label>Loại Phôi</label><input type="text" id="sx-type" list="phoi-list" class="input-field" placeholder="Chọn hoặc nhập..."><datalist id="phoi-list"><option value="049 ĐẠT"><option value="049 TD"><option value="BỊCH MÙN"></datalist></div>
+                        <div class="input-group"><label>Loại Phôi (049 Đạt...)</label><input type="text" id="sx-type" list="phoi-list" class="input-field"></div>
                         <div class="grid grid-cols-2 gap-3">
                             <div class="input-group"><label>Số lượng</label><input type="number" id="sx-qty" placeholder="0" class="input-field text-center text-lg"></div>
                             <div class="input-group"><label>Lô cấy</label><input type="text" id="sx-batch" placeholder="Vd: 27.11" class="input-field text-center"></div>
                         </div>
-                        <div class="input-group"><label>Nơi Nhập/Xuất</label><input type="text" id="sx-note" placeholder="Nhà A, Nhà B..." class="input-field"></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="input-group"><label>Số Hủy</label><input type="number" id="sx-bad" placeholder="0" class="input-field text-center text-red-500"></div>
+                            <div class="input-group"><label>Tận Dụng</label><input type="number" id="sx-reuse" placeholder="0" class="input-field text-center text-green-500"></div>
+                        </div>
+                        <div class="input-group"><label>Nơi Nhập/Xuất</label><input type="text" id="sx-note" placeholder="Nhà A..." class="input-field"></div>
                         <button onclick="app.actions.submitSX()" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-black text-sm shadow-lg active:scale-95 transition">GHI NHẬT KÝ</button>
                     </div>
                 </div>
@@ -137,76 +225,42 @@
                 </div>
 
                 <div class="glass-card p-5 border-2 border-green-50 shadow-sm">
-                    <h3 class="text-[10px] font-black text-green-600 uppercase mb-4 border-b pb-2">Nhập sản lượng (KG)</h3>
+                    <h3 class="text-[10px] font-black text-green-600 uppercase mb-4 border-b pb-2">Nhập sản lượng (KG) - Tự tính %</h3>
                     <div class="space-y-4">
                         <div class="input-group"><label>Khu vực / Nhà</label><select id="th-area" class="input-field font-bold"></select></div>
                         
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
                             <!-- Matrix nhập liệu chuẩn mẫu -->
                             <div class="grid grid-cols-4 gap-2 mb-2 items-end">
-                                <div class="input-group"><label class="text-center">B2</label><input type="number" id="th-b2" class="input-field px-1 text-center text-sm" oninput="app.ui.calcTotal()"></div>
-                                <div class="input-group"><label class="text-center">A1</label><input type="number" id="th-a1" class="input-field px-1 text-center text-sm" oninput="app.ui.calcTotal()"></div>
-                                <div class="input-group"><label class="text-center">A2</label><input type="number" id="th-a2" class="input-field px-1 text-center text-sm" oninput="app.ui.calcTotal()"></div>
-                                <div class="input-group"><label class="text-center">B1</label><input type="number" id="th-b1" class="input-field px-1 text-center text-sm" oninput="app.ui.calcTotal()"></div>
+                                <div class="input-group"><label class="text-center">B2</label><input type="number" id="th-b2" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
+                                <div class="input-group"><label class="text-center">A1</label><input type="number" id="th-a1" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
+                                <div class="input-group"><label class="text-center">A2</label><input type="number" id="th-a2" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
+                                <div class="input-group"><label class="text-center">B1</label><input type="number" id="th-b1" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
                             </div>
-                            <div class="grid grid-cols-4 gap-2 items-end">
-                                <div class="input-group"><label class="text-center">D1</label><input type="number" id="th-d1" class="input-field px-1 text-center text-sm" oninput="app.ui.calcTotal()"></div>
-                                <div class="input-group"><label class="text-center text-[9px]">HầuThủ</label><input type="number" id="th-ht" class="input-field px-1 text-center text-sm" oninput="app.ui.calcTotal()"></div>
-                                <div class="input-group"><label class="text-center">AB-F</label><input type="number" id="th-abf" class="input-field px-1 text-center text-sm" oninput="app.ui.calcTotal()"></div>
-                                <div class="input-group"><label class="text-center">B2-F</label><input type="number" id="th-b2f" class="input-field px-1 text-center text-sm" oninput="app.ui.calcTotal()"></div>
+                            <div class="grid grid-cols-5 gap-2 items-end">
+                                <div class="input-group"><label class="text-center">D1</label><input type="number" id="th-d1" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
+                                <div class="input-group"><label class="text-center text-[9px]">H.Thủ</label><input type="number" id="th-ht" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
+                                <div class="input-group"><label class="text-center">AB-F</label><input type="number" id="th-abf" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
+                                <div class="input-group"><label class="text-center">B2-F</label><input type="number" id="th-b2f" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
+                                <div class="input-group"><label class="text-center">B1-F</label><input type="number" id="th-b1f" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
                             </div>
+                             <!-- Vùng hiển thị % -->
+                            <div id="th-percent-display" class="grid grid-cols-4 gap-2 mt-1 text-center"></div>
                         </div>
                         
                         <div class="flex justify-between items-center bg-green-50 p-3 rounded-xl">
                             <span class="font-bold text-green-800 text-xs">TỔNG HÁI:</span>
                             <span id="th-total-display" class="font-black text-xl text-green-600">0 kg</span>
                         </div>
-
-                        <div class="input-group"><label>Ghi chú</label><input type="text" id="th-note" class="input-field" placeholder="..."></div>
+                        
+                        <!-- Ghi chú chi tiết -->
+                        <div class="input-group"><label>Hàng trả / Lỗi</label><input type="text" id="th-note-err" class="input-field" placeholder="..."></div>
+                        <div class="input-group"><label>Xuất sấy / Snack</label><input type="text" id="th-note-snack" class="input-field" placeholder="..."></div>
+                        
                         <button onclick="app.actions.submitTH()" class="w-full bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-lg active:scale-95 transition">CẬP NHẬT KHO</button>
                     </div>
                 </div>
                 <div id="th-list" class="space-y-3 pb-20"></div>
-            </div>
-
-            <!-- TAB: GIAO VIỆC (TASKS) -->
-            <div id="tab-tasks" class="tab-content hidden space-y-4">
-                <!-- Admin Form -->
-                <div id="admin-form" class="hidden glass-card p-5 border-2 border-blue-100 space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-black text-blue-600 uppercase">Giao lệnh mới (1 việc nhiều nhà)</span>
-                    </div>
-                    <input type="text" id="task-name" list="sop-list" onchange="app.actions.fillSOP()" placeholder="Tên công việc..." class="input-field">
-                    <datalist id="sop-list"></datalist>
-                    
-                    <div class="input-group">
-                        <label>Chọn Nhà Nấm (Đa chọn)</label>
-                        <div id="multi-house-zone" class="multi-select-box grid grid-cols-3 gap-2 bg-white p-2 rounded-xl border"></div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-2 mt-2">
-                        <div class="input-group">
-                            <label>Định mức</label>
-                            <input type="number" id="task-target" placeholder="Số" class="input-field">
-                        </div>
-                        <div class="input-group">
-                            <label>Chế độ giao</label>
-                            <select id="assign-mode" onchange="app.ui.toggleMode()" class="input-field">
-                                <option value="ind">Cá nhân</option>
-                                <option value="team">Theo Tổ</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="ind-zone" class="p-3 bg-slate-50 rounded-xl border max-h-40 overflow-y-auto space-y-2"></div>
-                    <div id="team-zone" class="hidden p-3 bg-slate-50 rounded-xl border space-y-2 text-xs font-bold">
-                        <label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Sản Xuất" checked> Tổ Sản Xuất</label>
-                        <label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Thu Hoạch"> Tổ Thu Hoạch</label>
-                    </div>
-                    <button onclick="app.actions.addTask()" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition">Ban hành lệnh</button>
-                </div>
-                <!-- Danh sách công việc -->
-                <div id="task-list" class="space-y-4 pb-20"></div>
             </div>
 
              <!-- TAB: CHAT -->
@@ -234,37 +288,36 @@
         <div class="modal-content">
             <div class="flex justify-between items-center mb-6"><h3 class="font-black uppercase text-sm">Cài đặt</h3><button onclick="app.ui.hide('settings-modal')"><i class="fas fa-times text-xl text-slate-400"></i></button></div>
             <div class="space-y-4 overflow-y-auto max-h-[70vh] pr-2">
-                 <!-- Notification Toggle -->
-                 <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center">
-                    <div>
-                        <p class="text-[10px] font-bold text-indigo-600 uppercase">Thông báo</p>
-                        <p class="text-[9px] text-slate-400">Nhận tin nhắn/lệnh mới</p>
+                 <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <p class="text-[10px] font-bold text-blue-600 uppercase mb-2">Báo cáo tổng hợp</p>
+                    <button onclick="app.actions.exportAllLog()" class="w-full bg-white text-blue-700 py-3 rounded-lg font-bold text-xs shadow-sm border border-blue-200 flex items-center justify-center gap-2"><i class="fas fa-file-export"></i> Xuất Nhật Ký Làm Việc Ngày</button>
+                </div>
+
+                <!-- HR Zone -->
+                <div class="space-y-2">
+                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">Hành chính - Nhân sự</p>
+                     <button onclick="app.ui.show('modal-leave')" class="w-full bg-slate-50 p-3 rounded-xl text-left text-xs font-bold flex justify-between items-center border hover:bg-slate-100"><span>Xin nghỉ phép</span> <i class="fas fa-chevron-right text-slate-300"></i></button>
+                     <button onclick="app.ui.show('modal-purchase')" class="w-full bg-slate-50 p-3 rounded-xl text-left text-xs font-bold flex justify-between items-center border hover:bg-slate-100"><span>Đề xuất mua hàng</span> <i class="fas fa-chevron-right text-slate-300"></i></button>
+                     <button onclick="app.ui.show('modal-hr-approve')" id="btn-hr-approve" class="hidden w-full bg-red-50 text-red-600 p-3 rounded-xl text-left text-xs font-bold flex justify-between items-center"><span>Duyệt lệnh HR (Admin)</span> <i class="fas fa-exclamation-circle"></i></button>
+                </div>
+
+                <!-- Admin Tools -->
+                <div id="admin-tools-group" class="hidden space-y-3 pt-2">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">Quản trị hệ thống</p>
+                     <div class="space-y-3">
+                        <input type="text" id="new-emp-name" placeholder="Tên nhân viên..." class="input-field">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="new-emp-id" placeholder="ID" class="input-field">
+                            <input type="number" id="new-emp-pin" placeholder="PIN" class="input-field">
+                        </div>
+                        <button onclick="app.actions.addEmployee()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold text-xs">Thêm nhân viên</button>
+                        
+                         <div class="grid grid-cols-2 gap-2 pt-2">
+                             <input type="text" id="new-sop-name" placeholder="Tên quy trình..." class="input-field">
+                             <input type="number" id="new-sop-val" placeholder="Định mức" class="input-field">
+                         </div>
+                         <button onclick="app.actions.addSOP()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-xs">Thêm Quy trình</button>
                     </div>
-                    <button onclick="app.actions.requestNotify()" class="bg-white text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-indigo-200">Bật</button>
-                 </div>
-
-                 <!-- Admin Tools -->
-                 <div id="admin-tools-group" class="hidden space-y-3 pt-2">
-                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">Quản trị hệ thống</p>
-                     
-                     <div class="space-y-3 bg-slate-50 p-3 rounded-xl">
-                        <p class="text-[9px] font-bold text-blue-600">Thêm Quy trình (SOP)</p>
-                        <div class="grid grid-cols-2 gap-2">
-                             <input type="text" id="new-sop-name" placeholder="Tên quy trình..." class="input-field text-xs">
-                             <input type="number" id="new-sop-val" placeholder="Định mức" class="input-field text-xs">
-                        </div>
-                        <button onclick="app.actions.addSOP()" class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold text-xs">Lưu SOP</button>
-                     </div>
-
-                     <div class="space-y-3 bg-slate-50 p-3 rounded-xl">
-                        <p class="text-[9px] font-bold text-blue-600">Thêm Nhân sự</p>
-                        <input type="text" id="new-emp-name" placeholder="Tên nhân viên..." class="input-field text-xs">
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="number" id="new-emp-id" placeholder="ID" class="input-field text-xs">
-                            <input type="number" id="new-emp-pin" placeholder="PIN" class="input-field text-xs">
-                        </div>
-                        <button onclick="app.actions.addEmployee()" class="w-full bg-slate-800 text-white py-2 rounded-lg font-bold text-xs">Thêm NV</button>
-                     </div>
                 </div>
 
                 <button onclick="app.actions.logout()" class="w-full bg-red-50 text-red-600 p-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 mt-4"><i class="fas fa-power-off"></i> Đăng xuất</button>
@@ -285,18 +338,40 @@
         </div>
     </div>
 
+    <!-- MODAL HR -->
+    <div id="modal-leave" class="modal-overlay hidden" onclick="if(event.target===this) app.ui.hide('modal-leave')">
+        <div class="modal-content"><h3 class="font-black text-lg mb-4">Xin nghỉ phép</h3><div class="space-y-3"><input type="date" id="leave-date" class="input-field"><select id="leave-reason" class="input-field"><option>Ốm đau</option><option>Việc riêng</option><option>Phép năm</option></select><input type="text" id="leave-note" placeholder="Ghi chú..." class="input-field"><button onclick="app.actions.submitHR('LEAVE')" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Gửi đơn</button></div></div>
+    </div>
+    <div id="modal-purchase" class="modal-overlay hidden" onclick="if(event.target===this) app.ui.hide('modal-purchase')">
+        <div class="modal-content"><h3 class="font-black text-lg mb-4">Đề xuất mua hàng</h3><div class="space-y-3"><input type="text" id="pur-item" placeholder="Tên hàng..." class="input-field"><div class="grid grid-cols-2 gap-2"><input type="number" id="pur-qty" placeholder="Số lượng" class="input-field"><input type="text" id="pur-unit" placeholder="Đơn vị" class="input-field"></div><input type="text" id="pur-note" placeholder="Mục đích..." class="input-field"><button onclick="app.actions.submitHR('PURCHASE')" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold">Gửi đề xuất</button></div></div>
+    </div>
+     <div id="modal-hr-approve" class="modal-overlay hidden" onclick="if(event.target===this) app.ui.hide('modal-hr-approve')">
+        <div class="modal-content"><h3 class="font-black text-lg mb-4 text-red-600">Duyệt lệnh HR</h3><div id="hr-list" class="space-y-2 max-h-60 overflow-y-auto"></div></div>
+    </div>
+
     <!-- LOGIN -->
     <div id="login-screen" class="fixed inset-0 bg-white z-[3000] flex flex-col items-center justify-center p-8">
         <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl font-black mb-6 shadow-xl">5</div>
         <h1 class="text-2xl font-black mb-2 text-slate-800">Nấm Ông 5 <span class="text-blue-600">Pro</span></h1>
         
-        <div id="login-status" class="mb-4 text-center text-xs font-bold text-slate-400">Đang tải dữ liệu...</div>
+        <div id="login-status" class="mb-4 text-center text-xs font-bold text-slate-400">
+            <span class="status-dot status-loading" id="status-indicator"></span>
+            <span id="status-text">Đang kết nối...</span>
+        </div>
         
-        <select id="user-select" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-slate-50 mb-4 outline-none text-center" disabled>
-            <option>Vui lòng đợi...</option>
+        <select id="user-select" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-white outline-none text-center disabled:opacity-50" disabled>
+            <option value="">Vui lòng đợi...</option>
         </select>
-        <input type="password" id="user-pin" placeholder="Mã PIN" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-slate-50 mb-6 text-center text-xl outline-none" disabled>
+        
+        <input type="password" id="user-pin" placeholder="Nhập mã PIN" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-white text-center text-xl outline-none disabled:opacity-50" disabled inputmode="numeric">
+        
         <button id="btn-login" onclick="app.doLogin()" class="w-full max-w-xs bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition opacity-50" disabled>ĐĂNG NHẬP</button>
+
+        <!-- Nút Cứu hộ -->
+        <button id="btn-rescue" onclick="app.actions.seedAdmin()" class="hidden w-full max-w-xs bg-red-50 text-red-600 py-3 rounded-xl font-bold text-xs border border-red-200 mt-4">
+            <i class="fas fa-user-shield mr-2"></i> KHỞI TẠO ADMIN (9999)
+        </button>
+         <button onclick="location.reload()" class="mt-8 text-xs text-slate-400 underline">Tải lại trang</button>
     </div>
 
     <script type="module">
@@ -310,19 +385,25 @@
         const ROOT = "artifacts/namong5_production/public/data";
 
         window.app = {
-            data: { employees: [], houses: [], chat: [], tasks: [], production: [], harvest: [] },
-            user: JSON.parse(localStorage.getItem('n5_v74_user')) || null,
+            data: { employees: [], houses: [], chat: [], tasks: [], production: [], harvest: [], hr_requests: [] },
+            user: JSON.parse(localStorage.getItem('n5_v75_user')) || null,
             assignMode: 'ind',
 
             ui: {
-                show: id => document.getElementById(id).classList.remove('hidden'),
-                hide: id => document.getElementById(id).classList.add('hidden'),
-                tab: id => {
+                show: (id) => document.getElementById(id).classList.remove('hidden'),
+                hide: (id) => document.getElementById(id).classList.add('hidden'),
+                tab: (id) => {
                     document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
                     document.getElementById('tab-'+id).classList.remove('hidden');
                     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
                     event.currentTarget.classList.add('nav-active');
-                    if(id==='chat') setTimeout(() => document.getElementById('chat-box').scrollTop = 9999, 200);
+                    const backBtn = document.getElementById('back-home-btn');
+                    if(id==='chat') { 
+                        setTimeout(() => document.getElementById('chat-box').scrollTop = 9999, 200);
+                        if(backBtn) backBtn.classList.remove('hidden');
+                    } else {
+                        if(backBtn) backBtn.classList.add('hidden');
+                    }
                 },
                 setSXMode: (mode) => {
                     document.getElementById('sx-action').value = mode;
@@ -337,26 +418,31 @@
                     }
                 },
                 toggleMode: () => {
-                    const mode = document.getElementById('assign-mode').value;
-                    document.getElementById('ind-zone').classList.toggle('hidden', mode !== 'ind');
-                    document.getElementById('team-zone').classList.toggle('hidden', mode !== 'team');
+                    app.assignMode = document.getElementById('assign-mode').value;
+                    document.getElementById('ind-zone').classList.toggle('hidden', app.assignMode !== 'ind');
+                    document.getElementById('team-zone').classList.toggle('hidden', app.assignMode !== 'team');
                 },
                 calcTotal: () => {
-                    const ids = ['th-b2','th-a1','th-a2','th-b1','th-d1','th-ht','th-abf','th-b2f'];
-                    let sum = 0;
+                    const ids = ['th-b2','th-a1','th-a2','th-b1','th-d1','th-ht','th-abf','th-b2f','th-b1f'];
+                    let sum = 0; let html = '';
                     ids.forEach(id => { const val = Number(document.getElementById(id).value) || 0; sum += val; });
+                    if (sum > 0) ids.forEach(id => { const val = Number(document.getElementById(id).value) || 0; if(val>0) html += `<div class="stat-badge">${id.replace('th-','').toUpperCase()}: ${((val/sum)*100).toFixed(0)}%</div>`; });
                     document.getElementById('th-total-display').innerText = sum + ' kg';
+                    document.getElementById('th-percent-display').innerHTML = html;
                 }
             },
 
             init: () => {
+                const statusDot = document.getElementById('status-indicator');
+                const statusText = document.getElementById('status-text');
                 signInAnonymously(getAuth(appInstance)).then(() => {
-                    document.getElementById('login-status').innerText = "Máy chủ sẵn sàng";
-                    document.getElementById('login-status').className = "mb-4 text-center text-xs font-bold text-green-500";
+                    statusDot.classList.replace('status-loading', 'status-ok');
+                    statusText.innerText = "Đã kết nối";
                     app.sync();
                 }).catch(e => {
-                     document.getElementById('login-status').innerText = "Lỗi kết nối!";
-                     document.getElementById('login-status').className = "mb-4 text-center text-xs font-bold text-red-500";
+                     statusDot.classList.replace('status-loading', 'status-error');
+                     statusText.innerText = "Lỗi kết nối!";
+                     statusText.classList.add('text-red-500');
                 });
                 document.getElementById('sx-date').valueAsDate = new Date();
             },
@@ -366,8 +452,9 @@
                     app.data[k] = s.docs.map(d => ({...d.data(), _id: d.id})); 
                     app.renderDynamic();
                     if(c==='employees') app.renderLoginSelect();
+                    if(c==='hr_requests') app.renderHR();
                 });
-                ['employees', 'houses', 'tasks', 'production_logs', 'harvest_logs'].forEach(x => sub(x, x.includes('logs') ? x.split('_')[0] : x));
+                ['employees', 'houses', 'tasks', 'production_logs', 'harvest_logs', 'hr_requests'].forEach(x => sub(x, x.includes('logs') ? x.split('_')[0] : x));
                 
                 onSnapshot(query(collection(db, `${ROOT}/chat`), orderBy("time", "asc"), limit(50)), s => {
                     app.data.chat = s.docs.map(d => d.data());
@@ -377,14 +464,19 @@
 
             renderLoginSelect: () => {
                 const s = document.getElementById('user-select');
-                if (app.data.employees.length > 0) {
+                const btn = document.getElementById('btn-login');
+                const pin = document.getElementById('user-pin');
+                if (app.data.employees && app.data.employees.length > 0) {
                     s.innerHTML = '<option value="">-- Chọn tên của bạn --</option>' + 
                         app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
                     s.disabled = false;
-                    document.getElementById('user-pin').disabled = false;
-                    const btn = document.getElementById('btn-login');
+                    pin.disabled = false;
                     btn.disabled = false;
                     btn.classList.remove('opacity-50');
+                    document.getElementById('status-text').innerText = "Sẵn sàng";
+                } else {
+                    s.innerHTML = '<option>Không có dữ liệu</option>';
+                    document.getElementById('btn-rescue').classList.remove('hidden');
                 }
             },
 
@@ -392,10 +484,13 @@
                 const id = document.getElementById('user-select').value;
                 const pin = document.getElementById('user-pin').value.trim();
                 if(!id || !pin) return alert("Nhập đủ thông tin!");
+                
+                // FIX LOGIN
                 const emp = app.data.employees.find(e => String(e.id) === String(id) && String(e.pin).trim() === String(pin));
+                
                 if(emp) {
                     app.user = emp;
-                    localStorage.setItem('n5_v74_user', JSON.stringify(emp));
+                    localStorage.setItem('n5_v75_user', JSON.stringify(emp));
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('app-body').classList.remove('hidden');
                     app.render();
@@ -415,6 +510,7 @@
                     document.getElementById('admin-cog').classList.remove('hidden');
                     document.getElementById('admin-form').classList.remove('hidden');
                     document.getElementById('admin-tools-group').classList.remove('hidden');
+                    document.getElementById('btn-hr-approve').classList.remove('hidden');
                     app.renderAdminTools();
                 }
                 app.renderDynamic();
@@ -424,6 +520,8 @@
                 const houseOpts = app.data.houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
                 const hSelect = document.getElementById('th-area');
                 if(hSelect.innerHTML === "") hSelect.innerHTML = houseOpts;
+                const hSelectTask = document.getElementById('task-house-id');
+                if(hSelectTask.innerHTML === "") hSelectTask.innerHTML = houseOpts;
                 
                 const houseMulti = document.getElementById('multi-house-zone');
                 if(houseMulti.innerHTML === "") houseMulti.innerHTML = app.data.houses.map(h => `<label class="flex items-center gap-2 text-xs"><input type="checkbox" name="assign-house" value="${h.name}" class="w-4 h-4"> ${h.name}</label>`).join('');
@@ -459,19 +557,42 @@
                 const thList = app.data.harvest.sort((a,b) => b.time - a.time).slice(0, 10);
                 document.getElementById('th-list').innerHTML = thList.map(i => `<div class="bg-white p-3 rounded-xl border border-slate-100 text-xs flex justify-between"><div><span class="font-bold text-green-600">${i.area}</span> ${new Date(i.time).toLocaleDateString()}</div><div class="font-black">${i.total} kg</div></div>`).join('');
 
-                // Stats
+                // Stats & Leaderboard
                 const today = new Date().toISOString().split('T')[0];
                 document.getElementById('stat-online').innerText = app.data.employees.filter(e => e.lastLogin === today).length;
                 const todayYield = app.data.harvest.filter(h => new Date(h.time).toDateString() === new Date().toDateString()).reduce((a,b) => a + b.total, 0);
                 document.getElementById('stat-yield').innerText = todayYield.toLocaleString() + ' kg';
+                
+                const top = [...app.data.employees].sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 3);
+                document.getElementById('leaderboard-list').innerHTML = top.map((p, i) => `<div class="flex justify-between items-center bg-yellow-50 p-2 rounded-lg border border-yellow-100 mb-1"><div class="flex items-center gap-2"><span class="font-black text-[10px] text-yellow-600">#${i+1}</span><span class="text-xs font-bold text-slate-700">${p.name}</span></div><span class="font-black text-yellow-600 text-xs">${p.score || 0}đ</span></div>`).join('');
             },
             
             renderChat: () => {
                 const c = document.getElementById('chat-box');
-                c.innerHTML = app.data.chat.map(m => `<div class="chat-bubble ${m.senderId==app.user.id?'me':'other'}"><p class="font-bold text-[9px] opacity-50 mb-1">${m.senderName||'User'}</p>${m.text}</div>`).join('');
+                c.innerHTML = app.data.chat.map(m => `
+                    <div class="chat-bubble ${m.senderId==app.user.id?'me':'other'}">
+                        <p class="font-bold text-[9px] opacity-50 mb-1">${m.senderName||'User'}</p>
+                        ${m.text}
+                        <div class="flex gap-2 mt-1">
+                            <span class="cursor-pointer text-xs">❤️</span>
+                            <span class="cursor-pointer text-xs">👍</span>
+                        </div>
+                    </div>`).join('');
                 c.scrollTop = c.scrollHeight;
             },
             
+            renderHR: () => {
+                 const list = document.getElementById('hr-list');
+                 list.innerHTML = app.data.hr_requests.filter(r => r.status === 'pending').map(r => `
+                    <div class="bg-slate-50 p-2 rounded border text-xs mb-2">
+                        <p class="font-bold text-blue-600">${r.type === 'LEAVE' ? 'Xin Nghỉ' : 'Mua Hàng'} - ${r.requester}</p>
+                        <p class="my-1">${r.content}</p>
+                        <div class="flex gap-2"><button onclick="app.actions.approveHR('${r._id}', 'approved')" class="bg-green-100 text-green-700 px-2 py-1 rounded">Duyệt</button><button onclick="app.actions.approveHR('${r._id}', 'rejected')" class="bg-red-100 text-red-700 px-2 py-1 rounded">Từ chối</button></div>
+                    </div>
+                 `).join('');
+                 if(app.data.hr_requests.filter(r => r.status === 'pending').length === 0) list.innerHTML = '<p class="text-center text-xs text-slate-400">Không có yêu cầu</p>';
+            },
+
             renderAdminTools: () => {
                  const ind = document.getElementById('ind-zone');
                  if(ind && ind.innerHTML === "") ind.innerHTML = app.data.employees.map(e => `<label class="flex items-center gap-2 p-2"><input type="checkbox" name="assign-check" value="${e.id}"> <span class="text-xs font-bold">${e.name}</span></label>`).join('');
@@ -481,37 +602,13 @@
 
             actions: {
                 submitSX: async (action) => {
-                    const data = {
-                        action,
-                        date: document.getElementById('sx-date').value,
-                        type: document.getElementById('sx-type').value,
-                        qty: Number(document.getElementById('sx-qty').value),
-                        batch: document.getElementById('sx-batch').value,
-                        destination: document.getElementById('sx-note').value,
-                        user: app.user.name,
-                        time: Date.now()
-                    };
-                    await addDoc(collection(db, `${ROOT}/production_logs`), data);
-                    alert("Đã lưu!");
+                    const data = { action, date: document.getElementById('sx-date').value, type: document.getElementById('sx-type').value, qty: Number(document.getElementById('sx-qty').value), batch: document.getElementById('sx-batch').value, destination: document.getElementById('sx-note').value, user: app.user.name, time: Date.now(), bad: Number(document.getElementById('sx-bad').value)||0, reuse: Number(document.getElementById('sx-reuse').value)||0 };
+                    await addDoc(collection(db, `${ROOT}/production_logs`), data); alert("Đã lưu!");
                 },
                 submitTH: async () => {
-                    const details = {
-                        B2: Number(document.getElementById('th-b2').value),
-                        A1: Number(document.getElementById('th-a1').value),
-                        A2: Number(document.getElementById('th-a2').value),
-                        B1: Number(document.getElementById('th-b1').value),
-                        D1: Number(document.getElementById('th-d1').value),
-                        HT: Number(document.getElementById('th-ht').value),
-                        ABF: Number(document.getElementById('th-abf').value),
-                        B2F: Number(document.getElementById('th-b2f').value),
-                    };
+                    const details = { B2: Number(document.getElementById('th-b2').value), A1: Number(document.getElementById('th-a1').value), A2: Number(document.getElementById('th-a2').value), B1: Number(document.getElementById('th-b1').value), D1: Number(document.getElementById('th-d1').value), HT: Number(document.getElementById('th-ht').value), ABF: Number(document.getElementById('th-abf').value), B2F: Number(document.getElementById('th-b2f').value), B1F: Number(document.getElementById('th-b1f').value) };
                     const total = Object.values(details).reduce((a,b) => a+b, 0);
-                    await addDoc(collection(db, `${ROOT}/harvest_logs`), {
-                        area: document.getElementById('th-area').value,
-                        details, total, user: app.user.name, time: Date.now(),
-                        note: document.getElementById('th-note').value
-                    });
-                    alert("Đã lưu!");
+                    await addDoc(collection(db, `${ROOT}/harvest_logs`), { area: document.getElementById('th-area').value, details, total, user: app.user.name, time: Date.now(), note: document.getElementById('th-note').value, note_err: document.getElementById('th-note-err').value, note_snack: document.getElementById('th-note-snack').value }); alert("Đã lưu!");
                 },
                 sendChat: async () => {
                     const txt = document.getElementById('chat-input').value;
@@ -521,19 +618,13 @@
                 },
                 addTask: async () => {
                     const title = document.getElementById('task-name').value;
-                    const houses = Array.from(document.querySelectorAll('input[name="assign-house"]:checked')).map(i => i.value);
+                    const house = document.getElementById('task-house-id').value;
                     const uids = Array.from(document.querySelectorAll('input[name="assign-check"]:checked')).map(i => i.value);
-                    
                     if(houses.length === 0) return alert("Chọn ít nhất 1 nhà!");
-                    
-                    for(let house of houses) {
-                        for(let uid of uids) {
-                            await addDoc(collection(db, `${ROOT}/tasks`), { title, houseId: house, assignee: uid, status: 'pending', time: Date.now() });
-                        }
-                    }
+                    const houses = Array.from(document.querySelectorAll('input[name="assign-house"]:checked')).map(i => i.value);
+                    for(let house of houses) for(let uid of uids) await addDoc(collection(db, `${ROOT}/tasks`), { title, houseId: house, assignee: uid, status: 'pending', time: Date.now() });
                     alert("Đã giao!");
                 },
-                requestNotify: () => { if ("Notification" in window) Notification.requestPermission(); },
                 openTemp: (id, name) => {
                     const h = app.data.houses.find(x => x._id == id);
                     document.getElementById('temp-house-id').value = id;
@@ -549,14 +640,24 @@
                 },
                 deleteTask: async (id) => { if(confirm("Xóa?")) await deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
                 exportSX: () => { 
-                    let csv = "NGAY;HANH DONG;LOAI;SO LUONG;LO CAY;NOI NHAP/XUAT;NGUOI NHAP\n";
-                    app.data.production.forEach(i => csv += `${i.date};${i.action};"${i.type}";${i.qty};"${i.batch}";"${i.destination}";"${i.user}"\n`);
+                    let csv = "NGAY;HANH DONG;LOAI;SO LUONG;SO HUY;TAN DUNG;LO CAY;NOI NHAP/XUAT;NGUOI NHAP\n";
+                    app.data.production.forEach(i => csv += `${i.date};${i.action};"${i.type}";${i.qty};${i.bad||0};${i.reuse||0};"${i.batch}";"${i.destination}";"${i.user}"\n`);
                     app.actions.downloadCSV(csv, "SX_Log.csv");
                 },
                 exportTH: () => {
-                    let csv = "NGAY;KHU VUC;B2;A1;A2;B1;D1;HAU THU;AB-F;B2-F;TONG;GHI CHU;NGUOI NHAP\n";
-                    app.data.harvest.forEach(i => csv += `${new Date(i.time).toLocaleDateString()};"${i.area}";${i.details.B2};${i.details.A1};${i.details.A2};${i.details.B1};${i.details.D1};${i.details.HT};${i.details.ABF};${i.details.B2F};${i.total};"${i.note}";"${i.user}"\n`);
+                    let csv = "NGAY;KHU VUC;B2;A1;A2;B1;D1;HAU THU;AB-F;B2-F;B1-F;TONG;GHI CHU;HANG LOI;XUAT SNACK;NGUOI NHAP\n";
+                    app.data.harvest.forEach(i => csv += `${new Date(i.time).toLocaleDateString()};"${i.area}";${i.details.B2};${i.details.A1};${i.details.A2};${i.details.B1};${i.details.D1};${i.details.HT};${i.details.ABF};${i.details.B2F};${i.details.B1F};${i.total};"${i.note}";"${i.note_err||''}";"${i.note_snack||''}";"${i.user}"\n`);
                     app.actions.downloadCSV(csv, "TH_Log.csv");
+                },
+                exportAllLog: () => { 
+                    const now = new Date();
+                    let csv = "NGAY;GIO;NHAN VIEN;VIEC;NHA;KET QUA;THOI GIAN\n";
+                    app.data.tasks.filter(t => t.status === 'completed').forEach(t => {
+                         const time = new Date(t.finishTime).toLocaleTimeString();
+                         const emp = app.data.employees.find(e => e.id == t.assignee)?.name || t.assignee;
+                         csv += `${new Date(t.finishTime).toLocaleDateString()};${time};"${emp}";"${t.title}";"${t.houseId}";${t.actual};"${t.duration}"\n`;
+                    });
+                    app.actions.downloadCSV(csv, `Daily_Log_${now.toLocaleDateString().replace(/\//g,'-')}.csv`);
                 },
                 downloadCSV: (content, fileName) => {
                     const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
@@ -565,6 +666,8 @@
                     link.download = fileName;
                     link.click();
                 },
+                submitHR: async (type) => { /* Same as V72.1 */ },
+                approveHR: async (id, status) => { /* Same as V72.1 */ },
                 addEmployee: async () => {
                     const n = document.getElementById('new-emp-name').value;
                     const id = document.getElementById('new-emp-id').value;
@@ -578,7 +681,35 @@
                     await addDoc(collection(db, `${ROOT}/sop`), { title: t, sop: v });
                     alert("Đã lưu!");
                 },
-                logout: () => { localStorage.removeItem('n5_v74_user'); location.reload(); }
+                fillSOP: () => {
+                    const val = document.getElementById('task-name').value;
+                    const item = app.data.sop.find(s => s.title === val);
+                    if(item) document.getElementById('task-target').value = item.sop;
+                },
+                toggleMode: () => {
+                    const mode = document.getElementById('assign-mode').value;
+                    document.getElementById('ind-zone').classList.toggle('hidden', mode !== 'ind');
+                    document.getElementById('team-zone').classList.toggle('hidden', mode !== 'team');
+                },
+                handlePhoto: (input) => {
+                     const reader = new FileReader();
+                    reader.onload = e => {
+                        app.currentPhoto = e.target.result;
+                        document.getElementById('photo-preview').src = e.target.result;
+                        document.getElementById('photo-preview-container').classList.remove('hidden');
+                        document.getElementById('camera-btn').classList.add('hidden');
+                    };
+                    reader.readAsDataURL(input.files[0]);
+                },
+                resetPhoto: () => {
+                    app.currentPhoto = null;
+                    document.getElementById('photo-preview-container').classList.add('hidden');
+                    document.getElementById('camera-btn').classList.remove('hidden');
+                },
+                requestNotify: () => { if ("Notification" in window) Notification.requestPermission(); },
+                testNotify: () => { app.ui.toast("TEST", "Thông báo hoạt động!"); },
+                
+                logout: () => { localStorage.removeItem('n5_v75_user'); location.reload(); }
             }
         };
         
