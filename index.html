@@ -67,7 +67,7 @@
 </head>
 <body>
 
-    <!-- LOGIN SCREEN -->
+    <!-- LOGIN SCREEN (RESCUE MODE) -->
     <div id="login-screen" class="fixed inset-0 bg-white z-[3000] flex flex-col items-center justify-center p-8 transition-opacity duration-500">
         <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl font-black mb-6 shadow-xl">5</div>
         <h1 class="text-2xl font-black mb-2 text-slate-800">Nấm Ông 5 <span class="text-blue-600">Pro</span></h1>
@@ -77,11 +77,11 @@
             <span id="status-text">Đang kết nối máy chủ...</span>
         </div>
         
-        <select id="user-select" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-white outline-none text-center disabled:opacity-50" disabled>
+        <select id="user-select" class="w-full max-w-xs p-4 border-2 border-slate-200 rounded-2xl font-bold bg-white outline-none text-center disabled:opacity-50" disabled>
             <option value="">Vui lòng đợi...</option>
         </select>
         
-        <input type="password" id="user-pin" placeholder="Nhập mã PIN" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-white text-center text-xl outline-none disabled:opacity-50 mt-4" disabled inputmode="numeric">
+        <input type="password" id="user-pin" placeholder="Nhập mã PIN" class="w-full max-w-xs p-4 border-2 border-slate-200 rounded-2xl font-bold bg-white text-center text-xl outline-none disabled:opacity-50 mt-4" disabled inputmode="numeric">
         
         <button id="btn-login" onclick="app.doLogin()" class="w-full max-w-xs bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition mt-4 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
             ĐĂNG NHẬP
@@ -92,7 +92,7 @@
         </button>
 
         <button id="btn-rescue" onclick="app.actions.seedAdmin()" class="hidden w-full max-w-xs bg-red-50 text-red-600 py-3 rounded-xl font-bold text-xs border border-red-200 mt-4">
-            <i class="fas fa-shield-alt mr-2"></i> KHỞI TẠO ADMIN (9999)
+            <i class="fas fa-user-shield mr-2"></i> KHỞI TẠO ADMIN (9999)
         </button>
     </div>
 
@@ -150,6 +150,7 @@
 
             <!-- TAB: GIAO VIỆC (TASKS) -->
             <div id="tab-tasks" class="tab-content hidden space-y-4">
+                <!-- Admin Form -->
                 <div id="admin-form" class="hidden glass-card p-5 border-2 border-blue-100 space-y-3">
                     <div class="flex justify-between items-center">
                         <span class="text-[10px] font-black text-blue-600 uppercase">Giao lệnh mới</span>
@@ -219,11 +220,12 @@
                 </div>
 
                 <div class="glass-card p-5 border-2 border-green-50 shadow-sm">
-                    <h3 class="text-[10px] font-black text-green-600 uppercase mb-4 border-b pb-2">Nhập sản lượng (KG)</h3>
+                    <h3 class="text-[10px] font-black text-green-600 uppercase mb-4 border-b pb-2">Nhập sản lượng (KG) - Tự tính %</h3>
                     <div class="space-y-4">
                         <div class="input-group"><label>Khu vực / Nhà</label><select id="th-area" class="input-field font-bold"></select></div>
                         
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <!-- Matrix nhập liệu chuẩn mẫu -->
                             <div class="grid grid-cols-4 gap-2 mb-2 items-end">
                                 <div class="input-group"><label class="text-center">B2</label><input type="number" id="th-b2" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
                                 <div class="input-group"><label class="text-center">A1</label><input type="number" id="th-a1" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
@@ -237,7 +239,8 @@
                                 <div class="input-group"><label class="text-center">B2-F</label><input type="number" id="th-b2f" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
                                 <div class="input-group"><label class="text-center">B1-F</label><input type="number" id="th-b1f" class="input-field input-mini" oninput="app.ui.calcTotal()"></div>
                             </div>
-                             <div id="th-percent-display" class="grid grid-cols-4 gap-2 mt-2 text-center border-t pt-2"></div>
+                             <!-- Vùng hiển thị % -->
+                            <div id="th-percent-display" class="grid grid-cols-4 gap-2 mt-1 text-center"></div>
                         </div>
                         
                         <div class="flex justify-between items-center bg-green-50 p-3 rounded-xl">
@@ -245,11 +248,9 @@
                             <span id="th-total-display" class="font-black text-xl text-green-600">0 kg</span>
                         </div>
                         
-                        <div class="input-group"><label>Ghi chú</label><input type="text" id="th-note" class="input-field" placeholder="..."></div>
-                        <div class="grid grid-cols-2 gap-2">
-                             <div class="input-group"><label class="text-red-500">Hàng lỗi</label><input type="text" id="th-note-err" class="input-field text-xs" placeholder="..."></div>
-                             <div class="input-group"><label class="text-orange-500">Xuất Snack</label><input type="text" id="th-note-snack" class="input-field text-xs" placeholder="..."></div>
-                        </div>
+                        <!-- Ghi chú chi tiết -->
+                        <div class="input-group"><label>Hàng trả / Lỗi</label><input type="text" id="th-note-err" class="input-field" placeholder="..."></div>
+                        <div class="input-group"><label>Xuất sấy / Snack</label><input type="text" id="th-note-snack" class="input-field" placeholder="..."></div>
                         
                         <button onclick="app.actions.submitTH()" class="w-full bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-lg active:scale-95 transition">CẬP NHẬT KHO</button>
                     </div>
@@ -401,7 +402,7 @@
                     app.sync();
                 }).catch(e => {
                      statusDot.classList.replace('status-loading', 'status-error');
-                     statusText.innerText = "Lỗi mạng!";
+                     statusText.innerText = "Lỗi kết nối!";
                      console.error(e);
                 });
                 document.getElementById('sx-date').valueAsDate = new Date();
@@ -436,7 +437,7 @@
                     document.getElementById('status-text').innerText = "Sẵn sàng";
                     document.getElementById('btn-rescue').classList.add('hidden');
                 } else {
-                    s.innerHTML = '<option>Chưa có dữ liệu</option>';
+                    s.innerHTML = '<option>Không có dữ liệu</option>';
                     document.getElementById('btn-rescue').classList.remove('hidden');
                 }
             },
@@ -493,7 +494,7 @@
                         <button onclick="app.actions.openTemp('${h._id}','${h.name}')" class="text-orange-500 bg-orange-50 w-9 h-9 rounded-xl flex items-center justify-center"><i class="fas fa-thermometer-half"></i></button>
                     </div>`).join('');
 
-                // Task List
+                // Task List Grouped
                 let tasks = (app.data.tasks || []).filter(t => t.status !== 'completed');
                 if(!isAdmin) tasks = tasks.filter(t => t.assignee == app.user.id);
                 
@@ -509,6 +510,7 @@
                 // Logs
                 const sxList = app.data.production.sort((a,b) => b.time - a.time).slice(0, 10);
                 document.getElementById('sx-list').innerHTML = sxList.map(i => `<div class="bg-white p-3 rounded-xl border border-slate-100 text-xs flex justify-between"><div><span class="font-bold text-blue-600">${i.action}</span> ${i.type}</div><div class="font-black">${i.qty}</div></div>`).join('');
+                
                 const thList = app.data.harvest.sort((a,b) => b.time - a.time).slice(0, 10);
                 document.getElementById('th-list').innerHTML = thList.map(i => `<div class="bg-white p-3 rounded-xl border border-slate-100 text-xs flex justify-between"><div><span class="font-bold text-green-600">${i.area}</span> ${new Date(i.time).toLocaleDateString()}</div><div class="font-black">${i.total} kg</div></div>`).join('');
 
@@ -528,6 +530,10 @@
                     <div class="chat-bubble ${m.senderId==app.user.id?'me':'other'}">
                         <p class="font-bold text-[9px] opacity-50 mb-1">${m.senderName||'User'}</p>
                         ${m.text}
+                        <div class="flex gap-2 mt-1">
+                            <span class="cursor-pointer text-xs">❤️</span>
+                            <span class="cursor-pointer text-xs">👍</span>
+                        </div>
                     </div>`).join('');
                 c.scrollTop = c.scrollHeight;
             },
