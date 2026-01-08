@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
-    <title>Nấm Ông 5 V72 - Enterprise Master</title>
+    <title>Nấm Ông 5 V72.1 - Login Fixed</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -66,7 +66,7 @@
             <div class="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg text-xl">5</div>
             <div>
                 <h1 class="text-xs font-black uppercase tracking-tight text-slate-800">Nấm Ông 5</h1>
-                <p class="text-[8px] text-blue-600 font-bold uppercase tracking-widest">● Master V72</p>
+                <p class="text-[8px] text-blue-600 font-bold uppercase tracking-widest">● Master V72.1</p>
             </div>
         </div>
         <div class="flex items-center gap-3">
@@ -396,7 +396,8 @@
             doLogin: () => {
                 const id = document.getElementById('user-select').value;
                 const pin = document.getElementById('user-pin').value;
-                const emp = app.data.employees.find(e => e.id == id && e.pin == pin);
+                // FIX: Chuyển đổi PIN về string để so sánh
+                const emp = app.data.employees.find(e => e.id == id && String(e.pin) === String(pin));
                 if(emp) {
                     app.user = emp;
                     localStorage.setItem('n5_v70_2_user', JSON.stringify(emp));
