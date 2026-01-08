@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
-    <title>Nấm Ông 5 V72.1 - Login Fixed</title>
+    <title>Nấm Ông 5 V72.2 - Login Fixed</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -57,6 +57,13 @@
         
         /* Stats Percentage */
         .stat-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: #eff6ff; color: #1d4ed8; margin-top: 2px; display: inline-block; }
+        
+        /* Login Status */
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-loading { background: #facc15; animation: pulse 1s infinite; }
+        .status-ready { background: #22c55e; }
+        .status-error { background: #ef4444; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -66,7 +73,7 @@
             <div class="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg text-xl">5</div>
             <div>
                 <h1 class="text-xs font-black uppercase tracking-tight text-slate-800">Nấm Ông 5</h1>
-                <p class="text-[8px] text-blue-600 font-bold uppercase tracking-widest">● Master V72.1</p>
+                <p class="text-[8px] text-blue-600 font-bold uppercase tracking-widest">● Master V72.2</p>
             </div>
         </div>
         <div class="flex items-center gap-3">
@@ -304,9 +311,16 @@
     <div id="login-screen" class="fixed inset-0 bg-white z-[2000] flex flex-col items-center justify-center p-8">
         <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl font-black mb-6 shadow-xl">5</div>
         <h1 class="text-2xl font-black mb-10 text-slate-800">Nấm Ông 5 <span class="text-blue-600">Pro</span></h1>
-        <select id="user-select" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-slate-50 mb-4 outline-none text-center"></select>
+        
+        <div id="login-status" class="mb-4 text-center text-xs font-bold text-slate-400">Đang tải dữ liệu...</div>
+        
+        <select id="user-select" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-slate-50 mb-4 outline-none text-center" disabled>
+            <option>Vui lòng đợi...</option>
+        </select>
+        
         <input type="password" id="user-pin" placeholder="Mã PIN" class="w-full max-w-xs p-4 border-2 border-slate-100 rounded-2xl font-bold bg-slate-50 mb-6 text-center text-xl outline-none">
-        <button onclick="app.doLogin()" class="w-full max-w-xs bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition">ĐĂNG NHẬP</button>
+        
+        <button id="btn-login" onclick="app.doLogin()" class="w-full max-w-xs bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition opacity-50" disabled>ĐĂNG NHẬP</button>
     </div>
 
     <script type="module">
@@ -321,7 +335,7 @@
 
         window.app = {
             data: { employees: [], houses: [], chat: [], tasks: [], production: [], harvest: [], hr_requests: [] },
-            user: JSON.parse(localStorage.getItem('n5_v70_2_user')) || null,
+            user: JSON.parse(localStorage.getItem('n5_v72_user')) || null,
             assignMode: 'ind',
 
             ui: {
@@ -372,9 +386,16 @@
             },
 
             init: () => {
-                signInAnonymously(getAuth(appInstance));
-                if(app.user) app.render();
-                app.sync();
+                signInAnonymously(getAuth(appInstance)).then(() => {
+                    document.getElementById('login-status').innerText = "Đã kết nối máy chủ";
+                    document.getElementById('login-status').classList.add('text-green-500');
+                    if(app.user) app.render();
+                    app.sync();
+                }).catch(e => {
+                     document.getElementById('login-status').innerText = "Lỗi kết nối mạng!";
+                     document.getElementById('login-status').classList.add('text-red-500');
+                });
+                
                 document.getElementById('sx-date').valueAsDate = new Date();
             },
 
@@ -382,8 +403,10 @@
                 const sub = (c, k) => onSnapshot(collection(db, `${ROOT}/${c}`), s => { 
                     app.data[k] = s.docs.map(d => ({...d.data(), _id: d.id})); 
                     app.renderDynamic();
-                    if(c==='employees') app.render();
-                    if(c==='hr_requests') app.renderHR();
+                    
+                    if(c==='employees') {
+                        app.renderLoginSelect();
+                    }
                 });
                 ['employees', 'houses', 'tasks', 'production_logs', 'harvest_logs', 'hr_requests'].forEach(x => sub(x, x.includes('logs') ? x.split('_')[0] : x));
                 
@@ -396,23 +419,35 @@
             doLogin: () => {
                 const id = document.getElementById('user-select').value;
                 const pin = document.getElementById('user-pin').value;
-                // FIX: Chuyển đổi PIN về string để so sánh
-                const emp = app.data.employees.find(e => e.id == id && String(e.pin) === String(pin));
+                if(!id || !pin) return alert("Vui lòng nhập đủ thông tin!");
+
+                // FIX LOGIN: Convert to String to ensure match
+                const emp = app.data.employees.find(e => String(e.id) === String(id) && String(e.pin).trim() === String(pin).trim());
+                
                 if(emp) {
                     app.user = emp;
-                    localStorage.setItem('n5_v70_2_user', JSON.stringify(emp));
+                    localStorage.setItem('n5_v72_user', JSON.stringify(emp));
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('app-body').classList.remove('hidden');
                     app.render();
-                } else alert("Sai thông tin!");
+                } else alert("Mã PIN không đúng! Vui lòng kiểm tra lại.");
+            },
+
+            renderLoginSelect: () => {
+                const s = document.getElementById('user-select');
+                const btn = document.getElementById('btn-login');
+                if(app.data.employees.length > 0) {
+                    s.innerHTML = '<option value="">Chọn tên của bạn...</option>' + app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+                    s.disabled = false;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    document.getElementById('login-status').innerText = "Dữ liệu sẵn sàng";
+                } else {
+                    s.innerHTML = '<option>Đang tải danh sách...</option>';
+                }
             },
 
             render: () => {
-                const s = document.getElementById('user-select');
-                if(app.data.employees.length && s.options.length <= 1) {
-                    s.innerHTML = '<option value="">Chọn tên...</option>' + app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-                }
-                
                 if(app.user) {
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('app-body').classList.remove('hidden');
@@ -430,6 +465,8 @@
                         app.renderAdminTools();
                     }
                     app.renderDynamic();
+                } else {
+                    app.renderLoginSelect();
                 }
             },
             
