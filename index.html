@@ -131,7 +131,7 @@
                 <input type="hidden" id="sx-action" value="NHẬP">
                 <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3"><div><p class="label">Ngày</p><input type="date" id="sx-date" class="input-box bg-white p-2"></div><div><p class="label">Lô cấy</p><input id="sx-batch" class="input-box bg-white text-center p-2" placeholder="..."></div></div>
-                    <div><p class="label">Loại Phôi</p><input type="text" id="sx-type" list="phoi-list" class="input-box bg-white p-2" placeholder="Chọn..."></div>
+                    <div><p class="label">Loại Phôi</p><input type="text" id="sx-type" list="phoi-list" class="input-box bg-white p-2" placeholder="Chọn hoặc nhập..."></div>
                     <div class="grid grid-cols-3 gap-2">
                         <div><p class="label">Số lượng</p><input type="number" id="sx-qty" class="input-box bg-white text-center font-bold text-lg p-2"></div>
                         <div><p class="label text-red-500">Hủy</p><input type="number" id="sx-bad" placeholder="0" class="input-box bg-white text-center p-2"></div>
@@ -151,51 +151,89 @@
                  <div class="space-y-3">
                      <div><p class="label">Chọn Nhà</p><select id="th-area" class="input-box bg-white font-bold text-green-700 p-2"></select></div>
                      <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                         <div class="grid grid-cols-4 gap-2 mb-2 items-end"><div><label class="text-center text-[9px] font-bold block mb-1">B2</label><input type="number" id="th-b2" class="input-box input-mini" oninput="app.ui.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">A1</label><input type="number" id="th-a1" class="input-box input-mini" oninput="app.ui.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">A2</label><input type="number" id="th-a2" class="input-box input-mini" oninput="app.ui.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">B1</label><input type="number" id="th-b1" class="input-box input-mini" oninput="app.ui.calcTH()"></div></div>
-                         <div class="grid grid-cols-5 gap-2 items-end"><div><label class="text-center text-[9px] font-bold block mb-1">D1</label><input type="number" id="th-d1" class="input-box input-mini" oninput="app.ui.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">H.Thủ</label><input type="number" id="th-ht" class="input-box input-mini" oninput="app.ui.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">ABF</label><input type="number" id="th-abf" class="input-box input-mini" oninput="app.ui.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">B2F</label><input type="number" id="th-b2f" class="input-box input-mini" oninput="app.ui.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">B1F</label><input type="number" id="th-b1f" class="input-box input-mini" oninput="app.ui.calcTH()"></div></div>
-                         <div id="th-percent-display" class="grid grid-cols-4 gap-1 mt-3 pt-2 border-t border-slate-200 text-center text-[9px] text-slate-500 font-bold"></div>
-                     </div>
-                     <div class="flex justify-between items-center bg-green-50 p-4 rounded-2xl border border-green-100"><span class="font-bold text-green-800 text-xs">TỔNG HÁI:</span><span id="th-total-display" class="font-black text-2xl text-green-600">0 kg</span></div>
-                     <div class="grid grid-cols-2 gap-3"><div><p class="label text-red-500">Hủy chân (kg)</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-orange-500">Đổi trả (kg)</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
-                     <div class="grid grid-cols-2 gap-3"><div><p class="label text-blue-500">Xuất NL Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Snack TP</p><input type="number" id="th-snack-tp" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Xuất NL Snack</p><input type="number" id="th-xuat-snack" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
-                     <div><p class="label">Ghi chú thêm</p><input type="text" id="th-note" class="input-box bg-white p-2"></div>
-                     <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 mt-1">CẬP NHẬT KHO</button>
-                 </div>
-             </div>
-             <div id="th-log-list" class="space-y-2 pb-20"></div>
+                         <div class="grid grid-cols-4 gap-2 mb-2 items-end">
+                            <div><label class="text-center text-[9px] font-bold block mb-1">B2</label><input type="number" id="th-b2" class="input-box input-mini" oninput="app.ui.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">A1</label><input type="number" id="th-a1" class="input-box input-mini" oninput="app.ui.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">A2</label><input type="number" id="th-a2" class="input-box input-mini" oninput="app.ui.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">B1</label><input type="number" id="th-b1" class="input-box input-mini" oninput="app.ui.calcTH()"></div>
+                        </div>
+                        <div class="grid grid-cols-5 gap-2 items-end">
+                            <div><label class="text-center text-[9px] font-bold block mb-1">D1</label><input type="number" id="th-d1" class="input-box input-mini" oninput="app.ui.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">H.Thủ</label><input type="number" id="th-ht" class="input-box input-mini" oninput="app.ui.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">ABF</label><input type="number" id="th-abf" class="input-box input-mini" oninput="app.ui.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">B2F</label><input type="number" id="th-b2f" class="input-box input-mini" oninput="app.ui.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">B1F</label><input type="number" id="th-b1f" class="input-box input-mini" oninput="app.ui.calcTH()"></div>
+                        </div>
+                        <div id="th-percent-display" class="grid grid-cols-4 gap-1 mt-3 pt-2 border-t border-slate-200 text-center text-[9px] text-slate-500 font-bold"></div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center bg-green-50 p-4 rounded-2xl border border-green-100">
+                        <span class="font-bold text-green-800 text-xs">TỔNG HÁI:</span>
+                        <span id="th-total-display" class="font-black text-2xl text-green-600">0 kg</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                         <div><p class="label text-red-500">Hủy chân (kg)</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                         <div><p class="label text-orange-500">Đổi trả (kg)</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><p class="label text-blue-500">Xuất NL Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                        <div><p class="label text-purple-500">Snack TP</p><input type="number" id="th-snack-tp" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                        <div><p class="label text-purple-500">Xuất NL Snack</p><input type="number" id="th-xuat-snack" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                    </div>
+                    <div><p class="label">Ghi chú thêm</p><input type="text" id="th-note" class="input-box bg-white p-2"></div>
+                    
+                    <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 mt-1">CẬP NHẬT KHO</button>
+                </div>
+            </div>
+            <div id="th-log-list" class="space-y-2 pb-20"></div>
         </div>
 
         <!-- E. TEAM -->
         <div id="view-team" class="view-section hidden">
-             <div class="card border border-blue-100"><p class="label mb-3">ĐIỂM DANH</p><div class="grid grid-cols-2 gap-3"><button onclick="app.actions.checkIn('Sáng')" class="btn bg-yellow-50 text-yellow-700 border border-yellow-200">☀️ CA SÁNG</button><button onclick="app.actions.checkIn('Chiều')" class="btn bg-indigo-50 text-indigo-700 border border-indigo-200">🌙 CA CHIỀU</button></div></div>
-             <div class="card bg-slate-50 border border-slate-200"><p class="label mb-3">HÀNH CHÍNH</p><div class="grid grid-cols-2 gap-3"><button onclick="app.ui.showModal('modal-leave')" class="btn bg-white shadow-sm border text-slate-600"><i class="fas fa-calendar-times text-red-500"></i> Xin nghỉ</button><button onclick="app.ui.showModal('modal-buy')" class="btn bg-white shadow-sm border text-slate-600"><i class="fas fa-shopping-cart text-green-500"></i> Mua hàng</button></div></div>
-             <p class="label px-2">NHÂN SỰ</p>
+             <div class="card border border-blue-100">
+                <p class="label mb-3">ĐIỂM DANH CÁ NHÂN</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="app.actions.checkIn('Sáng')" class="btn bg-yellow-50 text-yellow-700 border border-yellow-200">☀️ CA SÁNG</button>
+                    <button onclick="app.actions.checkIn('Chiều')" class="btn bg-indigo-50 text-indigo-700 border border-indigo-200">🌙 CA CHIỀU</button>
+                </div>
+             </div>
+             
+             <div class="card bg-slate-50 border border-slate-200">
+                 <p class="label mb-3">HÀNH CHÍNH</p>
+                 <div class="grid grid-cols-2 gap-3">
+                    <button onclick="app.ui.showModal('modal-leave')" class="btn bg-white shadow-sm border text-slate-600"><i class="fas fa-calendar-times text-red-500"></i> Xin nghỉ</button>
+                    <button onclick="app.ui.showModal('modal-buy')" class="btn bg-white shadow-sm border text-slate-600"><i class="fas fa-shopping-cart text-green-500"></i> Mua hàng</button>
+                 </div>
+             </div>
+             
+             <p class="label px-2">DANH SÁCH NHÂN SỰ</p>
              <div id="team-list" class="space-y-2 pb-20"></div>
         </div>
 
     </main>
 
-    <!-- 4. CHAT -->
+    <!-- 4. CHAT LAYER -->
     <div id="chat-layer" class="chat-bg hidden fixed inset-0 z-[2000] flex flex-col bg-[#e5ddd5]">
         <div class="h-[90px] bg-white border-b flex items-end px-4 pb-3 shadow-sm flex-shrink-0">
              <button onclick="app.ui.closeChat()" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mr-3 active:bg-slate-200"><i class="fas fa-arrow-left text-slate-600"></i></button>
              <div><h2 class="font-bold text-slate-800 text-lg">Thảo luận chung</h2></div>
         </div>
-        <div id="chat-box" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 pb-32"></div>
-        <div class="fixed bottom-0 w-full bg-white border-t p-3 flex gap-2 z-50 pb-8 safe-area-bot">
+        <div id="chat-box"></div>
+        <div style="background: white; padding: 12px; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; padding-bottom: calc(12px + env(safe-area-inset-bottom));">
             <input id="chat-input" type="text" class="flex-1 bg-slate-100 rounded-full px-5 py-3 text-sm outline-none border border-slate-200" placeholder="Nhập tin nhắn..." onkeyup="if(event.key==='Enter') app.actions.sendChat()">
             <button onclick="app.actions.sendChat()" class="w-12 h-12 bg-blue-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-90"><i class="fas fa-paper-plane text-xs"></i></button>
         </div>
     </div>
 
-    <!-- 5. NAV -->
+    <!-- 5. NAVIGATION -->
     <nav id="app-nav">
         <button onclick="app.ui.tab('home')" class="nav-btn active" id="btn-home"><i class="fas fa-home text-xl"></i><span>HOME</span></button>
         <button onclick="app.ui.tab('tasks')" class="nav-btn" id="btn-tasks"><i class="fas fa-clipboard-list text-xl"></i><span>VIỆC</span></button>
         <button onclick="app.ui.tab('sx')" class="nav-btn" id="btn-sx"><i class="fas fa-industry text-xl"></i><span>SX</span></button>
         <button onclick="app.ui.tab('th')" class="nav-btn" id="btn-th"><i class="fas fa-box-open text-xl"></i><span>TH</span></button>
         <button onclick="app.ui.tab('team')" class="nav-btn" id="btn-team"><i class="fas fa-users text-xl"></i><span>TEAM</span></button>
-        <button onclick="app.ui.openChat()" class="nav-btn"><i class="fas fa-comments text-xl"></i><span>CHAT</span></button>
+        <button onclick="app.ui.tab('chat')" class="nav-btn"><i class="fas fa-comments text-xl"></i><span>CHAT</span></button>
     </nav>
 
     <!-- 6. MODALS -->
@@ -224,6 +262,7 @@
     <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-leave')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Xin nghỉ</h3><div class="space-y-3"><input id="leave-date" type="date" class="input-box"><select id="leave-reason" class="input-box"><option>Ốm</option><option>Việc riêng</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn btn-blue">Gửi</button></div></div></div>
     <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Đề xuất mua</h3><div class="space-y-3"><input type="text" id="pur-item" placeholder="Tên hàng..." class="input-box"><div class="grid grid-cols-2 gap-3"><input type="number" id="pur-qty" placeholder="SL" class="input-box"><input type="text" id="pur-unit" placeholder="Đơn vị" class="input-box"></div><button onclick="app.actions.submitHR('PURCHASE')" class="btn btn-green">Gửi</button></div></div></div>
     <div id="modal-approve" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-approve')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-red-600">Duyệt đơn</h3><div id="approval-list" class="space-y-3"></div></div></div>
+    <div id="modal-add-sop" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-sop')"><div class="modal-box"><h3 class="font-bold mb-4">Thêm Quy Trình</h3><div class="space-y-3"><input id="new-sop-name" placeholder="Tên công việc" class="input-box"><input id="new-sop-val" placeholder="Định mức (Số)" class="input-box"><button onclick="app.actions.addSOP()" class="btn-primary">Lưu</button></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -256,6 +295,16 @@
                     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('nav-active'));
                     const btn = document.querySelector(`button[onclick="app.ui.tab('${id}')"]`);
                     if(btn) btn.classList.add('nav-active');
+                    
+                    if (id === 'chat') {
+                         document.getElementById('app-header').classList.add('hidden');
+                         document.getElementById('app-nav').classList.add('hidden');
+                         document.getElementById('view-chat').classList.remove('hidden');
+                    } else {
+                         document.getElementById('app-header').classList.remove('hidden');
+                         document.getElementById('app-nav').classList.remove('hidden');
+                         document.getElementById('view-chat').classList.add('hidden');
+                    }
                 },
                 setSXMode: (m) => {
                     document.getElementById('sx-action').value = m;
@@ -328,7 +377,11 @@
                     document.getElementById('login-status').classList.replace('text-yellow-500', 'text-green-500');
                     document.getElementById('rescue-btn').classList.add('hidden');
                 }
-                if(app.user) { document.getElementById('login-overlay').classList.add('hidden'); app.renderApp(); }
+                if(app.user) { 
+                    document.getElementById('login-layer').classList.add('hidden'); 
+                    app.renderApp(); 
+                    app.ui.tab('home'); // AUTO SWITCH TO HOME
+                }
             },
 
             doLogin: () => {
@@ -337,8 +390,9 @@
                 const emp = app.data.employees.find(e => String(e.id) === String(id) && String(e.pin).trim() === String(pin));
                 if(emp) {
                     app.user = emp; localStorage.setItem('n5_v91_user', JSON.stringify(emp));
-                    document.getElementById('login-overlay').classList.add('hidden'); app.renderApp();
-                    app.ui.tab('home'); // FIX: Force jump to home
+                    document.getElementById('login-layer').classList.add('hidden'); 
+                    app.renderApp();
+                    app.ui.tab('home'); // FORCE TAB HOME
                 } else alert("Sai mã PIN!");
             },
 
@@ -377,7 +431,7 @@
                         const isStarted = t.status === 'in_progress';
                         return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100"><div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao: ${new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex gap-2">${isAdmin ? `<button onclick="app.actions.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>` : ''}${t.assignee == app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow">BÁO CÁO</button>` : `<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow animate-pulse">NHẬN VIỆC</button>`) : ''}</div></div>`;
                     }).join('');
-                    return `<div class="card !p-4 mb-3 border-l-4 border-indigo-500"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">${name}</p>${items}</div>`;
+                    return `<div class="glass-card p-4 mb-3 border-l-4 border-indigo-500"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">${name}</p>${items}</div>`;
                 }).join('');
 
                 // Logs
