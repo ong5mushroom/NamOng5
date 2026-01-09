@@ -11,19 +11,24 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --blue: #2563eb; --header-h: 110px; --nav-h: 80px; --bg: #f8fafc; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #334155; margin: 0; height: 100vh; overflow: hidden; touch-action: manipulation; }
+        :root { 
+            --blue: #2563eb; 
+            --header-h: 100px; 
+            --nav-h: 80px; 
+            --bg: #f8fafc;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #334155; margin: 0; padding: 0; height: 100vh; overflow: hidden; touch-action: manipulation; }
         
-        /* Layout */
-        #app-header { height: var(--header-h); background: rgba(255,255,255,0.98); border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; width: 100%; z-index: 50; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; backdrop-filter: blur(10px); }
+        /* Layout Structure */
+        #app-header { height: var(--header-h); background: rgba(255,255,255,0.98); border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; width: 100%; z-index: 50; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding-left: 16px; padding-right: 16px; backdrop-filter: blur(10px); }
         #app-main { margin-top: var(--header-h); height: calc(100vh - var(--header-h) - var(--nav-h)); overflow-y: auto; padding: 16px; padding-bottom: 120px; -webkit-overflow-scrolling: touch; }
         #app-nav { height: var(--nav-h); background: white; border-top: 1px solid #e2e8f0; position: fixed; bottom: 0; width: 100%; z-index: 50; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); }
         
         .hidden { display: none !important; }
-        .card { background: white; border-radius: 20px; padding: 16px; margin-bottom: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+        .card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
         .nav-btn { color: #94a3b8; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; }
         .nav-active { color: var(--blue); transform: translateY(-2px); }
-        .nav-active i { font-size: 22px; }
+        .nav-active i { font-size: 20px; }
         
         /* Input & Button */
         .input-box { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 600; outline: none; font-size: 14px; }
@@ -38,7 +43,7 @@
         .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 16px; margin-bottom: 4px; font-size: 14px; }
         .chat-me { background: var(--blue); color: white; align-self: flex-end; }
         .chat-other { background: white; align-self: flex-start; }
-        .chat-input-area { position: absolute; bottom: 0; left: 0; width: 100%; background: white; padding: 10px; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 60; }
+        .chat-input-container { position: absolute; bottom: 0; left: 0; width: 100%; background: white; padding: 10px; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 60; }
 
         /* Modal */
         .modal-wrap { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
@@ -57,14 +62,23 @@
 <body>
 
     <!-- 1. LOGIN SCREEN -->
-    <div id="login-screen" class="fixed inset-0 bg-white z-[3000] flex flex-col items-center justify-center p-8">
+    <div id="login-screen" class="fixed inset-0 bg-white z-[3000] flex flex-col items-center justify-center p-8 transition-opacity duration-500">
         <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl font-black mb-6 shadow-xl">5</div>
-        <h1 class="text-2xl font-black text-slate-800 mb-2">Nấm Ông 5</h1>
-        <div id="login-status" class="mb-4 text-xs font-bold text-slate-400 flex items-center"><span class="status-dot status-loading" id="status-indicator"></span><span id="status-text">Đang tải dữ liệu...</span></div>
-        <select id="user-select" class="input-box text-center mb-4" disabled><option>Vui lòng đợi...</option></select>
-        <input type="password" id="user-pin" placeholder="Nhập PIN" class="input-box text-center text-xl tracking-widest mb-4" disabled inputmode="numeric">
-        <button id="btn-login" onclick="app.doLogin()" class="btn-primary opacity-50 cursor-not-allowed" disabled>ĐĂNG NHẬP</button>
-        <button id="rescue-btn" onclick="app.actions.seedAdmin()" class="hidden w-full border-2 border-red-100 text-red-500 py-3 rounded-xl font-bold text-xs mt-4">KHỞI TẠO ADMIN (9999)</button>
+        <h1 class="text-2xl font-black text-slate-800 mb-1">Nấm Ông 5</h1>
+        <p class="text-xs font-bold text-blue-500 mb-8 tracking-widest">● V80.1 Final Fix</p>
+        
+        <div id="login-status" class="mb-4 text-xs font-bold text-slate-400 flex items-center">
+            <span class="status-dot status-loading" id="status-indicator"></span><span id="status-text">Đang kết nối...</span>
+        </div>
+        
+        <div class="w-full max-w-sm space-y-4">
+            <select id="login-user" class="input-box text-center" disabled><option>Đang tải dữ liệu...</option></select>
+            <input type="password" id="login-pin" placeholder="Nhập PIN" class="input-box text-center text-xl tracking-widest" disabled inputmode="numeric">
+            <button id="login-btn" onclick="app.doLogin()" class="btn-primary opacity-50 cursor-not-allowed" disabled>ĐĂNG NHẬP</button>
+            <button id="rescue-btn" onclick="app.actions.seedAdmin()" class="hidden w-full border-2 border-red-100 text-red-500 py-3 rounded-xl font-bold text-xs mt-4">
+                <i class="fas fa-shield-alt"></i> TẠO ADMIN KHẨN CẤP
+            </button>
+        </div>
         <button onclick="localStorage.clear(); location.reload()" class="mt-8 text-xs text-slate-400 underline">Reset ứng dụng</button>
     </div>
 
@@ -76,7 +90,10 @@
             <h1 class="text-sm font-black uppercase text-slate-800">Nấm Ông 5</h1>
         </div>
         <div class="flex items-center gap-2">
-            <div class="text-right"><p id="head-user" class="font-bold text-xs">...</p><p id="head-role" class="text-[9px] text-blue-500 font-bold uppercase">...</p></div>
+            <div class="text-right">
+                <p id="head-user" class="font-bold text-xs">...</p>
+                <p id="head-role" class="text-[9px] text-blue-500 font-bold uppercase">...</p>
+            </div>
             <button onclick="app.ui.showModal('settings-modal')" class="w-9 h-9 bg-slate-50 rounded-full border flex items-center justify-center text-slate-500"><i class="fas fa-cog"></i></button>
         </div>
     </header>
@@ -88,23 +105,21 @@
         <div id="view-home" class="view-section space-y-4">
             <div class="grid grid-cols-2 gap-3">
                 <div class="card border-l-4 border-blue-500 !mb-0 py-3 text-center">
-                    <p class="text-[9px] font-bold text-slate-400 uppercase">Online</p>
-                    <p class="text-2xl font-black text-blue-600 mt-1" id="stat-online">0</p>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase">Nhân sự Online</p>
+                    <p class="text-3xl font-black text-blue-600 mt-1" id="stat-online">0</p>
                 </div>
                 <div class="card border-l-4 border-green-500 !mb-0 py-3 text-center">
                     <p class="text-[9px] font-bold text-slate-400 uppercase">Tổng hái (Kg)</p>
-                    <p class="text-2xl font-black text-green-600 mt-1" id="stat-yield">0</p>
+                    <p class="text-3xl font-black text-green-600 mt-1" id="stat-yield">0</p>
                 </div>
             </div>
-            
             <div class="card !p-4 border border-yellow-100">
-                <h3 class="text-xs font-black text-yellow-600 uppercase mb-3"><i class="fas fa-crown"></i> Bảng Vàng</h3>
+                <h3 class="text-xs font-black text-yellow-600 uppercase mb-3 flex items-center gap-2"><i class="fas fa-crown"></i> Bảng Vàng</h3>
                 <div id="leaderboard" class="space-y-2 text-xs"></div>
             </div>
-
             <div class="flex justify-between items-center px-1">
                 <h3 class="text-xs font-black text-slate-500 uppercase">Nhà Nấm</h3>
-                <button onclick="app.actions.addHouse()" class="text-[10px] font-bold text-blue-600 bg-white border px-2 py-1 rounded">+ Thêm</button>
+                <button onclick="app.actions.addHouse()" class="text-[9px] font-bold text-blue-600 bg-white border px-2 py-1 rounded">+ Thêm</button>
             </div>
             <div id="house-list" class="space-y-3"></div>
         </div>
@@ -126,7 +141,7 @@
                     <button onclick="app.createTask()" class="btn-primary bg-slate-800">Ban hành lệnh</button>
                 </div>
             </div>
-            <div id="task-list" class="space-y-3"></div>
+            <div id="task-list" class="space-y-4"></div>
         </div>
 
         <!-- SẢN XUẤT -->
@@ -140,7 +155,7 @@
                 <input type="hidden" id="sx-action" value="NHẬP">
                 <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3"><div><p class="label">Ngày</p><input type="date" id="sx-date" class="input-box bg-white p-2"></div><div><p class="label">Lô cấy</p><input id="sx-batch" class="input-box bg-white text-center p-2" placeholder="..."></div></div>
-                    <div><p class="label">Loại Phôi</p><input type="text" id="sx-type" list="phoi-list" class="input-box bg-white p-2" placeholder="Chọn..."></div>
+                    <div><p class="label">Loại Phôi</p><input type="text" id="sx-type" list="phoi-list" class="input-box bg-white p-2" placeholder="Chọn hoặc nhập..."></div>
                     <div class="grid grid-cols-3 gap-2">
                         <div><p class="label">Số lượng</p><input type="number" id="sx-qty" class="input-box bg-white text-center font-bold text-lg p-2"></div>
                         <div><p class="label text-red-500">Hủy</p><input type="number" id="sx-bad" placeholder="0" class="input-box bg-white text-center p-2"></div>
@@ -182,13 +197,13 @@
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3">
-                         <div><p class="label text-red-500">Hủy chân</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div>
-                         <div><p class="label text-orange-500">Đổi trả</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                         <div><p class="label text-red-500">Hủy chân (kg)</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                         <div><p class="label text-orange-500">Đổi trả (kg)</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div><p class="label text-blue-500">Xuất Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                        <div><p class="label text-blue-500">Xuất NL Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div>
                         <div><p class="label text-purple-500">Snack TP</p><input type="number" id="th-snack-tp" class="input-box bg-white text-center p-2" placeholder="0"></div>
-                        <div><p class="label text-purple-500">Xuất Snack</p><input type="number" id="th-xuat-snack" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                        <div><p class="label text-purple-500">Xuất NL Snack</p><input type="number" id="th-xuat-snack" class="input-box bg-white text-center p-2" placeholder="0"></div>
                     </div>
                     <div><p class="label">Ghi chú thêm</p><input type="text" id="th-note" class="input-box bg-white p-2"></div>
                     
@@ -215,18 +230,19 @@
                     <button onclick="app.ui.showModal('modal-buy')" class="bg-white p-3 rounded-xl text-xs font-bold shadow-sm flex flex-col items-center gap-2 border"><i class="fas fa-shopping-cart text-green-500 text-xl"></i> Mua hàng</button>
                  </div>
              </div>
+             
              <p class="label px-2">DANH SÁCH NHÂN SỰ</p>
              <div id="team-list" class="space-y-2 pb-20"></div>
         </div>
 
         <!-- CHAT -->
-        <div id="view-chat" class="view-section hidden flex flex-col h-full shiitake-bg absolute top-0 left-0 w-full z-[100]">
+        <div id="view-chat" class="view-section hidden flex flex-col h-full bg-[#f1f5f9] absolute top-0 left-0 w-full z-[100] shiitake-bg">
             <div class="h-[100px] bg-white border-b flex items-end px-4 pb-4 shadow-sm">
                  <button onclick="app.ui.tab('home')" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mr-3 active:bg-slate-200"><i class="fas fa-arrow-left text-slate-600"></i></button>
                  <div><h2 class="font-bold text-slate-800 text-lg">Thảo luận chung</h2></div>
             </div>
             <div id="chat-box" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 pb-32"></div>
-            <div class="chat-input-area">
+            <div class="chat-input-container">
                 <input id="chat-input" type="text" class="flex-1 bg-slate-100 rounded-full px-5 py-3 text-sm outline-none border border-slate-200" placeholder="Nhập tin nhắn..." onkeyup="if(event.key==='Enter') app.sendChat()">
                 <button onclick="app.sendChat()" class="w-12 h-12 bg-blue-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-90"><i class="fas fa-paper-plane text-xs"></i></button>
             </div>
@@ -429,7 +445,7 @@
                 document.getElementById('house-list').innerHTML = app.data.houses.map(h => `
                     <div class="glass-card p-4 flex justify-between items-center border-l-4 border-blue-500 mb-3">
                         <div><p class="font-bold text-sm">${h.name}</p><p class="text-[10px] text-slate-400">AM: ${h.temp?.am||'-'} | PM: ${h.temp?.pm||'-'}</p></div>
-                        <button onclick="app.openTemp('${h._id}', '${h.name}')" class="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-temperature-high text-xs"></i></button>
+                        <button onclick="app.actions.openTemp('${h._id}', '${h.name}')" class="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-temperature-high text-xs"></i></button>
                     </div>`).join('');
 
                 // Task List Grouped
@@ -441,7 +457,7 @@
                     const name = app.data.employees.find(e => String(e.id) === String(uid))?.name || uid;
                     const items = groups[uid].map(t => {
                         const isStarted = t.status === 'in_progress';
-                        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100"><div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao: ${new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex gap-2">${isAdmin ? `<button onclick="app.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>` : ''}${t.assignee == app.user.id ? (isStarted ? `<button onclick="app.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow">BÁO CÁO</button>` : `<button onclick="app.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow animate-pulse">NHẬN VIỆC</button>`) : ''}</div></div>`;
+                        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100"><div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao: ${new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex gap-2">${isAdmin ? `<button onclick="app.actions.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>` : ''}${t.assignee == app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow">BÁO CÁO</button>` : `<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow animate-pulse">NHẬN VIỆC</button>`) : ''}</div></div>`;
                     }).join('');
                     return `<div class="glass-card p-4 mb-3 border-l-4 border-indigo-500"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">${name}</p>${items}</div>`;
                 }).join('');
@@ -461,7 +477,7 @@
                 document.getElementById('leaderboard-list').innerHTML = top.map((p, i) => `<div class="flex justify-between items-center bg-yellow-50 p-2 rounded-lg border border-yellow-100 mb-1"><div class="flex items-center gap-2"><span class="font-black text-[10px] text-yellow-600">#${i+1}</span><span class="text-xs font-bold text-slate-700">${p.name}</span></div><span class="font-black text-yellow-600 text-xs">${p.score || 0}đ</span></div>`).join('');
                 
                 const pendingHR = app.data.hr.filter(r => r.status === 'pending');
-                document.getElementById('approval-list').innerHTML = pendingHR.length ? pendingHR.map(r => `<div class="p-3 bg-slate-50 border rounded-xl mb-2 text-xs"><div class="flex justify-between mb-1"><span class="font-bold text-blue-600">${r.type}</span><span class="text-slate-400">${r.requester}</span></div><p class="mb-3 font-medium text-slate-700">${r.content}</p><div class="flex gap-2"><button onclick="app.approve('${r._id}', 'approved')" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold">Duyệt</button><button onclick="app.approve('${r._id}', 'rejected')" class="flex-1 bg-red-50 text-red-600 py-2 rounded-lg font-bold">Từ chối</button></div></div>`).join('') : '<p class="text-center text-xs text-slate-400 py-2">Không có yêu cầu nào</p>';
+                document.getElementById('approval-list').innerHTML = pendingHR.length ? pendingHR.map(r => `<div class="p-3 bg-slate-50 border rounded-xl mb-2 text-xs"><div class="flex justify-between mb-1"><span class="font-bold text-blue-600">${r.type}</span><span class="text-slate-400">${r.requester}</span></div><p class="mb-3 font-medium text-slate-700">${r.content}</p><div class="flex gap-2"><button onclick="app.actions.approve('${r._id}', 'approved')" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold">Duyệt</button><button onclick="app.actions.approve('${r._id}', 'rejected')" class="flex-1 bg-red-50 text-red-600 py-2 rounded-lg font-bold">Từ chối</button></div></div>`).join('') : '<p class="text-center text-xs text-slate-400 py-2">Không có yêu cầu nào</p>';
             },
 
             renderTeam: () => {
@@ -546,8 +562,6 @@
                         note: document.getElementById('th-note').value,
                         note_err: document.getElementById('th-note-err').value,
                         note_snack: document.getElementById('th-note-snack').value,
-                        xuat_say: document.getElementById('th-xuat-say').value,
-                        snack_tp: document.getElementById('th-snack-tp').value,
                         user: app.user.name, time: Date.now() 
                     }); 
                     alert("Đã lưu!");
