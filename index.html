@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
-    <title>Nấm Ông 5 V91.1 - Perfect</title>
+    <title>Nấm Ông 5 V92 - Perfect</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -16,9 +18,9 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #1e293b; margin: 0; height: 100vh; overflow: hidden; user-select: none; }
         
         /* Layout */
-        #app-header { height: var(--header-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; right: 0; z-index: 50; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding-left: 16px; padding-right: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        #app-header { height: var(--header-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; right: 0; z-index: 50; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding-left: 16px; padding-right: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.3s; }
         #app-view-container { position: fixed; top: var(--header-h); bottom: var(--nav-h); left: 0; right: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; padding-bottom: 40px; z-index: 10; }
-        #app-nav { height: var(--nav-h); background: white; border-top: 1px solid #e2e8f0; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; padding-bottom: env(safe-area-inset-bottom); display: flex; justify-content: space-around; align-items: center; }
+        #app-nav { height: var(--nav-h); background: white; border-top: 1px solid #e2e8f0; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; padding-bottom: env(safe-area-inset-bottom); display: flex; justify-content: space-around; align-items: center; transition: transform 0.3s; }
 
         /* Components */
         .hidden { display: none !important; }
@@ -38,10 +40,11 @@
         .status-wait { background: #eab308; animation: pulse 1s infinite; }
         .status-ok { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
         
-        /* Chat Layer (Independent) */
+        /* Chat Layer */
         #chat-layer { position: fixed; inset: 0; background: #e5ddd5; z-index: 2000; display: none; flex-direction: column; }
         .chat-bg { background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px); background-size: 20px 20px; }
-        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 16px; margin-bottom: 8px; font-size: 14px; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
+        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 16px; margin-bottom: 4px; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .chat-me { background: var(--blue); color: white; align-self: flex-end; }
         .chat-other { background: white; align-self: flex-start; }
 
@@ -57,18 +60,20 @@
 </head>
 <body>
 
-    <!-- 1. LOGIN LAYER (SAFE CORE V91) -->
+    <!-- 1. LOGIN LAYER -->
     <div id="login-layer">
         <div class="w-24 h-24 bg-blue-600 rounded-[28px] flex items-center justify-center text-white text-5xl font-black mb-6 shadow-xl">5</div>
         <h1 class="text-3xl font-black text-slate-800 mb-1">Nấm Ông 5</h1>
-        <p class="text-xs font-bold text-blue-500 mb-10 tracking-widest">● V91.1 Perfect</p>
+        <p class="text-xs font-bold text-blue-500 mb-10 tracking-widest">● V92 Perfect</p>
         
         <div class="w-full max-w-sm space-y-4">
             <div id="login-status" class="text-center text-xs font-bold text-slate-400 mb-2 flex items-center justify-center">
                 <span class="status-dot status-wait"></span> <span id="status-text">Đang kết nối...</span>
             </div>
+            
             <select id="login-user" class="input-box text-center appearance-none" disabled><option>Vui lòng đợi...</option></select>
             <input id="login-pin" type="tel" placeholder="Nhập PIN (Vd: 1234)" class="input-box text-center text-xl tracking-widest" disabled maxlength="6">
+            
             <button id="login-btn" onclick="app.doLogin()" class="btn-primary opacity-50 cursor-not-allowed" disabled>ĐĂNG NHẬP</button>
             <button id="rescue-btn" onclick="app.actions.seedAdmin()" class="hidden w-full border-2 border-red-100 text-red-500 py-3 rounded-xl font-bold text-xs mt-4">KHỞI TẠO ADMIN (9999)</button>
         </div>
@@ -78,6 +83,7 @@
     <!-- 2. HEADER -->
     <header id="app-header">
         <div class="flex items-center gap-3">
+            <button id="back-chat-btn" onclick="app.ui.tab('home')" class="hidden w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500"><i class="fas fa-arrow-left text-xl"></i></button>
             <div class="bg-blue-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-black shadow-md text-lg">5</div>
             <div><h1 class="text-xs font-black uppercase text-slate-800 tracking-wide">Nấm Ông 5</h1><p class="text-[8px] text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded inline-block mt-0.5">● Online</p></div>
         </div>
@@ -103,7 +109,7 @@
 
         <!-- B. TASKS -->
         <div id="view-tasks" class="view-section hidden">
-             <!-- Admin Form (Logic hiển thị được fix trong JS) -->
+             <!-- Admin Form (Chỉ Admin thấy) -->
              <div id="admin-task-form" class="hidden card border-2 border-blue-50 !mb-4">
                 <div class="flex justify-between items-center mb-3"><span class="text-xs font-black text-blue-600 uppercase">Giao việc mới</span><select id="assign-mode" onchange="app.toggleAssign()" class="text-[10px] font-bold bg-slate-100 p-1 rounded"><option value="ind">Cá nhân</option><option value="team">Tổ</option></select></div>
                 <div class="space-y-3">
@@ -166,10 +172,11 @@
              <p class="label px-2">DANH SÁCH NHÂN SỰ</p>
              <div id="team-list" class="space-y-2 pb-20"></div>
         </div>
+
     </main>
 
     <!-- 4. CHAT LAYER (SEPARATE) -->
-    <div id="chat-layer" class="hidden fixed inset-0 z-[2000] flex flex-col bg-[#e5ddd5] shiitake-bg">
+    <div id="chat-layer" class="chat-bg hidden fixed inset-0 z-[2000] flex flex-col bg-[#e5ddd5]">
         <div class="h-[90px] bg-white border-b flex items-end px-4 pb-3 shadow-sm flex-shrink-0">
              <button onclick="app.ui.closeChat()" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mr-3 active:bg-slate-200"><i class="fas fa-arrow-left text-slate-600"></i></button>
              <div><h2 class="font-bold text-slate-800 text-lg">Thảo luận chung</h2></div>
@@ -188,7 +195,7 @@
         <button onclick="app.ui.tab('sx')" class="nav-btn" id="btn-sx"><i class="fas fa-industry text-xl"></i><span>SX</span></button>
         <button onclick="app.ui.tab('th')" class="nav-btn" id="btn-th"><i class="fas fa-box-open text-xl"></i><span>TH</span></button>
         <button onclick="app.ui.tab('team')" class="nav-btn" id="btn-team"><i class="fas fa-users text-xl"></i><span>TEAM</span></button>
-        <button onclick="app.ui.openChat()" class="nav-btn"><i class="fas fa-comments text-xl"></i><span>CHAT</span></button>
+        <button onclick="app.ui.tab('chat')" class="nav-btn"><i class="fas fa-comments text-xl"></i><span>CHAT</span></button>
     </nav>
 
     <!-- 6. MODALS -->
@@ -204,17 +211,11 @@
                          <button onclick="app.actions.addEmployee()" class="btn btn-blue text-xs">Thêm Nhân Sự</button>
                     </div>
                     <button onclick="app.actions.addHouse()" class="btn bg-slate-100 text-slate-700 border text-xs">Thêm Nhà Nấm</button>
+                    <button onclick="app.ui.showModal('modal-add-sop')" class="btn bg-slate-100 text-slate-700 border text-xs">Thêm Quy Trình</button>
+                    <button onclick="app.ui.showModal('modal-approve')" class="w-full bg-green-100 text-green-700 p-3 rounded-xl text-left text-xs font-bold flex justify-between items-center hover:bg-green-200 transition"><span>Duyệt Đơn Từ</span> <i class="fas fa-check"></i></button>
                 </div>
                 <button onclick="app.actions.logout()" class="btn btn-red text-xs mt-4">Đăng xuất</button>
             </div>
-        </div>
-    </div>
-
-    <!-- House History Modal -->
-     <div id="modal-house-history" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-house-history')">
-        <div class="modal-box">
-            <h3 class="font-bold text-center text-lg mb-2">Lịch sử: <span id="history-house-name" class="text-blue-600"></span></h3>
-            <div id="history-content" class="space-y-2 max-h-60 overflow-y-auto text-xs"></div>
         </div>
     </div>
     
@@ -239,7 +240,7 @@
 
         window.app = {
             data: { employees: [], houses: [], chat: [], tasks: [], production: [], harvest: [], hr: [] },
-            user: JSON.parse(localStorage.getItem('n5_v91_user')) || null,
+            user: JSON.parse(localStorage.getItem('n5_v92_user')) || null,
             assignMode: 'ind',
             currentPhoto: null,
 
@@ -340,11 +341,7 @@
                     document.getElementById('login-status').classList.replace('text-yellow-500', 'text-green-500');
                     document.getElementById('rescue-btn').classList.add('hidden');
                 }
-                if(app.user) { 
-                    document.getElementById('login-layer').classList.add('hidden'); 
-                    app.renderApp(); 
-                    app.ui.tab('home'); // AUTO SWITCH TO HOME
-                }
+                if(app.user) { document.getElementById('login-overlay').classList.add('hidden'); app.renderApp(); }
             },
 
             doLogin: () => {
@@ -352,10 +349,8 @@
                 const pin = document.getElementById('login-pin').value.trim();
                 const emp = app.data.employees.find(e => String(e.id) === String(id) && String(e.pin).trim() === String(pin));
                 if(emp) {
-                    app.user = emp; localStorage.setItem('n5_v91_user', JSON.stringify(emp));
-                    document.getElementById('login-layer').classList.add('hidden'); 
-                    app.renderApp();
-                    app.ui.tab('home'); // FORCE TAB HOME
+                    app.user = emp; localStorage.setItem('n5_v92_user', JSON.stringify(emp));
+                    document.getElementById('login-overlay').classList.add('hidden'); app.renderApp();
                 } else alert("Sai mã PIN!");
             },
 
@@ -374,16 +369,14 @@
             renderDynamic: () => {
                 const houseOpts = app.data.houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
                 const hSelect = document.getElementById('th-area'); if(hSelect.innerHTML==="") hSelect.innerHTML=houseOpts;
-                const houseMulti = document.getElementById('house-multi-select'); if(houseMulti && houseMulti.innerHTML==="") houseMulti.innerHTML=app.data.houses.map(h => `<label class="flex items-center gap-1 text-[10px] p-2 border rounded"><input type="checkbox" value="${h.name}" name="h-check"> ${h.name}</label>`).join('');
+                const hSelectTask = document.getElementById('task-house-id'); if(hSelectTask && hSelectTask.innerHTML==="") hSelectTask.innerHTML=houseOpts;
+                const houseMulti = document.getElementById('house-select-container'); if(houseMulti && houseMulti.innerHTML==="") houseMulti.innerHTML=app.data.houses.map(h => `<label class="flex items-center gap-1 text-[10px] p-2 border rounded"><input type="checkbox" value="${h.name}" name="h-check"> ${h.name}</label>`).join('');
                 
                 // House Grid
                 document.getElementById('house-list').innerHTML = app.data.houses.map(h => `
                     <div class="card flex justify-between items-center !p-4 !mb-2 border-l-4 border-blue-500 mb-3">
                         <div><p class="font-bold text-sm">${h.name}</p><p class="text-[10px] text-slate-400">AM: ${h.temp?.am||'-'} | PM: ${h.temp?.pm||'-'}</p></div>
-                        <div class="flex gap-2">
-                            <button onclick="app.actions.viewHouseLogs('${h.name}')" class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-list-alt text-xs"></i></button>
-                            <button onclick="app.actions.openTemp('${h._id}', '${h.name}')" class="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-temperature-high text-xs"></i></button>
-                        </div>
+                        <button onclick="app.actions.openTemp('${h._id}', '${h.name}')" class="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-temperature-high text-xs"></i></button>
                     </div>`).join('');
 
                 // Task List Grouped
@@ -395,7 +388,7 @@
                     const name = app.data.employees.find(e => String(e.id) === String(uid))?.name || uid;
                     const items = groups[uid].map(t => {
                         const isStarted = t.status === 'in_progress';
-                        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100"><div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao: ${new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex gap-2">${isAdmin ? `<button onclick="app.actions.nudgeTask('${t._id}')" class="text-yellow-500"><i class="fas fa-bell"></i></button><button onclick="app.actions.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>` : ''}${t.assignee == app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow">BÁO CÁO</button>` : `<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow animate-pulse">NHẬN VIỆC</button>`) : ''}</div></div>`;
+                        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100"><div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao: ${new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex gap-2">${isAdmin ? `<button onclick="app.actions.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>` : ''}${t.assignee == app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow">BÁO CÁO</button>` : `<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow animate-pulse">NHẬN VIỆC</button>`) : ''}</div></div>`;
                     }).join('');
                     return `<div class="glass-card p-4 mb-3 border-l-4 border-indigo-500"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">${name}</p>${items}</div>`;
                 }).join('');
@@ -451,7 +444,7 @@
                         location.reload();
                     }
                 },
-                logout: () => { localStorage.removeItem('n5_v91_user'); location.reload(); },
+                logout: () => { localStorage.removeItem('n5_v92_user'); location.reload(); },
                 createTask: async () => {
                     const title = document.getElementById('task-title').value;
                     const houses = Array.from(document.querySelectorAll('input[name="h-check"]:checked')).map(i => i.value);
@@ -462,7 +455,6 @@
                 },
                 startTask: async (id) => updateDoc(doc(db, `${ROOT}/tasks`, id), { status: 'in_progress', startTime: Date.now() }),
                 delTask: async (id) => { if(confirm("Xóa?")) deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
-                nudgeTask: async (id) => { alert("Đã gửi nhắc nhở!"); },
                 openReport: (id, title) => { document.getElementById('report-task-id').value = id; document.getElementById('report-title').innerText = title; app.ui.showModal('report-modal'); },
                 submitReport: async (status) => {
                     const id = document.getElementById('report-task-id').value;
@@ -524,26 +516,7 @@
                 },
                 exportAll: () => { alert("Xuất báo cáo..."); },
                 exportSX: () => { alert("Xuất SX..."); },
-                exportTH: () => { alert("Xuất TH..."); },
-                
-                // New Action: View House Logs
-                viewHouseLogs: (houseName) => {
-                    const logs = [
-                        ...app.data.production.filter(l => l.dest === houseName).map(l => ({...l, type: 'SX'})),
-                        ...app.data.harvest.filter(l => l.area === houseName).map(l => ({...l, type: 'TH'}))
-                    ].sort((a,b) => b.time - a.time);
-                    
-                    document.getElementById('history-house-name').innerText = houseName;
-                    document.getElementById('history-content').innerHTML = logs.length ? logs.map(l => `
-                        <div class="border-b pb-1 mb-1">
-                            <span class="font-bold ${l.type==='SX'?'text-blue-500':'text-green-500'}">[${l.type}]</span> 
-                            ${new Date(l.time).toLocaleDateString()} - 
-                            ${l.type==='SX' ? `${l.action} ${l.qty}` : `Hái ${l.total}kg`}
-                        </div>
-                    `).join('') : 'Chưa có dữ liệu';
-                    
-                    app.ui.showModal('modal-house-history');
-                }
+                exportTH: () => { alert("Xuất TH..."); }
             }
         };
         
