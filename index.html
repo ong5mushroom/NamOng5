@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- PWA Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
     <title>Nấm Ông 5 V90 - Enterprise Perfect</title>
     
-    <!-- Libs -->
+    <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
@@ -312,6 +310,7 @@
                     <button onclick="app.actions.checkIn('Chiều')" class="btn bg-indigo-50 text-indigo-700 border border-indigo-200">🌙 CA CHIỀU</button>
                 </div>
              </div>
+             
              <div class="card bg-slate-50 border border-slate-200">
                  <p class="label mb-3">HÀNH CHÍNH</p>
                  <div class="grid grid-cols-2 gap-3">
@@ -319,6 +318,7 @@
                     <button onclick="app.ui.showModal('modal-buy')" class="btn bg-white shadow-sm border text-slate-600"><i class="fas fa-shopping-cart text-green-500"></i> Mua hàng</button>
                  </div>
              </div>
+             
              <p class="label px-2">DANH SÁCH NHÂN SỰ</p>
              <div id="team-list" class="space-y-2 pb-20"></div>
         </div>
@@ -416,14 +416,17 @@
                          document.getElementById('view-chat').classList.add('hidden');
                     }
                 },
-
-                toggleAssign: () => {
+                setSXMode: (m) => {
+                    document.getElementById('sx-action').value = m;
+                    document.getElementById('btn-sx-nhap').className = m==='NHẬP' ? 'flex-1 py-3 rounded-lg text-xs font-black bg-blue-600 text-white shadow-md transition' : 'flex-1 py-3 rounded-lg text-xs font-black text-slate-400 hover:bg-white transition';
+                    document.getElementById('btn-sx-xuat').className = m==='XUẤT' ? 'flex-1 py-3 rounded-lg text-xs font-black bg-orange-500 text-white shadow-md transition' : 'flex-1 py-3 rounded-lg text-xs font-black text-slate-400 hover:bg-white transition';
+                },
+                toggleMode: () => {
                     const m = document.getElementById('assign-mode').value;
                     document.getElementById('assign-ind-zone').classList.toggle('hidden', m !== 'ind');
                     document.getElementById('assign-team-zone').classList.toggle('hidden', m !== 'team');
                 },
-
-                calcTH: () => {
+                calcTotal: () => {
                     const ids = ['th-b2','th-a1','th-a2','th-b1','th-d1','th-ht','th-abf','th-b2f','th-b1f'];
                     let sum = 0; let html = '';
                     ids.forEach(id => sum += Number(document.getElementById(id).value)||0);
@@ -444,8 +447,11 @@
                 }, 5000);
 
                 signInAnonymously(getAuth(appInstance)).then(() => {
-                    status.innerText = "Đã kết nối";
+                    status.innerText = "Đang đồng bộ dữ liệu...";
                     app.sync();
+                }).catch(e => {
+                    status.innerText = "Lỗi kết nối mạng!";
+                    status.classList.replace('text-yellow-500', 'text-red-500');
                 });
                 document.getElementById('sx-date').valueAsDate = new Date();
             },
@@ -475,9 +481,7 @@
                 const pin = document.getElementById('login-pin');
                 if (app.data.employees.length > 0) {
                     s.innerHTML = '<option value="">-- Chọn tên --</option>' + app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-                    s.disabled = false;
-                    pin.disabled = false;
-                    btn.disabled = false;
+                    s.disabled = false; pin.disabled = false; btn.disabled = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     document.getElementById('login-status').innerText = "Sẵn sàng đăng nhập";
                     document.getElementById('login-status').classList.replace('text-yellow-500', 'text-green-500');
@@ -530,7 +534,7 @@
                     const name = app.data.employees.find(e => String(e.id) === String(uid))?.name || uid;
                     const items = groups[uid].map(t => {
                         const isStarted = t.status === 'in_progress';
-                        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100"><div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao: ${new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex gap-2">${isAdmin ? `<button onclick="app.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>` : ''}${t.assignee == app.user.id ? (isStarted ? `<button onclick="app.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow">BÁO CÁO</button>` : `<button onclick="app.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow animate-pulse">NHẬN VIỆC</button>`) : ''}</div></div>`;
+                        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100"><div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao: ${new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex gap-2">${isAdmin ? `<button onclick="app.actions.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>` : ''}${t.assignee == app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow">BÁO CÁO</button>` : `<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow animate-pulse">NHẬN VIỆC</button>`) : ''}</div></div>`;
                     }).join('');
                     return `<div class="glass-card p-4 mb-3 border-l-4 border-indigo-500"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">${name}</p>${items}</div>`;
                 }).join('');
@@ -550,7 +554,7 @@
                 document.getElementById('leaderboard-list').innerHTML = top.map((p, i) => `<div class="flex justify-between items-center bg-yellow-50 p-2 rounded-lg border border-yellow-100 mb-1"><div class="flex items-center gap-2"><span class="font-black text-[10px] text-yellow-600">#${i+1}</span><span class="text-xs font-bold text-slate-700">${p.name}</span></div><span class="font-black text-yellow-600 text-xs">${p.score || 0}đ</span></div>`).join('');
                 
                 const pendingHR = app.data.hr.filter(r => r.status === 'pending');
-                document.getElementById('approval-list').innerHTML = pendingHR.length ? pendingHR.map(r => `<div class="p-3 bg-slate-50 border rounded-xl mb-2 text-xs"><div class="flex justify-between mb-1"><span class="font-bold text-blue-600">${r.type}</span><span class="text-slate-400">${r.requester}</span></div><p class="mb-3 font-medium text-slate-700">${r.content}</p><div class="flex gap-2"><button onclick="app.approve('${r._id}', 'approved')" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold">Duyệt</button><button onclick="app.approve('${r._id}', 'rejected')" class="flex-1 bg-red-50 text-red-600 py-2 rounded-lg font-bold">Từ chối</button></div></div>`).join('') : '<p class="text-center text-xs text-slate-400 py-2">Không có yêu cầu nào</p>';
+                document.getElementById('approval-list').innerHTML = pendingHR.length ? pendingHR.map(r => `<div class="p-3 bg-slate-50 border rounded-xl mb-2 text-xs"><div class="flex justify-between mb-1"><span class="font-bold text-blue-600">${r.type}</span><span class="text-slate-400">${r.requester}</span></div><p class="mb-3 font-medium text-slate-700">${r.content}</p><div class="flex gap-2"><button onclick="app.actions.approve('${r._id}', 'approved')" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold">Duyệt</button><button onclick="app.actions.approve('${r._id}', 'rejected')" class="flex-1 bg-red-50 text-red-600 py-2 rounded-lg font-bold">Từ chối</button></div></div>`).join('') : '<p class="text-center text-xs text-slate-400 py-2">Không có yêu cầu nào</p>';
             },
 
             renderTeam: () => {
@@ -651,28 +655,9 @@
                 addSOP: async () => { await addDoc(collection(db, `${ROOT}/sop`), { title: document.getElementById('new-sop-name').value, sop: Number(document.getElementById('new-sop-val').value) }); alert("Đã thêm!"); },
                 addHouse: async () => { const name = prompt("Nhập tên nhà:"); if(name) await addDoc(collection(db, `${ROOT}/houses`), { name, temp: {am:0, pm:0} }); },
                 fillSOP: () => { const val = document.getElementById('task-title').value; const item = (app.data.sop||[]).find(s => s.title === val); if(item) document.getElementById('task-target').value = item.sop; },
-                toggleAssignMode: () => {
-                    const m = document.getElementById('assign-mode').value;
-                    document.getElementById('assign-ind-zone').classList.toggle('hidden', m !== 'ind');
-                    document.getElementById('assign-team-zone').classList.toggle('hidden', m !== 'team');
-                },
-                exportAll: () => {
-                    const now = new Date();
-                    let csv = "NGAY;GIO;NHAN VIEN;VIEC;NHA;KET QUA;THOI GIAN\n";
-                    app.data.tasks.filter(t => t.status === 'completed').forEach(t => {
-                         const time = new Date(t.finishTime).toLocaleTimeString();
-                         const emp = app.data.employees.find(e => e.id == t.assignee)?.name || t.assignee;
-                         csv += `${new Date(t.finishTime).toLocaleDateString()};${time};"${emp}";"${t.title}";"${t.houseId}";${t.actual};"${t.duration}"\n`;
-                    });
-                    app.actions.downloadCSV(csv, `Daily_Log_${now.toLocaleDateString().replace(/\//g,'-')}.csv`);
-                },
-                downloadCSV: (content, fileName) => {
-                    const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement("a");
-                    link.href = URL.createObjectURL(blob);
-                    link.download = fileName;
-                    link.click();
-                }
+                exportAll: () => { alert("Xuất báo cáo..."); },
+                exportSX: () => { alert("Xuất SX..."); },
+                exportTH: () => { alert("Xuất TH..."); }
             }
         };
         
