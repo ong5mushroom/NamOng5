@@ -66,13 +66,13 @@
     <div id="login-overlay">
         <div class="w-24 h-24 bg-blue-600 rounded-[32px] flex items-center justify-center text-white text-5xl font-black mb-6 shadow-2xl shadow-blue-200">5</div>
         <h1 class="text-3xl font-black text-slate-800 mb-2">Nấm Ông 5</h1>
-        <div id="login-status" class="mb-8 text-xs font-bold text-slate-400 bg-white px-4 py-2 rounded-full shadow-sm flex items-center">
+        <p id="login-status" class="text-xs font-bold text-slate-400 mb-8 flex items-center bg-white px-4 py-2 rounded-full shadow-sm">
             <span class="status-dot status-loading" id="status-indicator"></span><span id="status-text">Đang tải dữ liệu...</span>
-        </div>
+        </p>
         
         <div class="w-full max-w-sm space-y-4">
             <select id="login-user" class="input-box text-center appearance-none" disabled><option>Vui lòng đợi...</option></select>
-            <input type="password" id="login-pin" placeholder="Nhập PIN" class="input-box text-center text-xl tracking-widest" disabled inputmode="numeric">
+            <input type="password" id="login-pin" placeholder="Nhập PIN xác thực" class="input-box text-center text-xl tracking-widest" disabled inputmode="numeric">
             <button id="login-btn" onclick="app.doLogin()" class="btn-primary opacity-50 cursor-not-allowed" disabled>ĐĂNG NHẬP</button>
             <button id="rescue-btn" onclick="app.actions.seedAdmin()" class="hidden w-full border-2 border-red-100 text-red-500 py-3 rounded-2xl font-bold text-xs mt-4 hover:bg-red-50"><i class="fas fa-shield-alt mr-2"></i> TẠO ADMIN KHẨN CẤP</button>
         </div>
@@ -89,15 +89,14 @@
                 <p class="text-[9px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded inline-block mt-0.5">● V80 Reborn</p>
             </div>
         </div>
-        <div class="text-right">
-            <p id="head-user" class="font-bold text-xs text-slate-800">...</p>
-            <p id="head-role" class="text-[9px] text-slate-400 font-bold uppercase">...</p>
+        <div class="text-right flex items-center gap-3">
+            <div><p id="head-user" class="font-bold text-xs text-slate-800">...</p><p id="head-role" class="text-[9px] text-slate-400 font-bold uppercase">...</p></div>
+            <button id="admin-cog" onclick="app.ui.showModal('settings-modal')" class="hidden w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 text-slate-400 active:scale-90 transition"><i class="fas fa-cog"></i></button>
         </div>
-        <button id="admin-cog" onclick="app.ui.showModal('settings-modal')" class="hidden w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 text-slate-400 active:scale-90 transition"><i class="fas fa-cog"></i></button>
     </header>
 
     <!-- 3. MAIN CONTENT -->
-    <main id="app-main">
+    <main id="app-main" class="no-scrollbar">
         
         <!-- HOME -->
         <div id="view-home" class="view-section space-y-4">
@@ -140,7 +139,7 @@
                     <button onclick="app.createTask()" class="btn-primary bg-slate-800">Ban hành lệnh</button>
                 </div>
             </div>
-            <div id="task-list" class="space-y-3"></div>
+            <div id="task-list" class="space-y-4 pb-20"></div>
         </div>
 
         <!-- SẢN XUẤT -->
@@ -155,7 +154,11 @@
                 <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3"><div><p class="label">Ngày</p><input type="date" id="sx-date" class="input-box bg-white p-2"></div><div><p class="label">Lô cấy</p><input id="sx-batch" class="input-box bg-white text-center p-2" placeholder="..."></div></div>
                     <div><p class="label">Loại Phôi</p><input type="text" id="sx-type" list="phoi-list" class="input-box bg-white p-2" placeholder="Chọn hoặc nhập..."></div>
-                    <div class="grid grid-cols-3 gap-2"><div><p class="label">Số lượng</p><input type="number" id="sx-qty" class="input-box bg-white text-center font-bold text-lg p-2"></div><div><p class="label text-red-500">Hủy</p><input type="number" id="sx-bad" placeholder="0" class="input-box bg-white text-center p-2"></div><div><p class="label text-green-600">Tận dụng</p><input type="number" id="sx-reuse" placeholder="0" class="input-box bg-white text-center p-2"></div></div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div><p class="label">Số lượng</p><input type="number" id="sx-qty" class="input-box bg-white text-center font-bold text-lg p-2"></div>
+                        <div><p class="label text-red-500">Hủy</p><input type="number" id="sx-bad" placeholder="0" class="input-box bg-white text-center p-2"></div>
+                        <div><p class="label text-green-600">Tận dụng</p><input type="number" id="sx-reuse" placeholder="0" class="input-box bg-white text-center p-2"></div>
+                    </div>
                     <div><p class="label">Nơi Nhập/Xuất</p><input type="text" id="sx-dest" placeholder="Nhà A, Kho B..." class="input-box bg-white p-2"></div>
                     <button onclick="app.submitSX()" class="btn-primary mt-2">LƯU DỮ LIỆU</button>
                 </div>
@@ -170,29 +173,61 @@
                  <div class="space-y-3">
                      <div><p class="label">Chọn Nhà</p><select id="th-area" class="input-box bg-white font-bold text-green-700 p-2"></select></div>
                      <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                         <div class="grid grid-cols-4 gap-2 mb-2 items-end"><div><label class="text-center text-[9px] font-bold block mb-1">B2</label><input type="number" id="th-b2" class="input-box p-1 text-center h-9 text-sm" oninput="app.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">A1</label><input type="number" id="th-a1" class="input-box p-1 text-center h-9 text-sm" oninput="app.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">A2</label><input type="number" id="th-a2" class="input-box p-1 text-center h-9 text-sm" oninput="app.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">B1</label><input type="number" id="th-b1" class="input-box p-1 text-center h-9 text-sm" oninput="app.calcTH()"></div></div>
-                         <div class="grid grid-cols-5 gap-2 items-end"><div><label class="text-center text-[9px] font-bold block mb-1">D1</label><input type="number" id="th-d1" class="input-box p-1 text-center h-9 text-sm" oninput="app.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">HT</label><input type="number" id="th-ht" class="input-box p-1 text-center h-9 text-sm" oninput="app.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">ABF</label><input type="number" id="th-abf" class="input-box p-1 text-center h-9 text-sm" oninput="app.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">B2F</label><input type="number" id="th-b2f" class="input-box p-1 text-center h-9 text-sm" oninput="app.calcTH()"></div><div><label class="text-center text-[9px] font-bold block mb-1">B1F</label><input type="number" id="th-b1f" class="input-box p-1 text-center h-9 text-sm" oninput="app.calcTH()"></div></div>
-                         <div id="th-percent-display" class="grid grid-cols-4 gap-1 mt-3 pt-2 border-t border-slate-200"></div>
-                     </div>
-                     <div class="flex justify-between items-center bg-green-50 p-4 rounded-2xl border border-green-100"><span class="font-bold text-green-800 text-xs">TỔNG HÁI:</span><span id="th-total-display" class="font-black text-2xl text-green-600">0 kg</span></div>
-                     <div class="grid grid-cols-2 gap-3"><div><p class="label text-red-500">Hủy chân (kg)</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-orange-500">Đổi trả (kg)</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
-                     <div class="grid grid-cols-2 gap-3"><div><p class="label text-blue-500">Xuất NL Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Snack TP</p><input type="number" id="th-snack-tp" class="input-box bg-white text-center p-2" placeholder="0"></div></div><div><p class="label">Ghi chú thêm</p><input type="text" id="th-note" class="input-box bg-white p-2"></div>
-                     <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 mt-1">CẬP NHẬT KHO</button>
-                 </div>
-             </div>
-             <div id="th-log-list" class="space-y-2 pb-20"></div>
+                         <div class="grid grid-cols-4 gap-2 mb-2 items-end">
+                            <div><label class="text-center text-[9px] font-bold block mb-1">B2</label><input type="number" id="th-b2" class="input-box p-1 text-center h-8 text-sm" oninput="app.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">A1</label><input type="number" id="th-a1" class="input-box p-1 text-center h-8 text-sm" oninput="app.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">A2</label><input type="number" id="th-a2" class="input-box p-1 text-center h-8 text-sm" oninput="app.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">B1</label><input type="number" id="th-b1" class="input-box p-1 text-center h-8 text-sm" oninput="app.calcTH()"></div>
+                        </div>
+                        <div class="grid grid-cols-5 gap-2 items-end">
+                            <div><label class="text-center text-[9px] font-bold block mb-1">D1</label><input type="number" id="th-d1" class="input-box p-1 text-center h-8 text-sm" oninput="app.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">H.Thủ</label><input type="number" id="th-ht" class="input-box p-1 text-center h-8 text-sm" oninput="app.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">ABF</label><input type="number" id="th-abf" class="input-box p-1 text-center h-8 text-sm" oninput="app.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">B2F</label><input type="number" id="th-b2f" class="input-box p-1 text-center h-8 text-sm" oninput="app.calcTH()"></div>
+                            <div><label class="text-center text-[9px] font-bold block mb-1">B1F</label><input type="number" id="th-b1f" class="input-box p-1 text-center h-8 text-sm" oninput="app.calcTH()"></div>
+                        </div>
+                        <div id="th-percent-display" class="grid grid-cols-4 gap-1 mt-3 pt-2 border-t border-slate-200"></div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center bg-green-50 p-4 rounded-2xl border border-green-100">
+                        <span class="font-bold text-green-800 text-xs">TỔNG HÁI:</span>
+                        <span id="th-total-display" class="font-black text-2xl text-green-600">0 kg</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                         <div><p class="label text-red-500">Hủy chân (kg)</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                         <div><p class="label text-orange-500">Đổi trả (kg)</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><p class="label text-blue-500">Xuất NL Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                        <div><p class="label text-purple-500">Snack TP</p><input type="number" id="th-snack-tp" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                    </div>
+                    <div><p class="label">Ghi chú thêm</p><input type="text" id="th-note" class="input-box bg-white p-2"></div>
+                    
+                    <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 mt-1">CẬP NHẬT KHO</button>
+                </div>
+            </div>
+            <div id="th-log-list" class="space-y-2 pb-20"></div>
         </div>
 
         <!-- TEAM -->
         <div id="view-team" class="view-section hidden space-y-4">
              <div class="card border border-blue-100">
                 <p class="label mb-3">ĐIỂM DANH CÁ NHÂN</p>
-                <div class="grid grid-cols-2 gap-3"><button onclick="app.checkIn('Sáng')" class="bg-yellow-50 text-yellow-700 py-4 rounded-xl font-bold text-xs border border-yellow-200 hover:bg-yellow-100 shadow-sm">☀️ CA SÁNG</button><button onclick="app.checkIn('Chiều')" class="bg-indigo-50 text-indigo-700 py-4 rounded-xl font-bold text-xs border border-indigo-200 hover:bg-indigo-100 shadow-sm">🌙 CA CHIỀU</button></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="app.checkIn('Sáng')" class="bg-yellow-50 text-yellow-700 py-4 rounded-xl font-bold text-xs border border-yellow-200 hover:bg-yellow-100">☀️ CA SÁNG</button>
+                    <button onclick="app.checkIn('Chiều')" class="bg-indigo-50 text-indigo-700 py-4 rounded-xl font-bold text-xs border border-indigo-200 hover:bg-indigo-100">🌙 CA CHIỀU</button>
+                </div>
              </div>
+             
              <div class="card bg-slate-50 border border-slate-200">
                  <p class="label mb-3">HÀNH CHÍNH</p>
-                 <div class="grid grid-cols-2 gap-3"><button onclick="app.ui.showModal('modal-leave')" class="bg-white p-3 rounded-xl text-xs font-bold shadow-sm flex flex-col items-center gap-2 border hover:bg-slate-50"><i class="fas fa-calendar-times text-red-500 text-xl"></i> Xin nghỉ</button><button onclick="app.ui.showModal('modal-buy')" class="bg-white p-3 rounded-xl text-xs font-bold shadow-sm flex flex-col items-center gap-2 border hover:bg-slate-50"><i class="fas fa-shopping-cart text-green-500 text-xl"></i> Mua hàng</button></div>
+                 <div class="grid grid-cols-2 gap-3">
+                    <button onclick="app.ui.showModal('modal-leave')" class="bg-white p-3 rounded-xl text-xs font-bold shadow-sm flex flex-col items-center gap-2 border"><i class="fas fa-calendar-times text-red-500 text-xl"></i> Xin nghỉ</button>
+                    <button onclick="app.ui.showModal('modal-buy')" class="bg-white p-3 rounded-xl text-xs font-bold shadow-sm flex flex-col items-center gap-2 border"><i class="fas fa-shopping-cart text-green-500 text-xl"></i> Mua hàng</button>
+                 </div>
              </div>
+             
              <p class="label px-2">DANH SÁCH NHÂN SỰ</p>
              <div id="team-list" class="space-y-2 pb-20"></div>
         </div>
@@ -201,9 +236,9 @@
         <div id="view-chat" class="view-section hidden flex flex-col h-full bg-[#f1f5f9] absolute top-0 left-0 w-full z-[100] shiitake-bg">
             <div class="h-[100px] bg-white border-b flex items-end px-4 pb-4 shadow-sm">
                  <button onclick="app.ui.tab('home')" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mr-3 active:bg-slate-200"><i class="fas fa-arrow-left text-slate-600"></i></button>
-                 <div><h2 class="font-bold text-slate-800 text-lg">Thảo luận chung</h2><p class="text-xs text-green-500 font-bold">● Trực tuyến</p></div>
+                 <div><h2 class="font-bold text-slate-800 text-lg">Thảo luận chung</h2></div>
             </div>
-            <div id="chat-box"></div>
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 pb-32"></div>
             <div class="chat-input-container">
                 <input id="chat-input" type="text" class="flex-1 bg-slate-100 rounded-full px-5 py-3 text-sm outline-none border border-slate-200 focus:bg-white focus:border-blue-300" placeholder="Nhập tin nhắn..." onkeyup="if(event.key==='Enter') app.sendChat()">
                 <button onclick="app.sendChat()" class="w-12 h-12 bg-blue-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-90 transition"><i class="fas fa-paper-plane"></i></button>
@@ -224,7 +259,7 @@
     <!-- 5. MODALS -->
     <div id="settings-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.hideModal('settings-modal')">
         <div class="modal-box">
-            <h3 class="font-black text-xl mb-6 text-slate-800">Cài đặt</h3>
+            <h3 class="font-black text-xl mb-6">Cài đặt</h3>
             <div class="space-y-4">
                 <button onclick="app.actions.exportAll()" class="w-full bg-white text-blue-700 py-4 rounded-xl font-bold text-xs border border-blue-200 shadow-sm flex items-center justify-center gap-2 active:bg-blue-50"><i class="fas fa-file-export"></i> XUẤT BÁO CÁO NGÀY</button>
                 <div id="admin-tools" class="hidden space-y-4 border-t pt-4">
@@ -251,8 +286,14 @@
             <div class="space-y-4">
                 <input type="number" id="report-val" placeholder="Số lượng đạt" class="input-box text-center text-3xl font-black">
                 <input type="text" id="report-note" placeholder="Ghi chú thêm..." class="input-box bg-white">
-                <div class="text-center border-t border-dashed pt-4"><label class="block w-full bg-blue-50 py-6 rounded-2xl cursor-pointer text-blue-500 font-bold text-xs"><i class="fas fa-camera text-2xl mb-2 block"></i>Chụp ảnh<input type="file" accept="image/*" class="hidden" onchange="app.handlePhoto(this)"></label><img id="report-preview" class="hidden mt-3 rounded-xl max-h-40 mx-auto shadow-md"></div>
-                <div class="grid grid-cols-2 gap-3"><button onclick="app.submitReport('completed')" class="bg-green-600 text-white py-3 rounded-2xl font-bold text-xs shadow-lg shadow-green-200">Hoàn thành</button><button onclick="app.submitReport('unfinished')" class="bg-orange-500 text-white py-3 rounded-2xl font-bold text-xs shadow-lg shadow-orange-200">Chưa xong</button></div>
+                <div class="text-center border-t border-dashed pt-4">
+                     <label class="block w-full bg-blue-50 py-6 rounded-2xl cursor-pointer text-blue-500 font-bold text-xs"><i class="fas fa-camera text-2xl mb-2 block"></i>Chụp ảnh<input type="file" accept="image/*" class="hidden" onchange="app.handlePhoto(this)"></label>
+                     <img id="report-preview" class="hidden mt-3 rounded-xl max-h-40 mx-auto shadow-md">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="app.submitReport('completed')" class="bg-green-600 text-white py-3 rounded-2xl font-bold text-xs shadow-lg shadow-green-200">Hoàn thành</button>
+                    <button onclick="app.submitReport('unfinished')" class="bg-orange-500 text-white py-3 rounded-2xl font-bold text-xs shadow-lg shadow-orange-200">Chưa xong</button>
+                </div>
             </div>
         </div>
     </div>
@@ -275,7 +316,7 @@
         const ROOT = "artifacts/namong5_production/public/data";
 
         window.app = {
-            data: { employees: [], houses: [], chat: [], tasks: [], production: [], harvest: [], hr_requests: [] },
+            data: { employees: [], houses: [], chat: [], tasks: [], production: [], harvest: [], hr: [] },
             user: JSON.parse(localStorage.getItem('n5_v79_user')) || null,
             assignMode: 'ind',
             currentPhoto: null,
@@ -398,14 +439,17 @@
             renderDynamic: () => {
                 const houseOpts = app.data.houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
                 const hSelect = document.getElementById('th-area'); if(hSelect.innerHTML==="") hSelect.innerHTML=houseOpts;
+                const hSelectTask = document.getElementById('task-house-id'); if(hSelectTask.innerHTML==="") hSelectTask.innerHTML=houseOpts;
                 const houseMulti = document.getElementById('house-select-container'); if(houseMulti && houseMulti.innerHTML==="") houseMulti.innerHTML=app.data.houses.map(h => `<label class="flex items-center gap-1 text-[10px] p-2 border rounded"><input type="checkbox" value="${h.name}" name="h-check"> ${h.name}</label>`).join('');
                 
+                // House Grid
                 document.getElementById('house-list').innerHTML = app.data.houses.map(h => `
                     <div class="glass-card p-4 flex justify-between items-center border-l-4 border-blue-500 mb-3">
                         <div><p class="font-bold text-sm">${h.name}</p><p class="text-[10px] text-slate-400">AM: ${h.temp?.am||'-'} | PM: ${h.temp?.pm||'-'}</p></div>
                         <button onclick="app.openTemp('${h._id}', '${h.name}')" class="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-temperature-high text-xs"></i></button>
                     </div>`).join('');
 
+                // Task List Grouped
                 const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
                 let tasks = app.data.tasks.filter(t => t.status !== 'completed');
                 if(!isAdmin) tasks = tasks.filter(t => t.assignee == app.user.id);
@@ -419,9 +463,9 @@
                     return `<div class="glass-card p-4 mb-3 border-l-4 border-indigo-500"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">${name}</p>${items}</div>`;
                 }).join('');
 
+                // Logs
                 const sxLogs = app.data.production.sort((a,b) => b.time - a.time).slice(0, 5);
                 document.getElementById('sx-log-list').innerHTML = sxLogs.map(l => `<div class="text-[10px] p-2 bg-slate-50 rounded mb-1 border flex justify-between"><span>${l.action} ${l.type}</span><span>${l.qty}</span></div>`).join('');
-                
                 const thLogs = app.data.harvest.sort((a,b) => b.time - a.time).slice(0, 5);
                 document.getElementById('th-log-list').innerHTML = thLogs.map(l => `<div class="text-[10px] p-2 bg-slate-50 rounded mb-1 border flex justify-between"><span>${l.area}</span><span>${l.total} kg</span></div>`).join('');
 
