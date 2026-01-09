@@ -20,7 +20,7 @@
             --blue: #2563eb; 
             --header-h: 90px; 
             --nav-h: 80px; 
-            --bg: #f1f5f9;
+            --bg: #f8fafc;
         }
         
         /* --- RESET & BASE --- */
@@ -213,7 +213,7 @@
              <div id="admin-task-form" class="hidden card border-2 border-blue-50 !mb-4">
                 <div class="flex justify-between items-center mb-3">
                     <span class="text-xs font-black text-blue-600 uppercase">Giao việc mới</span>
-                    <select id="assign-mode" onchange="app.ui.toggleAssign()" class="text-[10px] font-bold bg-slate-100 p-1 rounded"><option value="ind">Cá nhân</option><option value="team">Tổ</option></select>
+                    <select id="assign-mode" onchange="app.toggleAssign()" class="text-[10px] font-bold bg-slate-100 p-1 rounded"><option value="ind">Cá nhân</option><option value="team">Tổ</option></select>
                 </div>
                 <div class="space-y-3">
                     <input id="task-title" placeholder="Tên công việc..." class="input-box bg-white" list="sop-list" onchange="app.actions.fillSOP()">
@@ -297,7 +297,7 @@
                     </div>
                     <div><p class="label">Ghi chú thêm</p><input type="text" id="th-note" class="input-box bg-white p-2"></div>
                     
-                    <button onclick="app.actions.submitTH()" class="btn btn-green mt-2">CẬP NHẬT KHO</button>
+                    <button onclick="app.actions.submitTH()" class="btn btn-green mt-1">CẬP NHẬT KHO</button>
                  </div>
              </div>
              <div id="th-log-list" class="space-y-2 pb-20"></div>
@@ -334,18 +334,18 @@
         <div id="chat-box"></div>
         <div style="background: white; padding: 12px; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; padding-bottom: calc(12px + env(safe-area-inset-bottom));">
             <input id="chat-input" type="text" class="flex-1 bg-slate-100 rounded-full px-5 py-3 text-sm outline-none border border-slate-200" placeholder="Nhập tin nhắn..." onkeyup="if(event.key==='Enter') app.actions.sendChat()">
-            <button onclick="app.actions.sendChat()" class="w-12 h-12 bg-blue-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-90"><i class="fas fa-paper-plane"></i></button>
+            <button onclick="app.actions.sendChat()" class="w-12 h-12 bg-blue-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-90"><i class="fas fa-paper-plane text-xs"></i></button>
         </div>
     </div>
 
     <!-- 5. NAVIGATION -->
     <nav id="app-nav">
-        <button onclick="app.ui.tab('home')" class="nav-btn active" id="btn-home"><i class="fas fa-home"></i><span>HOME</span></button>
-        <button onclick="app.ui.tab('tasks')" class="nav-btn" id="btn-tasks"><i class="fas fa-clipboard-list"></i><span>VIỆC</span></button>
-        <button onclick="app.ui.tab('sx')" class="nav-btn" id="btn-sx"><i class="fas fa-industry"></i><span>SX</span></button>
-        <button onclick="app.ui.tab('th')" class="nav-btn" id="btn-th"><i class="fas fa-box-open"></i><span>TH</span></button>
-        <button onclick="app.ui.tab('team')" class="nav-btn" id="btn-team"><i class="fas fa-users"></i><span>TEAM</span></button>
-        <button onclick="app.ui.openChat()" class="nav-btn"><i class="fas fa-comments"></i><span>CHAT</span></button>
+        <button onclick="app.ui.tab('home')" class="nav-btn active" id="btn-home"><i class="fas fa-home text-xl"></i><span>HOME</span></button>
+        <button onclick="app.ui.tab('tasks')" class="nav-btn" id="btn-tasks"><i class="fas fa-clipboard-list text-xl"></i><span>VIỆC</span></button>
+        <button onclick="app.ui.tab('sx')" class="nav-btn" id="btn-sx"><i class="fas fa-industry text-xl"></i><span>SX</span></button>
+        <button onclick="app.ui.tab('th')" class="nav-btn" id="btn-th"><i class="fas fa-box-open text-xl"></i><span>TH</span></button>
+        <button onclick="app.ui.tab('team')" class="nav-btn" id="btn-team"><i class="fas fa-users text-xl"></i><span>TEAM</span></button>
+        <button onclick="app.ui.tab('chat')" class="nav-btn"><i class="fas fa-comments text-xl"></i><span>CHAT</span></button>
     </nav>
 
     <!-- 6. MODALS -->
@@ -405,6 +405,16 @@
                     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('nav-active'));
                     const btn = document.querySelector(`button[onclick="app.ui.tab('${id}')"]`);
                     if(btn) btn.classList.add('nav-active');
+                    
+                    if (id === 'chat') {
+                         document.getElementById('app-header').classList.add('hidden');
+                         document.getElementById('app-nav').classList.add('hidden');
+                         document.getElementById('view-chat').classList.remove('hidden');
+                    } else {
+                         document.getElementById('app-header').classList.remove('hidden');
+                         document.getElementById('app-nav').classList.remove('hidden');
+                         document.getElementById('view-chat').classList.add('hidden');
+                    }
                 },
 
                 toggleAssign: () => {
@@ -417,7 +427,7 @@
                     const ids = ['th-b2','th-a1','th-a2','th-b1','th-d1','th-ht','th-abf','th-b2f','th-b1f'];
                     let sum = 0; let html = '';
                     ids.forEach(id => sum += Number(document.getElementById(id).value)||0);
-                    if(sum>0) ids.forEach(id => { const v=Number(document.getElementById(id).value)||0; if(v>0) html+=`<div class="stat-badge">${id.replace('th-','').toUpperCase()}: ${((v/sum)*100).toFixed(0)}%</div>`; });
+                    if(sum>0) ids.forEach(id => { const v=Number(document.getElementById(id).value)||0; if(v>0) html+=`<div class="stat-badge bg-white border border-blue-200">${id.replace('th-','').toUpperCase()}: ${((v/sum)*100).toFixed(0)}%</div>`; });
                     document.getElementById('th-total-display').innerText = sum + ' kg';
                     document.getElementById('th-percent-display').innerHTML = html;
                 }
@@ -431,7 +441,7 @@
                         status.classList.replace('text-yellow-500', 'text-red-500');
                         document.getElementById('rescue-btn').classList.remove('hidden');
                     }
-                }, 3000);
+                }, 5000);
 
                 signInAnonymously(getAuth(appInstance)).then(() => {
                     status.innerText = "Đã kết nối";
@@ -446,11 +456,11 @@
                     app.renderLogin();
                     if(app.user) app.renderTeam();
                 });
-                ['houses', 'tasks', 'production_logs', 'harvest_logs', 'hr_requests'].forEach(col => {
+                ['houses', 'tasks', 'production_logs', 'harvest_logs', 'hr_requests', 'attendance_logs', 'sop'].forEach(col => {
                     onSnapshot(collection(db, `${ROOT}/${col}`), s => {
-                        const key = col.includes('logs') ? col.split('_')[0] : col;
+                        const key = col.includes('logs') ? col.split('_')[0] : (col === 'hr_requests' ? 'hr' : col);
                         app.data[key] = s.docs.map(d => ({...d.data(), _id: d.id}));
-                        if(app.user) app.renderContent();
+                        if(app.user) app.renderDynamic();
                     });
                 });
                 onSnapshot(query(collection(db, `${ROOT}/chat`), orderBy("time", "asc"), limit(50)), s => {
@@ -469,13 +479,11 @@
                     pin.disabled = false;
                     btn.disabled = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    document.getElementById('login-status').innerText = "Sẵn sàng đăng nhập";
+                    document.getElementById('login-status').classList.replace('text-yellow-500', 'text-green-500');
                     document.getElementById('rescue-btn').classList.add('hidden');
                 }
-                
-                if(app.user) {
-                    document.getElementById('login-overlay').classList.add('hidden');
-                    app.renderContent();
-                }
+                if(app.user) { document.getElementById('login-overlay').classList.add('hidden'); app.renderApp(); }
             },
 
             doLogin: () => {
@@ -484,111 +492,138 @@
                 const emp = app.data.employees.find(e => String(e.id) === String(id) && String(e.pin).trim() === String(pin));
                 if(emp) {
                     app.user = emp; localStorage.setItem('n5_v90_user', JSON.stringify(emp));
-                    document.getElementById('login-overlay').classList.add('hidden'); app.renderContent();
+                    document.getElementById('login-overlay').classList.add('hidden'); app.renderApp();
                 } else alert("Sai mã PIN!");
             },
 
-            renderContent: () => {
-                const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
+            renderApp: () => {
                 document.getElementById('head-user').innerText = app.user.name;
                 document.getElementById('head-role').innerText = app.user.role;
-
+                const isAdmin = ['Giám đốc', 'Quản lý', 'Tổ trưởng'].includes(app.user.role);
                 if(isAdmin) {
                     document.getElementById('admin-cog').classList.remove('hidden');
                     if(['Giám đốc', 'Quản lý'].includes(app.user.role)) document.getElementById('admin-tools').classList.remove('hidden');
                     if(['Giám đốc', 'Quản lý', 'Tổ trưởng'].includes(app.user.role)) document.getElementById('admin-task-form').classList.remove('hidden');
                 }
-
-                // Houses
+                app.renderDynamic();
+            },
+            
+            renderDynamic: () => {
+                const houseOpts = app.data.houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
+                const hSelect = document.getElementById('th-area'); if(hSelect.innerHTML==="") hSelect.innerHTML=houseOpts;
+                const hSelectTask = document.getElementById('task-house-id'); if(hSelectTask && hSelectTask.innerHTML==="") hSelectTask.innerHTML=houseOpts;
+                const houseMulti = document.getElementById('house-select-container'); if(houseMulti && houseMulti.innerHTML==="") houseMulti.innerHTML=app.data.houses.map(h => `<label class="flex items-center gap-1 text-[10px] p-2 border rounded"><input type="checkbox" value="${h.name}" name="h-check"> ${h.name}</label>`).join('');
+                
+                // House Grid
                 document.getElementById('house-list').innerHTML = app.data.houses.map(h => `
-                    <div class="card flex justify-between items-center !p-4 !mb-2 border-l-4 border-blue-500 mb-3">
-                        <div><p class="font-bold text-sm">${h.name}</p><p class="text-[10px] text-slate-400 font-bold mt-1">AM: ${h.temp?.am||'-'} | PM: ${h.temp?.pm||'-'}</p></div>
+                    <div class="glass-card p-4 flex justify-between items-center border-l-4 border-blue-500 mb-3">
+                        <div><p class="font-bold text-sm">${h.name}</p><p class="text-[10px] text-slate-400">AM: ${h.temp?.am||'-'} | PM: ${h.temp?.pm||'-'}</p></div>
                         <button onclick="app.actions.openTemp('${h._id}', '${h.name}')" class="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-temperature-high text-xs"></i></button>
                     </div>`).join('');
-                
-                const hOpts = app.data.houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
-                const s1 = document.getElementById('th-area'); if(s1.innerHTML==="") s1.innerHTML=hOpts;
-                const mh = document.getElementById('house-multi-select'); if(mh.innerHTML==="") mh.innerHTML=app.data.houses.map(h => `<label class="flex items-center gap-1 text-[10px] p-2 border rounded"><input type="checkbox" value="${h.name}" name="h-check"> ${h.name}</label>`).join('');
 
-                // Tasks
+                // Task List Grouped
+                const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
                 let tasks = app.data.tasks.filter(t => t.status !== 'completed');
                 if(!isAdmin) tasks = tasks.filter(t => t.assignee == app.user.id);
-                document.getElementById('task-list').innerHTML = tasks.map(t => {
-                     const isStarted = t.status === 'in_progress';
-                     const canAction = t.assignee == app.user.id;
-                     return `<div class="card border-l-4 border-indigo-500 !p-3 !mb-2"><div class="flex justify-between items-center"><div><p class="font-bold text-xs">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">${new Date(t.time).toLocaleTimeString()}</p></div><div class="flex gap-2">${isAdmin?`<button onclick="app.actions.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>`:''}${canAction ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold">BÁO CÁO</button>` : `<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold">NHẬN VIỆC</button>`) : ''}</div></div></div>`;
+                const groups = {}; tasks.forEach(t => { if(!groups[t.assignee]) groups[t.assignee] = []; groups[t.assignee].push(t); });
+                document.getElementById('task-list').innerHTML = Object.keys(groups).map(uid => {
+                    const name = app.data.employees.find(e => String(e.id) === String(uid))?.name || uid;
+                    const items = groups[uid].map(t => {
+                        const isStarted = t.status === 'in_progress';
+                        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100"><div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao: ${new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex gap-2">${isAdmin ? `<button onclick="app.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>` : ''}${t.assignee == app.user.id ? (isStarted ? `<button onclick="app.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow">BÁO CÁO</button>` : `<button onclick="app.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow animate-pulse">NHẬN VIỆC</button>`) : ''}</div></div>`;
+                    }).join('');
+                    return `<div class="glass-card p-4 mb-3 border-l-4 border-indigo-500"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">${name}</p>${items}</div>`;
                 }).join('');
 
                 // Logs
-                document.getElementById('sx-log-list').innerHTML = app.data.production.slice(0,5).map(l => `<div class="text-[10px] p-2 bg-slate-50 rounded mb-1 border flex justify-between"><span>${l.action} ${l.type}</span><span>${l.qty}</span></div>`).join('');
-                document.getElementById('th-log-list').innerHTML = app.data.harvest.slice(0,5).map(l => `<div class="text-[10px] p-2 bg-slate-50 rounded mb-1 border flex justify-between"><span>${l.area}</span><span>${l.total} kg</span></div>`).join('');
-            
-                // Stats
+                const sxLogs = app.data.production.sort((a,b) => b.time - a.time).slice(0, 5);
+                document.getElementById('sx-log-list').innerHTML = sxLogs.map(l => `<div class="text-[10px] p-2 bg-slate-50 rounded mb-1 border flex justify-between"><span>${l.action} ${l.type}</span><span>${l.qty}</span></div>`).join('');
+                const thLogs = app.data.harvest.sort((a,b) => b.time - a.time).slice(0, 5);
+                document.getElementById('th-log-list').innerHTML = thLogs.map(l => `<div class="text-[10px] p-2 bg-slate-50 rounded mb-1 border flex justify-between"><span>${l.area}</span><span>${l.total} kg</span></div>`).join('');
+
                 const today = new Date().toISOString().split('T')[0];
                 document.getElementById('stat-online').innerText = app.data.employees.filter(e => e.lastLogin === today).length;
                 const yieldKg = app.data.harvest.filter(h => new Date(h.time).toDateString() === new Date().toDateString()).reduce((a,b) => a + (b.total||0), 0);
                 document.getElementById('stat-yield').innerText = yieldKg.toLocaleString();
+                
+                const top = [...app.data.employees].sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 3);
+                document.getElementById('leaderboard-list').innerHTML = top.map((p, i) => `<div class="flex justify-between items-center bg-yellow-50 p-2 rounded-lg border border-yellow-100 mb-1"><div class="flex items-center gap-2"><span class="font-black text-[10px] text-yellow-600">#${i+1}</span><span class="text-xs font-bold text-slate-700">${p.name}</span></div><span class="font-black text-yellow-600 text-xs">${p.score || 0}đ</span></div>`).join('');
+                
+                const pendingHR = app.data.hr.filter(r => r.status === 'pending');
+                document.getElementById('approval-list').innerHTML = pendingHR.length ? pendingHR.map(r => `<div class="p-3 bg-slate-50 border rounded-xl mb-2 text-xs"><div class="flex justify-between mb-1"><span class="font-bold text-blue-600">${r.type}</span><span class="text-slate-400">${r.requester}</span></div><p class="mb-3 font-medium text-slate-700">${r.content}</p><div class="flex gap-2"><button onclick="app.approve('${r._id}', 'approved')" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-bold">Duyệt</button><button onclick="app.approve('${r._id}', 'rejected')" class="flex-1 bg-red-50 text-red-600 py-2 rounded-lg font-bold">Từ chối</button></div></div>`).join('') : '<p class="text-center text-xs text-slate-400 py-2">Không có yêu cầu nào</p>';
             },
 
             renderTeam: () => {
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('team-list').innerHTML = app.data.employees.map(e => `
-                    <div class="card flex justify-between items-center !p-3 !mb-2 border-l-4 ${e.lastLogin===today?'border-green-500':'border-slate-200'}">
-                        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-xs">${e.name.charAt(0)}</div><p class="text-xs font-bold text-slate-700">${e.name}</p></div>
-                        ${e.lastLogin===today ? '<i class="fas fa-check-circle text-green-500"></i>' : ''}
+                 const today = new Date().toISOString().split('T')[0];
+                 document.getElementById('team-list').innerHTML = app.data.employees.map(e => `
+                    <div class="glass-card p-4 flex justify-between items-center mb-2 border border-slate-50">
+                        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-xs">${e.name.charAt(0)}</div><div><p class="text-xs font-bold">${e.name}</p><p class="text-[9px] text-slate-400">${e.role}</p></div></div>
+                        <div class="${e.lastLogin === today ? 'text-green-500' : 'text-slate-300'}"><i class="fas fa-circle text-[8px]"></i></div>
                     </div>`).join('');
             },
 
             renderChat: () => {
-                document.getElementById('chat-box').innerHTML = app.data.chat.map(m => `<div class="chat-bubble ${m.senderId === app.user.id ? 'chat-me' : 'chat-other'}"><p class="text-[9px] font-bold opacity-50 mb-1">${m.senderName}</p>${m.text}</div>`).join('');
+                const box = document.getElementById('chat-box');
+                box.innerHTML = app.data.chat.map(m => `
+                    <div class="chat-bubble ${m.senderId === app.user.id ? 'chat-me' : 'chat-other'}">
+                        <p class="text-[9px] font-bold opacity-50 mb-1 uppercase">${m.senderName}</p>${m.text}
+                    </div>
+                `).join('');
+                box.scrollTop = 99999;
             },
 
             renderAdmin: () => {
-                document.getElementById('sop-list').innerHTML = (app.data.sop||[]).map(s => `<option value="${s.title}">`).join('');
-                document.getElementById('assign-ind-zone').innerHTML = app.data.employees.map(e => `<label class="flex items-center gap-2 p-2"><input type="checkbox" name="u-check" value="${e.id}"> <span class="text-xs font-bold">${e.name}</span></label>`).join('');
+                const sopList = document.getElementById('sop-list');
+                const indZone = document.getElementById('assign-ind-zone');
+                if(sopList.innerHTML === "") sopList.innerHTML = (app.data.sop||[]).map(s => `<option value="${s.title}">`).join('');
+                if(indZone.innerHTML === "") indZone.innerHTML = app.data.employees.map(e => `<label class="flex items-center gap-2 p-2"><input type="checkbox" name="u-check" value="${e.id}"> <span class="text-xs font-bold">${e.name}</span></label>`).join('');
             },
 
             actions: {
-                seedAdmin: async () => { if(confirm("Tạo Admin 9999?")) { await addDoc(collection(db, `${ROOT}/employees`), { id: 9999, name: "Admin", pin: "9999", role: "Giám đốc" }); location.reload(); } },
+                seedAdmin: async () => {
+                    if(confirm("Tạo tài khoản Admin khẩn cấp? (ID: 9999, PIN: 9999)")) {
+                        await addDoc(collection(db, `${ROOT}/employees`), { id: 9999, name: "Admin Cứu Hộ", pin: "9999", role: "Giám đốc", score: 100 });
+                        location.reload();
+                    }
+                },
                 logout: () => { localStorage.removeItem('n5_v90_user'); location.reload(); },
-                
-                // Tasks
                 createTask: async () => {
                     const title = document.getElementById('task-title').value;
                     const houses = Array.from(document.querySelectorAll('input[name="h-check"]:checked')).map(i => i.value);
                     const uids = Array.from(document.querySelectorAll('input[name="u-check"]:checked')).map(i => i.value);
                     if(!title || houses.length === 0 || uids.length === 0) return alert("Thiếu thông tin!");
                     for(let h of houses) { for(let u of uids) { await addDoc(collection(db, `${ROOT}/tasks`), { title, houseId: h, assignee: u, status: 'pending', time: Date.now() }); } }
-                    alert("Đã giao!");
+                    alert("Đã giao việc!");
                 },
                 startTask: async (id) => updateDoc(doc(db, `${ROOT}/tasks`, id), { status: 'in_progress', startTime: Date.now() }),
                 delTask: async (id) => { if(confirm("Xóa?")) deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
                 openReport: (id, title) => { document.getElementById('report-task-id').value = id; document.getElementById('report-title').innerText = title; app.ui.showModal('report-modal'); },
                 submitReport: async (status) => {
                     const id = document.getElementById('report-task-id').value;
-                    await updateDoc(doc(db, `${ROOT}/tasks`, id), { status, actual: document.getElementById('report-val').value, finishTime: Date.now() });
+                    const val = document.getElementById('report-val').value;
+                    const note = document.getElementById('report-note').value;
+                    const task = app.data.tasks.find(t => t._id === id);
+                    await updateDoc(doc(db, `${ROOT}/tasks`, id), { status, actual: val, note: note, photo: app.currentPhoto, finishTime: Date.now(), duration: task.startTime ? ((Date.now() - task.startTime)/60000).toFixed(0) + " phút" : "N/A" });
+                    if(status === 'completed') { const emp = app.data.employees.find(e => e.id == task.assignee); if(emp) await updateDoc(doc(db, `${ROOT}/employees`, emp._id), { score: (emp.score || 0) + 10 }); }
                     app.ui.hideModal('report-modal');
                 },
-
-                // SX & TH
-                setSXMode: (m) => {
-                    document.getElementById('sx-action').value = m;
-                    document.getElementById('btn-sx-nhap').className = m==='NHẬP' ? 'flex-1 py-3 rounded-lg text-xs font-black bg-blue-600 text-white shadow-md' : 'flex-1 py-3 rounded-lg text-xs font-black text-slate-400';
-                    document.getElementById('btn-sx-xuat').className = m==='XUẤT' ? 'flex-1 py-3 rounded-lg text-xs font-black bg-orange-500 text-white shadow-md' : 'flex-1 py-3 rounded-lg text-xs font-black text-slate-400';
+                handlePhoto: (input) => {
+                    const r = new FileReader();
+                    r.onload = e => { app.currentPhoto = e.target.result; document.getElementById('report-preview').src = e.target.result; document.getElementById('report-preview').classList.remove('hidden'); };
+                    r.readAsDataURL(input.files[0]);
                 },
+                setSXMode: (m) => { document.getElementById('sx-action').value = m; document.getElementById('btn-sx-nhap').className = m==='NHẬP' ? 'flex-1 py-3 rounded-lg text-xs font-black bg-blue-600 text-white shadow-md' : 'flex-1 py-3 rounded-lg text-xs font-black text-slate-400'; document.getElementById('btn-sx-xuat').className = m==='XUẤT' ? 'flex-1 py-3 rounded-lg text-xs font-black bg-orange-500 text-white shadow-md' : 'flex-1 py-3 rounded-lg text-xs font-black text-slate-400'; },
                 submitSX: async () => {
-                    const d = { 
-                        action: document.getElementById('sx-action').value, 
-                        date: document.getElementById('sx-date').value, 
-                        type: document.getElementById('sx-type').value, 
-                        qty: Number(document.getElementById('sx-qty').value), 
-                        batch: document.getElementById('sx-batch').value, 
-                        dest: document.getElementById('sx-dest').value, 
-                        bad: Number(document.getElementById('sx-bad').value), 
-                        reuse: Number(document.getElementById('sx-reuse').value), 
-                        user: app.user.name, time: Date.now() 
-                    };
+                    const d = { action: document.getElementById('sx-action').value, date: document.getElementById('sx-date').value, type: document.getElementById('sx-type').value, qty: Number(document.getElementById('sx-qty').value), batch: document.getElementById('sx-batch').value, dest: document.getElementById('sx-dest').value, bad: Number(document.getElementById('sx-bad').value), reuse: Number(document.getElementById('sx-reuse').value), user: app.user.name, time: Date.now() };
                     await addDoc(collection(db, `${ROOT}/production_logs`), d); alert("Đã lưu!");
+                },
+                calcTH: () => {
+                    const ids = ['th-b2','th-a1','th-a2','th-b1','th-d1','th-ht','th-abf','th-b2f','th-b1f'];
+                    let sum = 0; let html = '';
+                    ids.forEach(id => sum += Number(document.getElementById(id).value)||0);
+                    if(sum>0) ids.forEach(id => { const v=Number(document.getElementById(id).value)||0; if(v>0) html+=`<div class="stat-badge bg-white border border-blue-200">${id.replace('th-','').toUpperCase()}: ${((v/sum)*100).toFixed(0)}%</div>`; });
+                    document.getElementById('th-total-display').innerText = sum + ' kg';
+                    document.getElementById('th-percent-display').innerHTML = html;
                 },
                 submitTH: async () => {
                     const details = {};
@@ -606,8 +641,6 @@
                     }); 
                     alert("Đã lưu!");
                 },
-
-                // Other
                 sendChat: async () => { const i = document.getElementById('chat-input'); if(!i.value) return; await addDoc(collection(db, `${ROOT}/chat`), { text: i.value, senderId: app.user.id, senderName: app.user.name, time: Date.now() }); i.value = ''; },
                 checkIn: async (shift) => { const today = new Date().toISOString().split('T')[0]; await addDoc(collection(db, `${ROOT}/attendance_logs`), { uid: app.user.id, name: app.user.name, shift, date: today }); await updateDoc(doc(db, `${ROOT}/employees`, app.user._id), { lastLogin: today }); alert("Đã điểm danh!"); },
                 submitHR: async (type) => { await addDoc(collection(db, `${ROOT}/hr_requests`), { type, requester: app.user.name, status: 'pending', content: type==='LEAVE' ? document.getElementById('leave-date').value : document.getElementById('buy-item').value }); alert("Đã gửi!"); },
@@ -618,9 +651,28 @@
                 addSOP: async () => { await addDoc(collection(db, `${ROOT}/sop`), { title: document.getElementById('new-sop-name').value, sop: Number(document.getElementById('new-sop-val').value) }); alert("Đã thêm!"); },
                 addHouse: async () => { const name = prompt("Nhập tên nhà:"); if(name) await addDoc(collection(db, `${ROOT}/houses`), { name, temp: {am:0, pm:0} }); },
                 fillSOP: () => { const val = document.getElementById('task-title').value; const item = (app.data.sop||[]).find(s => s.title === val); if(item) document.getElementById('task-target').value = item.sop; },
-                exportAll: () => { alert("Xuất báo cáo..."); },
-                exportSX: () => { alert("Xuất SX..."); },
-                exportTH: () => { alert("Xuất TH..."); }
+                toggleAssignMode: () => {
+                    const m = document.getElementById('assign-mode').value;
+                    document.getElementById('assign-ind-zone').classList.toggle('hidden', m !== 'ind');
+                    document.getElementById('assign-team-zone').classList.toggle('hidden', m !== 'team');
+                },
+                exportAll: () => {
+                    const now = new Date();
+                    let csv = "NGAY;GIO;NHAN VIEN;VIEC;NHA;KET QUA;THOI GIAN\n";
+                    app.data.tasks.filter(t => t.status === 'completed').forEach(t => {
+                         const time = new Date(t.finishTime).toLocaleTimeString();
+                         const emp = app.data.employees.find(e => e.id == t.assignee)?.name || t.assignee;
+                         csv += `${new Date(t.finishTime).toLocaleDateString()};${time};"${emp}";"${t.title}";"${t.houseId}";${t.actual};"${t.duration}"\n`;
+                    });
+                    app.actions.downloadCSV(csv, `Daily_Log_${now.toLocaleDateString().replace(/\//g,'-')}.csv`);
+                },
+                downloadCSV: (content, fileName) => {
+                    const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = fileName;
+                    link.click();
+                }
             }
         };
         
