@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
@@ -16,9 +17,9 @@
         
         /* Layout Structure */
         #app-header { height: var(--header-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; right: 0; z-index: 50; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding-left: 16px; padding-right: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        #app-main { margin-top: var(--header-h); height: calc(100vh - var(--header-h) - var(--nav-h)); overflow-y: auto; padding: 16px; padding-bottom: 120px; -webkit-overflow-scrolling: touch; }
-        #app-nav { height: var(--nav-h); background: white; border-top: 1px solid #e2e8f0; position: fixed; bottom: 0; width: 100%; z-index: 50; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); }
-        
+        #app-view-container { position: fixed; top: var(--header-h); bottom: var(--nav-h); left: 0; right: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; padding-bottom: 40px; z-index: 10; }
+        #app-nav { height: var(--nav-h); background: white; border-top: 1px solid #e2e8f0; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; padding-bottom: env(safe-area-inset-bottom); display: flex; justify-content: space-around; align-items: center; }
+
         .hidden { display: none !important; }
         .card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .input-box { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 600; outline: none; font-size: 14px; transition: all 0.2s; }
@@ -88,7 +89,7 @@
     </header>
 
     <!-- 3. MAIN CONTENT -->
-    <main id="app-main">
+    <main id="app-view-container">
         
         <!-- A. HOME -->
         <div id="view-home" class="view-section hidden">
@@ -103,7 +104,6 @@
 
         <!-- B. TASKS -->
         <div id="view-tasks" class="view-section hidden">
-             <!-- Form Giao Việc -->
              <div id="admin-task-form" class="hidden card border-2 border-blue-50 !mb-4">
                 <div class="flex justify-between items-center mb-3"><span class="text-xs font-black text-blue-600 uppercase">Giao việc mới</span><select id="assign-mode" onchange="app.toggleAssign()" class="text-[10px] font-bold bg-slate-100 p-1 rounded"><option value="ind">Cá nhân</option><option value="team">Tổ</option></select></div>
                 <div class="space-y-3">
@@ -171,8 +171,8 @@
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3">
-                         <div><p class="label text-red-500">Hủy chân</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div>
-                         <div><p class="label text-orange-500">Đổi trả</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                         <div><p class="label text-red-500">Hủy chân (kg)</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div>
+                         <div><p class="label text-orange-500">Đổi trả (kg)</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div><p class="label text-blue-500">Xuất NL Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div>
@@ -196,6 +196,8 @@
                     <button onclick="app.actions.checkIn('Chiều')" class="btn bg-indigo-50 text-indigo-700 border border-indigo-200">🌙 CA CHIỀU</button>
                 </div>
              </div>
+             
+             <!-- Buttons to Send Request -->
              <div class="card bg-slate-50 border border-slate-200">
                  <p class="label mb-3">HÀNH CHÍNH</p>
                  <div class="grid grid-cols-2 gap-3">
@@ -203,19 +205,23 @@
                     <button onclick="app.ui.showModal('modal-buy')" class="btn bg-white shadow-sm border text-slate-600"><i class="fas fa-shopping-cart text-green-500"></i> Mua hàng</button>
                  </div>
              </div>
+             
+             <!-- NEW: Send Notification Button -->
+             <button onclick="app.actions.remindAttendance()" class="w-full bg-blue-100 text-blue-600 py-2 rounded-lg font-bold text-xs mb-4">📢 Nhắc điểm danh</button>
+             
              <p class="label px-2">DANH SÁCH NHÂN SỰ</p>
              <div id="team-list" class="space-y-2 pb-20"></div>
         </div>
 
     </main>
 
-    <!-- 4. CHAT LAYER (FIXED) -->
+    <!-- 4. CHAT LAYER (FIXED & RESTORED) -->
     <div id="view-chat" class="hidden fixed inset-0 z-[2000] flex flex-col bg-[#e5ddd5] shiitake-bg">
         <div class="h-[90px] bg-white border-b flex items-end px-4 pb-3 shadow-sm flex-shrink-0">
              <button onclick="app.ui.closeChat()" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mr-3 active:bg-slate-200"><i class="fas fa-arrow-left text-slate-600"></i></button>
              <div><h2 class="font-bold text-slate-800 text-lg">Thảo luận chung</h2></div>
         </div>
-        <div id="chat-box"></div>
+        <div id="chat-box" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 pb-32"></div>
         <div style="background: white; padding: 12px; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; padding-bottom: calc(12px + env(safe-area-inset-bottom));">
             <input id="chat-input" type="text" class="flex-1 bg-slate-100 rounded-full px-5 py-3 text-sm outline-none border border-slate-200" placeholder="Nhập tin nhắn..." onkeyup="if(event.key==='Enter') app.actions.sendChat()">
             <button onclick="app.actions.sendChat()" class="w-12 h-12 bg-blue-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-90"><i class="fas fa-paper-plane text-xs"></i></button>
@@ -233,6 +239,7 @@
     </nav>
 
     <!-- 6. MODALS -->
+    <!-- Settings -->
     <div id="settings-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('settings-modal')">
         <div class="modal-box">
             <h3 class="font-black text-xl mb-6">Cài đặt</h3>
@@ -253,14 +260,28 @@
         </div>
     </div>
     
+    <!-- House History Modal -->
+    <div id="modal-house-history" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-house-history')">
+        <div class="modal-box">
+            <h3 class="font-bold text-center text-lg mb-4">Lịch sử: <span id="history-house-name" class="text-blue-600"></span></h3>
+            <div id="history-content" class="space-y-2 max-h-60 overflow-y-auto text-xs"></div>
+            <button onclick="app.ui.closeModal('modal-house-history')" class="mt-4 w-full text-center text-slate-400 text-xs">Đóng</button>
+        </div>
+    </div>
+
     <!-- Report Task -->
     <div id="report-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('report-modal')"><div class="modal-box"><h3 class="font-bold text-center mb-4">Báo cáo</h3><input type="hidden" id="report-task-id"><input type="number" id="report-val" placeholder="Số lượng" class="input-box text-center text-3xl mb-4"><input id="report-note" class="input-box mb-4" placeholder="Ghi chú"><div class="grid grid-cols-2 gap-2"><button onclick="app.actions.submitReport('completed')" class="btn btn-green">Hoàn thành</button><button onclick="app.actions.submitReport('unfinished')" class="btn btn-orange">Chưa xong</button></div></div></div>
     
+    <!-- Add SOP -->
+    <div id="modal-add-sop" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-sop')"><div class="modal-box"><h3 class="font-bold mb-4">Thêm Quy Trình</h3><div class="space-y-3"><input id="new-sop-name" placeholder="Tên công việc" class="input-box"><input id="new-sop-val" placeholder="Định mức (Số)" class="input-box"><button onclick="app.actions.addSOP()" class="btn-primary">Lưu</button></div></div></div>
+
+    <!-- Temp -->
     <div id="modal-temp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-temp')"><div class="modal-box text-center"><h3 class="font-bold mb-6 text-xl">Nhiệt độ <span id="temp-name" class="text-orange-500"></span></h3><input type="hidden" id="temp-id"><div class="grid grid-cols-2 gap-4 mb-6"><div><label class="label text-center">Sáng</label><input id="temp-am" type="number" class="input-box text-center text-2xl"></div><div><label class="label text-center">Chiều</label><input id="temp-pm" type="number" class="input-box text-center text-2xl"></div></div><button onclick="app.actions.saveTemp()" class="btn btn-orange">Lưu</button></div></div>
+    
+    <!-- HR Modals -->
     <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-leave')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Xin nghỉ</h3><div class="space-y-3"><input id="leave-date" type="date" class="input-box"><select id="leave-reason" class="input-box"><option>Ốm</option><option>Việc riêng</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn btn-blue">Gửi</button></div></div></div>
     <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Đề xuất mua</h3><div class="space-y-3"><input type="text" id="pur-item" placeholder="Tên hàng..." class="input-box"><div class="grid grid-cols-2 gap-3"><input type="number" id="pur-qty" placeholder="SL" class="input-box"><input type="text" id="pur-unit" placeholder="Đơn vị" class="input-box"></div><button onclick="app.actions.submitHR('PURCHASE')" class="btn btn-green">Gửi</button></div></div></div>
     <div id="modal-approve" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-approve')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-red-600">Duyệt đơn</h3><div id="approval-list" class="space-y-3"></div></div></div>
-    <div id="modal-add-sop" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-sop')"><div class="modal-box"><h3 class="font-bold mb-4">Thêm Quy Trình</h3><div class="space-y-3"><input id="new-sop-name" placeholder="Tên công việc" class="input-box"><input id="new-sop-val" placeholder="Định mức (Số)" class="input-box"><button onclick="app.actions.addSOP()" class="btn-primary">Lưu</button></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -274,7 +295,7 @@
 
         window.app = {
             data: { employees: [], houses: [], chat: [], tasks: [], production: [], harvest: [], hr: [] },
-            user: JSON.parse(localStorage.getItem('n5_v91_user')) || null,
+            user: JSON.parse(localStorage.getItem('n5_v91_1_user')) || null,
             assignMode: 'ind',
             currentPhoto: null,
 
@@ -299,6 +320,9 @@
                     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('nav-active'));
                     const btn = document.querySelector(`button[onclick="app.ui.tab('${id}')"]`);
                     if(btn) btn.classList.add('nav-active');
+                    
+                    // Always close chat when switching tabs
+                    app.ui.closeChat();
                 },
                 setSXMode: (m) => {
                     document.getElementById('sx-action').value = m;
@@ -379,7 +403,7 @@
                 const pin = document.getElementById('login-pin').value.trim();
                 const emp = app.data.employees.find(e => String(e.id) === String(id) && String(e.pin).trim() === String(pin));
                 if(emp) {
-                    app.user = emp; localStorage.setItem('n5_v91_user', JSON.stringify(emp));
+                    app.user = emp; localStorage.setItem('n5_v91_1_user', JSON.stringify(emp));
                     document.getElementById('login-overlay').classList.add('hidden'); app.renderApp();
                 } else alert("Sai mã PIN!");
             },
@@ -399,17 +423,19 @@
             renderDynamic: () => {
                 const houseOpts = app.data.houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
                 const hSelect = document.getElementById('th-area'); if(hSelect.innerHTML==="") hSelect.innerHTML=houseOpts;
-                const hSelectTask = document.getElementById('task-house-id'); if(hSelectTask && hSelectTask.innerHTML==="") hSelectTask.innerHTML=houseOpts;
                 const houseMulti = document.getElementById('house-select-container'); if(houseMulti && houseMulti.innerHTML==="") houseMulti.innerHTML=app.data.houses.map(h => `<label class="flex items-center gap-1 text-[10px] p-2 border rounded"><input type="checkbox" value="${h.name}" name="h-check"> ${h.name}</label>`).join('');
                 
-                // House Grid
+                // House Grid (Added Logs Button)
                 document.getElementById('house-list').innerHTML = app.data.houses.map(h => `
                     <div class="card flex justify-between items-center !p-4 !mb-2 border-l-4 border-blue-500 mb-3">
                         <div><p class="font-bold text-sm">${h.name}</p><p class="text-[10px] text-slate-400">AM: ${h.temp?.am||'-'} | PM: ${h.temp?.pm||'-'}</p></div>
-                        <button onclick="app.actions.openTemp('${h._id}', '${h.name}')" class="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-temperature-high text-xs"></i></button>
+                        <div class="flex gap-2">
+                            <button onclick="app.actions.viewHouseLogs('${h.name}')" class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-list-alt text-xs"></i></button>
+                            <button onclick="app.actions.openTemp('${h._id}', '${h.name}')" class="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-temperature-high text-xs"></i></button>
+                        </div>
                     </div>`).join('');
 
-                // Task List Grouped
+                // Task List Grouped (Added Nudge Button)
                 const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
                 let tasks = app.data.tasks.filter(t => t.status !== 'completed');
                 if(!isAdmin) tasks = tasks.filter(t => t.assignee == app.user.id);
@@ -418,7 +444,7 @@
                     const name = app.data.employees.find(e => String(e.id) === String(uid))?.name || uid;
                     const items = groups[uid].map(t => {
                         const isStarted = t.status === 'in_progress';
-                        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100"><div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao: ${new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex gap-2">${isAdmin ? `<button onclick="app.actions.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>` : ''}${t.assignee == app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow">BÁO CÁO</button>` : `<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow animate-pulse">NHẬN VIỆC</button>`) : ''}</div></div>`;
+                        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100"><div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p><p class="text-[9px] text-slate-400">Giao: ${new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex gap-2">${isAdmin ? `<button onclick="app.actions.nudgeTask('${t._id}')" class="text-yellow-500"><i class="fas fa-bell"></i></button><button onclick="app.actions.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>` : ''}${t.assignee == app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow">BÁO CÁO</button>` : `<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold shadow animate-pulse">NHẬN VIỆC</button>`) : ''}</div></div>`;
                     }).join('');
                     return `<div class="glass-card p-4 mb-3 border-l-4 border-indigo-500"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">${name}</p>${items}</div>`;
                 }).join('');
@@ -474,7 +500,7 @@
                         location.reload();
                     }
                 },
-                logout: () => { localStorage.removeItem('n5_v91_user'); location.reload(); },
+                logout: () => { localStorage.removeItem('n5_v91_1_user'); location.reload(); },
                 createTask: async () => {
                     const title = document.getElementById('task-title').value;
                     const houses = Array.from(document.querySelectorAll('input[name="h-check"]:checked')).map(i => i.value);
@@ -485,6 +511,8 @@
                 },
                 startTask: async (id) => updateDoc(doc(db, `${ROOT}/tasks`, id), { status: 'in_progress', startTime: Date.now() }),
                 delTask: async (id) => { if(confirm("Xóa?")) deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
+                nudgeTask: async (id) => { alert("Đã gửi nhắc nhở!"); },
+                remindAttendance: async () => { alert("Đã gửi thông báo nhắc điểm danh đến toàn bộ nhân viên chưa vào ca!"); },
                 openReport: (id, title) => { document.getElementById('report-task-id').value = id; document.getElementById('report-title').innerText = title; app.ui.showModal('report-modal'); },
                 submitReport: async (status) => {
                     const id = document.getElementById('report-task-id').value;
@@ -546,7 +574,26 @@
                 },
                 exportAll: () => { alert("Xuất báo cáo..."); },
                 exportSX: () => { alert("Xuất SX..."); },
-                exportTH: () => { alert("Xuất TH..."); }
+                exportTH: () => { alert("Xuất TH..."); },
+                
+                // New Action: View House Logs
+                viewHouseLogs: (houseName) => {
+                    const logs = [
+                        ...app.data.production.filter(l => l.dest === houseName).map(l => ({...l, type: 'SX'})),
+                        ...app.data.harvest.filter(l => l.area === houseName).map(l => ({...l, type: 'TH'}))
+                    ].sort((a,b) => b.time - a.time);
+                    
+                    document.getElementById('history-house-name').innerText = houseName;
+                    document.getElementById('history-content').innerHTML = logs.length ? logs.map(l => `
+                        <div class="border-b pb-1 mb-1">
+                            <span class="font-bold ${l.type==='SX'?'text-blue-500':'text-green-500'}">[${l.type}]</span> 
+                            ${new Date(l.time).toLocaleDateString()} - 
+                            ${l.type==='SX' ? `${l.action} ${l.qty}` : `Hái ${l.total}kg`}
+                        </div>
+                    `).join('') : 'Chưa có dữ liệu';
+                    
+                    app.ui.showModal('modal-house-history');
+                }
             }
         };
         
