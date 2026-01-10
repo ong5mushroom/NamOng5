@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
-    <title>Nấm Ông 5 V95 - Platinum Perfect</title>
+    <title>Nấm Ông 5 V96 - Platinum Perfect</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -37,13 +37,19 @@
         .status-wait { background: #eab308; animation: pulse 1s infinite; }
         .status-ok { background: #22c55e; }
 
-        /* Khung Chat (FIXED) */
+        /* Khung Chat (Platinum Shiitake Upgrade) */
         #chat-layer { position: fixed; inset: 0; background: #efeae2; z-index: 2000; display: none; flex-direction: column; }
-        #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-        .chat-bubble { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.08); position: relative; }
+        .shiitake-bg { 
+            background-color: #efeae2;
+            background-image: radial-gradient(#d1c7bc 0.8px, transparent 0.8px);
+            background-size: 16px 16px;
+        }
+        #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 30px; }
+        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); position: relative; }
         .chat-me { background: #dcf8c6; color: #1f2937; align-self: flex-end; border-bottom-right-radius: 2px; }
         .chat-other { background: white; color: #1f2937; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .chat-sender { font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+        .chat-sender-name { font-size: 10px; font-weight: 800; color: #78350f; margin-bottom: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 4px; }
+        .chat-avatar { width: 24px; height: 24px; border-radius: 50%; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
         .chat-input-area { background: white; padding: 12px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
 
         /* Modal */
@@ -60,7 +66,7 @@
     <div id="login-overlay">
         <div class="w-24 h-24 bg-blue-600 rounded-[28px] flex items-center justify-center text-white text-5xl font-black mb-6 shadow-xl">5</div>
         <h1 class="text-3xl font-black text-slate-800 mb-1">Nấm Ông 5</h1>
-        <p class="text-xs font-bold text-blue-500 mb-10 tracking-widest uppercase">● V95 Platinum Perfect</p>
+        <p class="text-xs font-bold text-blue-500 mb-10 tracking-widest uppercase">● V96 Platinum Final</p>
         
         <div class="w-full max-w-sm space-y-4">
             <div id="login-status" class="text-center text-xs font-bold text-slate-400 mb-2 flex items-center justify-center">
@@ -69,9 +75,9 @@
             <select id="login-user" class="input-box text-center appearance-none" disabled><option value="">Vui lòng đợi...</option></select>
             <input id="login-pin" type="tel" placeholder="Nhập PIN" class="input-box text-center text-xl tracking-widest" disabled maxlength="6" inputmode="numeric">
             <button id="login-btn" onclick="app.doLogin()" class="btn-primary opacity-50 cursor-not-allowed" disabled>ĐĂNG NHẬP</button>
-            <button id="rescue-btn" onclick="app.actions.seedAdmin()" class="hidden w-full border-2 border-red-100 text-red-500 py-3 rounded-xl font-bold text-xs mt-4">KHỞI TẠO ADMIN (9999)</button>
+            <button id="rescue-btn" onclick="app.actions.seedAdmin()" class="hidden w-full border-2 border-red-100 text-red-500 py-3 rounded-xl font-bold text-xs mt-4 uppercase">KHỞI TẠO ADMIN (9999)</button>
         </div>
-        <button onclick="localStorage.clear(); location.reload()" class="mt-12 text-xs text-slate-400 underline font-bold">Làm mới hệ thống</button>
+        <button onclick="localStorage.clear(); location.reload()" class="mt-12 text-xs text-slate-400 underline font-bold uppercase">Làm mới hệ thống</button>
     </div>
 
     <!-- 2. HEADER -->
@@ -82,7 +88,7 @@
         </div>
         <div class="flex items-center gap-2">
             <div class="text-right"><p id="head-user" class="font-bold text-xs text-slate-700">...</p><p id="head-role" class="text-[9px] text-blue-500 font-bold uppercase">...</p></div>
-            <button onclick="app.ui.showModal('settings-modal')" class="w-9 h-9 bg-slate-50 rounded-full border flex items-center justify-center text-slate-500 active:bg-slate-100"><i class="fas fa-cog"></i></button>
+            <button onclick="app.ui.showModal('settings-modal')" class="w-9 h-9 bg-slate-50 rounded-full border flex items-center justify-center text-slate-500 active:bg-slate-100 shadow-sm"><i class="fas fa-cog"></i></button>
         </div>
     </header>
 
@@ -111,7 +117,7 @@
                     <div class="grid grid-cols-2 gap-2"><div><p class="label">Định mức</p><input type="number" id="task-target" class="input-box bg-white text-center"></div></div>
                     <div id="assign-ind-zone" class="max-h-32 overflow-y-auto border p-2 rounded bg-slate-50 grid grid-cols-2 gap-1"></div>
                     <div id="assign-team-zone" class="hidden bg-slate-50 p-2 rounded-xl border space-y-2 text-xs font-bold"><label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Sản Xuất" checked> Tổ Sản Xuất</label><label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Thu Hoạch"> Tổ Thu Hoạch</label></div>
-                    <button onclick="app.actions.createTask()" class="btn-primary bg-slate-800">Ban hành lệnh</button>
+                    <button onclick="app.actions.createTask()" class="btn-primary bg-slate-800 shadow-lg">Giao Việc & Ban Lệnh</button>
                 </div>
             </div>
             <div id="task-list" class="space-y-4"></div>
@@ -167,9 +173,9 @@
                      </div>
                      <div class="flex justify-between items-center bg-green-50 p-4 rounded-2xl border border-green-100"><span class="font-bold text-green-800 text-xs">TỔNG HÁI:</span><span id="th-total-display" class="font-black text-2xl text-green-600">0 kg</span></div>
                      <div class="grid grid-cols-2 gap-3"><div><p class="label text-red-500">Hủy chân (kg)</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-orange-500">Đổi trả (kg)</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
-                     <div class="grid grid-cols-3 gap-2"><div><p class="label text-blue-500">Xuất Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Snack TP</p><input type="number" id="th-snack-tp" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Xuất Snack</p><input type="number" id="th-xuat-snack" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
+                     <div class="grid grid-cols-3 gap-2"><div><p class="label text-blue-500">Xuất NL Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Snack TP</p><input type="number" id="th-snack-tp" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Xuất NL Snack</p><input type="number" id="th-xuat-snack" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
                      <div><p class="label">Ghi chú thêm</p><input type="text" id="th-note" class="input-box bg-white p-2 text-xs"></div>
-                     <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 mt-1">CẬP NHẬT KHO</button>
+                     <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 mt-1 shadow-green-100">CẬP NHẬT KHO</button>
                  </div>
              </div>
              <div id="th-log-list" class="space-y-2 pb-20"></div>
@@ -177,18 +183,19 @@
 
         <!-- E. TEAM -->
         <div id="view-team" class="view-section hidden">
-             <div class="card border border-blue-100"><p class="label mb-3">ĐIỂM DANH CÁ NHÂN</p><div class="grid grid-cols-2 gap-3"><button onclick="app.actions.checkIn('Sáng')" class="btn-primary bg-yellow-500 text-white shadow-yellow-100">☀️ CA SÁNG</button><button onclick="app.actions.checkIn('Chiều')" class="btn-primary bg-indigo-500 text-white shadow-indigo-100">🌙 CA CHIỀU</button></div></div>
+             <div class="card border border-blue-100"><p class="label mb-3">ĐIỂM DANH CÁ NHÂN</p><div class="grid grid-cols-2 gap-3"><button onclick="app.actions.checkIn('Sáng')" class="btn-primary bg-yellow-500 text-white shadow-yellow-100 uppercase">Ca Sáng</button><button onclick="app.actions.checkIn('Chiều')" class="btn-primary bg-indigo-500 text-white shadow-indigo-100 uppercase">Ca Chiều</button></div></div>
              <div class="card bg-slate-50 border border-slate-200"><p class="label mb-3">HÀNH CHÍNH</p><div class="grid grid-cols-2 gap-3"><button onclick="app.ui.showModal('modal-leave')" class="btn-primary bg-white text-slate-600 border shadow-none"><i class="fas fa-calendar-times text-red-500"></i> Xin nghỉ</button><button onclick="app.ui.showModal('modal-buy')" class="btn-primary bg-white text-slate-600 border shadow-none"><i class="fas fa-shopping-cart text-green-500"></i> Mua hàng</button></div></div>
-             <button onclick="alert('Đã gửi nhắc nhở điểm danh đến toàn tổ!')" class="w-full text-center text-xs text-blue-500 font-bold mb-3 bg-blue-50 p-2 rounded-lg">📢 Gửi nhắc nhở điểm danh</button>
+             <!-- Nút nhắc điểm danh (Tự động đẩy vào Chat) -->
+             <button id="btn-remind-att" onclick="app.actions.remindAttendance()" class="hidden w-full text-center text-xs text-blue-600 font-bold mb-3 bg-blue-50 p-2.5 rounded-lg border border-blue-100 uppercase">📢 Gửi nhắc nhở điểm danh vào Chat</button>
              <p class="label px-2">DANH SÁCH NHÂN SỰ</p>
              <div id="team-list" class="space-y-2 pb-20"></div>
         </div>
     </div>
 
-    <!-- 4. CHAT OVERLAY (ISOLATED) -->
-    <div id="chat-layer">
+    <!-- 4. CHAT OVERLAY -->
+    <div id="chat-layer" class="shiitake-bg">
         <div class="h-[70px] bg-white border-b flex items-end px-4 pb-3 shadow-sm flex-shrink-0">
-             <button onclick="app.ui.closeChat()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center mr-3 active:bg-slate-200"><i class="fas fa-arrow-left text-slate-600"></i></button>
+             <button onclick="app.ui.closeChat()" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mr-3 active:bg-slate-200 shadow-sm"><i class="fas fa-arrow-left text-slate-600"></i></button>
              <div><h2 class="font-bold text-slate-800 text-lg">Thảo luận chung</h2></div>
         </div>
         <div id="chat-box"></div>
@@ -211,34 +218,35 @@
     <!-- 6. MODALS -->
     <div id="settings-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('settings-modal')">
         <div class="modal-box">
-            <h3 class="font-black text-xl mb-6 text-slate-800">Cài đặt hệ thống</h3>
+            <h3 class="font-black text-xl mb-6 text-slate-800 uppercase">Cài đặt hệ thống</h3>
             <div class="space-y-4">
-                <button onclick="app.actions.exportAll()" class="btn-primary bg-white text-blue-700 border border-blue-200 shadow-sm">XUẤT BÁO CÁO TỔNG</button>
+                <button id="btn-export-all" onclick="app.actions.exportAll()" class="hidden btn-primary bg-white text-blue-700 border border-blue-200 shadow-sm uppercase">Xuất Báo Cáo Tổng</button>
                 <div id="admin-tools" class="hidden space-y-3 border-t pt-3">
-                    <p class="label border-b pb-2">Công cụ Quản trị</p>
-                    <button onclick="app.ui.showModal('modal-add-emp')" class="btn-primary bg-slate-700 text-xs uppercase">Thêm Nhân Sự</button>
-                    <button onclick="app.actions.addHouse()" class="btn-primary bg-slate-500 text-xs uppercase">Thêm Nhà Nấm</button>
-                    <button onclick="app.ui.showModal('modal-add-sop')" class="btn-primary bg-slate-400 text-xs uppercase">Thêm Quy Trình SOP</button>
-                    <button onclick="app.ui.showModal('modal-approve')" class="btn-primary bg-green-600 text-xs uppercase">Duyệt Đơn Từ</button>
+                    <p class="label border-b pb-2">Quản trị viên</p>
+                    <button onclick="app.ui.showModal('modal-add-emp')" class="btn-primary bg-slate-700 text-xs uppercase shadow-none">Thêm Nhân Sự</button>
+                    <button onclick="app.actions.addHouse()" class="btn-primary bg-slate-500 text-xs uppercase shadow-none">Thêm Nhà Nấm</button>
+                    <button onclick="app.ui.showModal('modal-add-sop')" class="btn-primary bg-slate-400 text-xs uppercase shadow-none">Thêm Quy Trình SOP</button>
+                    <button onclick="app.ui.showModal('modal-approve')" class="btn-primary bg-green-600 text-xs uppercase shadow-none">Duyệt Đơn Từ</button>
                 </div>
                 <button onclick="app.actions.logout()" class="btn-primary bg-red-500 mt-4 uppercase">Đăng xuất</button>
             </div>
         </div>
     </div>
     
-    <!-- Report Modal -->
-    <div id="report-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('report-modal')"><div class="modal-box"><h3 class="font-bold text-center mb-4 text-slate-800">Báo cáo công việc</h3><input type="hidden" id="report-task-id"><div class="mb-4"><p class="label text-center">Số lượng thực tế</p><input type="number" id="report-val" placeholder="0" class="input-box text-center text-3xl"></div><div class="mb-4"><p class="label text-center">Ghi chú</p><input id="report-note" class="input-box" placeholder="..."></div><div class="grid grid-cols-2 gap-2"><button onclick="app.actions.submitReport('completed')" class="btn-primary bg-green-600">XONG</button><button onclick="app.actions.submitReport('unfinished')" class="btn-primary bg-orange-500">CHƯA XONG</button></div></div></div>
+    <!-- Modals for Business logic -->
+    <div id="report-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('report-modal')"><div class="modal-box"><h3 class="font-bold text-center mb-4 text-slate-800">Báo cáo công việc</h3><input type="hidden" id="report-task-id"><div class="mb-4"><p class="label text-center text-xs">Số lượng thực tế (kg/bịch...)</p><input type="number" id="report-val" placeholder="0" class="input-box text-center text-3xl"></div><div class="mb-4"><p class="label text-center">Ghi chú</p><input id="report-note" class="input-box" placeholder="..."></div><div class="grid grid-cols-2 gap-2"><button onclick="app.actions.submitReport('completed')" class="btn-primary bg-green-600">HOÀN THÀNH</button><button onclick="app.actions.submitReport('unfinished')" class="btn-primary bg-orange-500">CHƯA XONG</button></div></div></div>
     <div id="modal-house-history" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-house-history')"><div class="modal-box"><h3 class="font-bold text-center mb-2 text-blue-600 uppercase text-sm">Lịch sử Nhà: <span id="history-house-name"></span></h3><div id="history-content" class="text-[11px] space-y-2 max-h-60 overflow-y-auto no-scrollbar"></div></div></div>
-    <div id="modal-temp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-temp')"><div class="modal-box text-center"><h3 class="font-bold mb-6 text-xl">Nhiệt độ <span id="temp-name"></span></h3><input type="hidden" id="temp-id"><div class="grid grid-cols-2 gap-4 mb-6"><div><label class="label text-center">Sáng</label><input id="temp-am" type="number" class="input-box text-center text-2xl"></div><div><label class="label text-center">Chiều</label><input id="temp-pm" type="number" class="input-box text-center text-2xl"></div></div><button onclick="app.actions.saveTemp()" class="btn-primary bg-orange-500 uppercase">Lưu thông số</button></div></div>
-    <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-leave')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Xin nghỉ phép</h3><div class="space-y-3"><p class="label">Ngày nghỉ</p><input id="leave-date" type="date" class="input-box"><p class="label">Lý do</p><select id="leave-reason" class="input-box"><option>Ốm đau</option><option>Việc riêng</option><option>Khác</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn-primary uppercase">Gửi yêu cầu</button></div></div></div>
-    <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Đề xuất mua hàng</h3><div class="space-y-3"><p class="label">Nội dung mua</p><input type="text" id="pur-item" placeholder="Vd: 100 bịch phôi..." class="input-box"><button onclick="app.actions.submitHR('PURCHASE')" class="btn-primary bg-green-600 uppercase">Gửi đề xuất</button></div></div></div>
-    <div id="modal-approve" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-approve')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-red-600 uppercase text-center">Duyệt đơn từ</h3><div id="approval-list" class="space-y-3"></div></div></div>
-    <div id="modal-add-sop" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-sop')"><div class="modal-box"><h3 class="font-bold mb-4">Thêm Quy Trình SOP</h3><div class="space-y-3"><p class="label">Tên việc</p><input id="new-sop-name" placeholder="..." class="input-box"><p class="label">Định mức</p><input id="new-sop-val" placeholder="..." class="input-box"><button onclick="app.actions.addSOP()" class="btn-primary uppercase">Lưu SOP</button></div></div></div>
+    <div id="modal-temp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-temp')"><div class="modal-box text-center"><h3 class="font-bold mb-6 text-xl">Nhiệt độ <span id="temp-name" class="text-orange-500"></span></h3><input type="hidden" id="temp-id"><div class="grid grid-cols-2 gap-4 mb-6"><div><label class="label text-center">Sáng</label><input id="temp-am" type="number" class="input-box text-center text-2xl"></div><div><label class="label text-center">Chiều</label><input id="temp-pm" type="number" class="input-box text-center text-2xl"></div></div><button onclick="app.actions.saveTemp()" class="btn-primary bg-orange-500 uppercase">Lưu thông số</button></div></div>
+    <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-leave')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg uppercase text-blue-600">Xin nghỉ phép</h3><div class="space-y-3"><p class="label">Ngày nghỉ</p><input id="leave-date" type="date" class="input-box"><p class="label">Lý do nghỉ</p><select id="leave-reason" class="input-box"><option>Ốm đau</option><option>Việc riêng gia đình</option><option>Nghỉ bù</option><option>Khác</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn-primary uppercase">Gửi yêu cầu</button></div></div></div>
+    <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg uppercase text-green-600">Đề xuất mua vật tư</h3><div class="space-y-3"><p class="label">Nội dung mua hàng</p><input type="text" id="pur-item" placeholder="Vd: 50 bịch phôi 049..." class="input-box"><button onclick="app.actions.submitHR('PURCHASE')" class="btn-primary bg-green-600 uppercase">Gửi đề xuất</button></div></div></div>
+    <div id="modal-approve" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-approve')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-red-600 uppercase text-center">Duyệt đơn từ nhân viên</h3><div id="approval-list" class="space-y-3"></div></div></div>
+    <div id="modal-add-sop" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-sop')"><div class="modal-box"><h3 class="font-bold mb-4 uppercase text-slate-800">Thêm SOP Mới</h3><div class="space-y-3"><p class="label">Tên công việc</p><input id="new-sop-name" placeholder="..." class="input-box"><p class="label">Định mức</p><input id="new-sop-val" placeholder="..." class="input-box"><button onclick="app.actions.addSOP()" class="btn-primary uppercase">Lưu Quy Trình</button></div></div></div>
     <div id="modal-add-emp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-emp')">
-        <div class="modal-box"><h3 class="font-bold mb-4">Thêm Nhân Sự Mới</h3><div class="space-y-3">
+        <div class="modal-box"><h3 class="font-bold mb-4 uppercase text-slate-800">Thêm Nhân Sự</h3><div class="space-y-3">
             <p class="label">Tên nhân viên</p><input id="new-emp-name" placeholder="..." class="input-box">
             <div class="grid grid-cols-2 gap-2"><div><p class="label">ID</p><input id="new-emp-id" placeholder="101" class="input-box"></div><div><p class="label">Mã PIN</p><input id="new-emp-pin" placeholder="1234" class="input-box"></div></div>
-            <p class="label">Tổ làm việc</p><select id="new-emp-team" class="input-box"><option value="Tổ Sản Xuất">Tổ Sản Xuất</option><option value="Tổ Thu Hoạch">Tổ Thu Hoạch</option></select>
+            <p class="label">Vai trò</p><select id="new-emp-role" class="input-box"><option value="Nhân viên">Nhân viên</option><option value="Tổ trưởng">Tổ trưởng</option><option value="Quản lý">Quản lý</option></select>
+            <p class="label">Tổ trực thuộc</p><select id="new-emp-team" class="input-box"><option value="Tổ Sản Xuất">Tổ Sản Xuất</option><option value="Tổ Thu Hoạch">Tổ Thu Hoạch</option></select>
             <button onclick="app.actions.addEmployee()" class="btn-primary uppercase">Tạo tài khoản</button>
         </div></div>
     </div>
@@ -255,7 +263,7 @@
 
         window.app = {
             data: { employees: [], houses: [], chat: [], tasks: [], production: [], harvest: [], hr_requests: [], attendance: [], sop: [] },
-            user: JSON.parse(localStorage.getItem('n5_v95_user')) || null,
+            user: JSON.parse(localStorage.getItem('n5_v96_user')) || null,
 
             ui: {
                 showModal: id => document.getElementById(id).classList.remove('hidden'),
@@ -278,7 +286,6 @@
                     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
                     const btn = document.querySelector(`button[onclick="app.ui.tab('${id}')"]`);
                     if(btn) btn.classList.add('active');
-                    app.ui.closeChat();
                 },
                 setSXMode: (m) => {
                     document.getElementById('sx-action').value = m;
@@ -304,7 +311,7 @@
                 const status = document.getElementById('login-status');
                 setTimeout(() => { if (app.data.employees.length === 0) document.getElementById('rescue-btn').classList.remove('hidden'); }, 4000);
                 signInAnonymously(getAuth(appInstance)).then(() => {
-                    status.innerHTML = '<span class="status-dot status-ok"></span> Đã kết nối';
+                    status.innerHTML = '<span class="status-dot status-ok"></span> Sẵn sàng';
                     app.sync();
                 });
                 document.getElementById('sx-date').valueAsDate = new Date();
@@ -351,7 +358,7 @@
                 const pin = document.getElementById('login-pin').value.trim();
                 const emp = app.data.employees.find(e => String(e.id) === String(id) && String(e.pin).trim() === String(pin));
                 if(emp) {
-                    app.user = emp; localStorage.setItem('n5_v95_user', JSON.stringify(emp));
+                    app.user = emp; localStorage.setItem('n5_v96_user', JSON.stringify(emp));
                     document.getElementById('login-overlay').classList.add('hidden'); 
                     app.renderApp();
                     app.ui.tab('home');
@@ -362,14 +369,17 @@
                 document.getElementById('head-user').innerText = app.user.name;
                 document.getElementById('head-role').innerText = app.user.role;
                 const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
+                
+                // Quyền xuất báo cáo
                 if(isAdmin) {
                     document.getElementById('admin-tools').classList.remove('hidden');
                     document.getElementById('admin-task-form').classList.remove('hidden');
                     document.getElementById('btn-export-sx').classList.remove('hidden');
                     document.getElementById('btn-export-th').classList.remove('hidden');
+                    document.getElementById('btn-export-all').classList.remove('hidden');
+                    document.getElementById('btn-remind-att').classList.remove('hidden');
                 }
                 app.renderDynamic();
-                app.renderTeam();
             },
             
             renderDynamic: () => {
@@ -377,12 +387,9 @@
                 const hSelect = document.getElementById('th-area'); if(hSelect.innerHTML==="") hSelect.innerHTML=houseOpts;
                 const houseMulti = document.getElementById('house-multi-select'); if(houseMulti && houseMulti.innerHTML==="") houseMulti.innerHTML=app.data.houses.map(h => `<label class="flex items-center gap-1 text-[9px] p-2 border rounded bg-white"><input type="checkbox" value="${h.name}" name="h-chk"> ${h.name}</label>`).join('');
                 
-                document.getElementById('stat-online').innerText = app.data.employees.filter(e=>e.lastLogin===new Date().toISOString().split('T')[0]).length;
-                document.getElementById('stat-yield').innerText = app.data.harvest.filter(h => new Date(h.time).toDateString() === new Date().toDateString()).reduce((a,b) => a + (b.total||0), 0);
-
                 document.getElementById('house-list').innerHTML = app.data.houses.map(h => `
-                    <div class="card flex justify-between items-center !p-3 !mb-2 border-l-4 border-blue-500">
-                        <div><p class="font-bold text-sm text-slate-800">${h.name}</p><p class="text-[10px] text-slate-400 font-bold uppercase">Sáng: ${h.temp?.am||'-'}°C | Chiều: ${h.temp?.pm||'-'}°C</p></div>
+                    <div class="card flex justify-between items-center !p-3 !mb-2 border-l-4 border-blue-500 shadow-sm">
+                        <div><p class="font-bold text-sm text-slate-800">${h.name}</p><p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Sáng: ${h.temp?.am||'-'}°C | Chiều: ${h.temp?.pm||'-'}°C</p></div>
                         <div class="flex gap-2">
                             <button onclick="app.actions.viewHouseLogs('${h.name}')" class="bg-blue-50 text-blue-600 w-9 h-9 rounded-full flex items-center justify-center shadow-sm"><i class="fas fa-file-alt text-xs"></i></button>
                             <button onclick="app.actions.openTemp('${h._id}', '${h.name}')" class="bg-orange-50 text-orange-600 w-9 h-9 rounded-full flex items-center justify-center shadow-sm"><i class="fas fa-temperature-high text-xs"></i></button>
@@ -404,12 +411,12 @@
                         <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100">
                             <div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p></div>
                             <div class="flex gap-2">
-                                ${isAdmin?`<button onclick="alert('Đã gửi thúc giục!')" class="text-yellow-500"><i class="fas fa-bell"></i></button><button onclick="app.actions.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>`:''}
-                                ${t.assignee==app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-md">BÁO CÁO</button>`:`<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-md animate-pulse">NHẬN</button>`) : ''}
+                                ${isAdmin?`<button onclick="app.actions.nudgeTask('${t._id}', '${name}', '${t.title}')" class="text-yellow-500 w-8 h-8 flex items-center justify-center"><i class="fas fa-bell"></i></button><button onclick="app.actions.delTask('${t._id}')" class="text-red-400 w-8 h-8 flex items-center justify-center"><i class="fas fa-trash"></i></button>`:''}
+                                ${t.assignee==app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md">BÁO CÁO</button>`:`<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md animate-pulse uppercase">Nhận</button>`) : ''}
                             </div>
                         </div>`;
                     }).join('');
-                    return `<div class="card !p-3 border-l-4 border-indigo-500 bg-white"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">👤 ${name}</p>${items}</div>`;
+                    return `<div class="card !p-3 border-l-4 border-indigo-500 bg-white shadow-sm"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">👤 ${name}</p>${items}</div>`;
                 }).join('');
                 
                 if(document.getElementById('assign-ind-zone').innerHTML==="") document.getElementById('assign-ind-zone').innerHTML = app.data.employees.map(e=>`<label class="flex gap-2 text-[11px] p-2 bg-white rounded border"><input type="checkbox" name="u-chk" value="${e.id}"> ${e.name}</label>`).join('');
@@ -422,7 +429,7 @@
 
                 if(isAdmin) {
                     const pendingHR = app.data.hr_requests.filter(r => r.status === 'pending');
-                    document.getElementById('approval-list').innerHTML = pendingHR.length ? pendingHR.map(r => `<div class="p-3 bg-slate-50 border rounded-xl mb-2 text-xs"><p class="font-bold text-slate-800">${r.type} - ${r.requester}</p><p class="text-slate-500 mt-1">${r.content}</p><div class="flex gap-2 mt-2"><button onclick="app.actions.approve('${r._id}', 'approved')" class="flex-1 bg-green-600 text-white py-1.5 rounded-lg font-bold">DUYỆT</button><button onclick="app.actions.approve('${r._id}', 'rejected')" class="flex-1 bg-red-500 text-white py-1.5 rounded-lg font-bold">HỦY</button></div></div>`).join('') : '<p class="text-center text-slate-400 py-4">Không có đơn nào</p>';
+                    document.getElementById('approval-list').innerHTML = pendingHR.length ? pendingHR.map(r => `<div class="p-3 bg-slate-50 border rounded-xl mb-2 text-xs"><p class="font-bold text-slate-800">${r.type} - ${r.requester}</p><p class="text-slate-500 mt-1">${r.content}</p><div class="flex gap-2 mt-2"><button onclick="app.actions.approve('${r._id}', 'approved')" class="flex-1 bg-green-600 text-white py-1.5 rounded-lg font-bold">DUYỆT</button><button onclick="app.actions.approve('${r._id}', 'rejected')" class="flex-1 bg-red-500 text-white py-1.5 rounded-lg font-bold uppercase">Hủy</button></div></div>`).join('') : '<p class="text-center text-slate-400 py-4 italic text-[11px]">Không có đơn cần xử lý</p>';
                 }
             },
 
@@ -432,33 +439,34 @@
                  document.getElementById('team-list').innerHTML = app.data.employees.map(e => `
                     <div class="card flex justify-between items-center !p-3 !mb-2 border-l-4 ${e.lastLogin===today?'border-green-500':'border-slate-200'}">
                         <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-xs uppercase">${e.name.charAt(0)}</div>
+                            <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-xs uppercase shadow-inner">${e.name.charAt(0)}</div>
                             <div>
                                 <p class="text-xs font-bold text-slate-700">${e.name}</p>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase">${e.role} | ${e.team || 'Chưa gán tổ'}</p>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">${e.role} | ${e.team || 'Cơ động'}</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
-                            ${e.lastLogin===today ? '<i class="fas fa-check-circle text-green-500"></i>' : '<i class="fas fa-circle text-slate-200 text-[10px]"></i>'}
-                            ${isAdmin ? `<button onclick="app.actions.delEmployee('${e._id}', '${e.name}')" class="text-red-400 hover:text-red-600 w-8 h-8 flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>` : ''}
+                            ${e.lastLogin===today ? '<span class="text-[8px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-black uppercase">Online</span>' : '<span class="text-[8px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded font-black uppercase">Offline</span>'}
+                            ${isAdmin ? `<button onclick="app.actions.delEmployee('${e._id}', '${e.name}')" class="text-red-400 hover:text-red-600 w-8 h-8 flex items-center justify-center active:scale-90"><i class="fas fa-trash-alt text-xs"></i></button>` : ''}
                         </div>
                     </div>`).join('');
             },
 
             renderChat: () => {
-                document.getElementById('chat-box').innerHTML = app.data.chat.map(m => `
+                const box = document.getElementById('chat-box');
+                box.innerHTML = app.data.chat.map(m => `
                     <div class="flex flex-col ${m.senderId===app.user.id?'items-end':'items-start'}">
-                        <div class="chat-sender">${m.senderId===app.user.id ? 'Bạn' : m.senderName}</div>
+                        <div class="chat-sender-name">${m.senderId===app.user.id ? '' : `<div class="chat-avatar">${m.senderName.charAt(0)}</div> ${m.senderName}`}</div>
                         <div class="chat-bubble ${m.senderId===app.user.id?'chat-me':'chat-other'}">
                             <p class="font-medium">${m.text}</p>
                         </div>
                     </div>`).join('');
-                document.getElementById('chat-box').scrollTop = 99999;
+                box.scrollTop = box.scrollHeight;
             },
 
             actions: {
-                seedAdmin: async () => { if(confirm("Tạo Admin 9999?")) { await addDoc(collection(db, `${ROOT}/employees`), { id: 9999, name: "Admin", pin: "9999", role: "Giám đốc", score: 100, team: "Hệ Thống" }); location.reload(); } },
-                logout: () => { localStorage.removeItem('n5_v95_user'); location.reload(); },
+                seedAdmin: async () => { if(confirm("Khởi tạo Admin hệ thống?")) { await addDoc(collection(db, `${ROOT}/employees`), { id: 9999, name: "Admin", pin: "9999", role: "Giám đốc", score: 100, team: "Hệ Thống" }); location.reload(); } },
+                logout: () => { localStorage.removeItem('n5_v96_user'); location.reload(); },
                 
                 createTask: async () => {
                     const title = document.getElementById('task-title').value;
@@ -466,11 +474,23 @@
                     const u = Array.from(document.querySelectorAll('input[name="u-chk"]:checked')).map(i => i.value);
                     if(!title || h.length===0 || u.length===0) return alert("Vui lòng điền đủ thông tin!");
                     for(let house of h) for(let uid of u) await addDoc(collection(db, `${ROOT}/tasks`), { title, houseId: house, assignee: uid, status: 'pending', time: Date.now() });
-                    alert("Đã ban hành lệnh!");
+                    alert("Đã ban hành lệnh làm việc!");
                 },
                 startTask: async (id) => updateDoc(doc(db, `${ROOT}/tasks`, id), { status: 'in_progress', startTime: Date.now() }),
-                delTask: async (id) => { if(confirm("Xóa lệnh này?")) deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
+                delTask: async (id) => { if(confirm("Xóa lệnh làm việc này?")) deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
                 
+                nudgeTask: async (id, name, task) => {
+                    const msg = `🔔 [NHẮC NHỞ] Quản lý thúc giục [${name}] làm việc: [${task}]. Đề nghị thực hiện ngay!`;
+                    await addDoc(collection(db, `${ROOT}/chat`), { text: msg, senderId: 'SYSTEM', senderName: 'HỆ THỐNG', time: Date.now() });
+                    alert("Đã gửi nhắc nhở công việc vào Chat chung!");
+                },
+
+                remindAttendance: async () => {
+                    const msg = `📢 [THÔNG BÁO] Toàn tổ lưu ý: Ai chưa ĐIỂM DANH vui lòng vào điểm danh ngay để ghi nhận công ca!`;
+                    await addDoc(collection(db, `${ROOT}/chat`), { text: msg, senderId: 'SYSTEM', senderName: 'HỆ THỐNG', time: Date.now() });
+                    alert("Đã gửi lời nhắc điểm danh vào Chat!");
+                },
+
                 openReport: (id, title) => { document.getElementById('report-task-id').value = id; app.ui.showModal('report-modal'); },
                 submitReport: async (status) => {
                     const id = document.getElementById('report-task-id').value;
@@ -486,13 +506,13 @@
 
                 submitSX: async () => {
                     const d = { action: document.getElementById('sx-action').value, date: document.getElementById('sx-date').value, type: document.getElementById('sx-type').value, qty: Number(document.getElementById('sx-qty').value), batch: document.getElementById('sx-batch').value, dest: document.getElementById('sx-dest').value, bad: Number(document.getElementById('sx-bad').value), reuse: Number(document.getElementById('sx-reuse').value), user: app.user.name, time: Date.now() };
-                    await addDoc(collection(db, `${ROOT}/production_logs`), d); alert("Đã lưu!");
+                    await addDoc(collection(db, `${ROOT}/production_logs`), d); alert("Đã lưu nhật ký!");
                 },
                 submitTH: async () => {
                     const det = {}; ['b2','a1','a2','b1','d1','ht','abf','b2f','b1f'].forEach(id => det[id]=Number(document.getElementById('th-'+id).value)||0);
                     const total = Object.values(det).reduce((a,b)=>a+b,0);
                     await addDoc(collection(db, `${ROOT}/harvest_logs`), { area: document.getElementById('th-area').value, details: det, total, user: app.user.name, time: Date.now(), bad: document.getElementById('th-huy-chan').value, ret: document.getElementById('th-doi-tra').value, dry: document.getElementById('th-xuat-say').value, snack_tp: document.getElementById('th-snack-tp').value, snack_nl: document.getElementById('th-xuat-snack').value, note: document.getElementById('th-note').value });
-                    alert("Đã cập nhật!");
+                    alert("Đã cập nhật kho!");
                 },
 
                 sendChat: async () => { const i = document.getElementById('chat-input'); if(!i.value) return; await addDoc(collection(db, `${ROOT}/chat`), { text: i.value, senderId: app.user.id, senderName: app.user.name, time: Date.now() }); i.value = ''; },
@@ -503,24 +523,24 @@
                 saveTemp: async () => { const id = document.getElementById('temp-id').value; await updateDoc(doc(db, `${ROOT}/houses`, id), { 'temp.am': document.getElementById('temp-am').value, 'temp.pm': document.getElementById('temp-pm').value }); alert("Đã lưu!"); app.ui.closeModal('modal-temp'); },
                 openTemp: (id, name) => { document.getElementById('temp-id').value = id; document.getElementById('temp-name').innerText = name; app.ui.showModal('modal-temp'); },
 
-                addEmployee: async () => { await addDoc(collection(db, `${ROOT}/employees`), { id: Number(document.getElementById('new-emp-id').value), name: document.getElementById('new-emp-name').value, pin: document.getElementById('new-emp-pin').value, team: document.getElementById('new-emp-team').value, role: 'Nhân viên', score: 100 }); alert("Đã thêm!"); app.ui.closeModal('modal-add-emp'); },
-                delEmployee: async (id, name) => { if(confirm(`Xóa nhân viên ${name}?`)) deleteDoc(doc(db, `${ROOT}/employees`, id)); },
+                addEmployee: async () => { await addDoc(collection(db, `${ROOT}/employees`), { id: Number(document.getElementById('new-emp-id').value), name: document.getElementById('new-emp-name').value, pin: document.getElementById('new-emp-pin').value, team: document.getElementById('new-emp-team').value, role: document.getElementById('new-emp-role').value, score: 100 }); alert("Đã thêm!"); app.ui.closeModal('modal-add-emp'); },
+                delEmployee: async (id, name) => { if(confirm(`Xóa nhân viên ${name}? Hành động này không thể hoàn tác!`)) deleteDoc(doc(db, `${ROOT}/employees`, id)); },
                 addSOP: async () => { await addDoc(collection(db, `${ROOT}/sop`), { title: document.getElementById('new-sop-name').value, sop: Number(document.getElementById('new-sop-val').value) }); alert("Đã thêm!"); app.ui.closeModal('modal-add-sop'); },
                 addHouse: async () => { const name = prompt("Tên nhà nấm:"); if(name) await addDoc(collection(db, `${ROOT}/houses`), { name, temp: {am:0, pm:0} }); },
                 fillSOP: () => { const val = document.getElementById('task-title').value; const item = (app.data.sop||[]).find(s => s.title === val); if(item) document.getElementById('task-target').value = item.sop; },
                 
                 viewHouseLogs: (name) => {
                     const logs = [
-                        ...app.data.production.filter(l => l.dest === name).map(l => `<span class="text-blue-600 font-bold">[SX]</span> ${l.action} ${l.qty} (${l.type})`),
-                        ...app.data.harvest.filter(l => l.area === name).map(l => `<span class="text-green-600 font-bold">[TH]</span> Hái ${l.total}kg`)
+                        ...app.data.production.filter(l => l.dest === name).map(l => `<span class="text-blue-600 font-black">[SX]</span> ${l.action} ${l.qty} (${l.type})`),
+                        ...app.data.harvest.filter(l => l.area === name).map(l => `<span class="text-green-600 font-black">[TH]</span> Hái ${l.total}kg`)
                     ].reverse();
                     document.getElementById('history-house-name').innerText = name;
-                    document.getElementById('history-content').innerHTML = logs.length ? logs.join('<br>') : 'Chưa có nhật ký';
+                    document.getElementById('history-content').innerHTML = logs.length ? logs.join('<br>') : '<p class="italic text-slate-400">Chưa có nhật ký cho nhà này</p>';
                     app.ui.showModal('modal-house-history');
                 },
-                exportSX: () => alert("Đang xử lý xuất dữ liệu SX..."),
-                exportTH: () => alert("Đang xử lý xuất dữ liệu TH..."),
-                exportAll: () => alert("Đang xử lý báo cáo tổng hợp...")
+                exportSX: () => { if(['Giám đốc', 'Quản lý'].includes(app.user.role)) alert("Đang tải dữ liệu Sản Xuất..."); else alert("Bạn không có quyền xuất dữ liệu!"); },
+                exportTH: () => { if(['Giám đốc', 'Quản lý'].includes(app.user.role)) alert("Đang tải dữ liệu Thu Hoạch..."); else alert("Bạn không có quyền xuất dữ liệu!"); },
+                exportAll: () => { if(['Giám đốc', 'Quản lý'].includes(app.user.role)) alert("Đang tổng hợp báo cáo ngày..."); else alert("Bạn không có quyền thực hiện!"); }
             }
         };
         
