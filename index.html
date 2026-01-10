@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
-    <title>Nấm Ông 5 V93 - Final</title>
+    <title>Nấm Ông 5 V92.1 - Final</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -15,58 +15,61 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #334155; margin: 0; height: 100vh; overflow: hidden; user-select: none; }
         
         /* Layout */
-        #app-header { height: var(--header-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; right: 0; z-index: 50; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding-left: 16px; padding-right: 16px; }
-        #app-main { position: fixed; top: var(--header-h); bottom: var(--nav-h); left: 0; right: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; padding-bottom: 40px; z-index: 10; }
+        #app-header { height: var(--header-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; right: 0; z-index: 50; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        #app-view-container { position: fixed; top: var(--header-h); bottom: var(--nav-h); left: 0; right: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; padding-bottom: 40px; z-index: 10; }
         #app-nav { height: var(--nav-h); background: white; border-top: 1px solid #e2e8f0; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; padding-bottom: env(safe-area-inset-bottom); display: flex; justify-content: space-around; align-items: center; }
 
         .hidden { display: none !important; }
         .card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .input-box { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 600; outline: none; font-size: 14px; }
-        .btn-primary { background: var(--blue); color: white; font-weight: 800; padding: 14px; border-radius: 14px; width: 100%; text-transform: uppercase; font-size: 12px; }
+        .input-box { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 600; outline: none; font-size: 14px; transition: all 0.2s; }
+        .input-box:focus { border-color: var(--blue); background: white; ring: 2px solid #bfdbfe; }
+        .btn-primary { background: var(--blue); color: white; font-weight: 800; padding: 14px; border-radius: 14px; width: 100%; text-transform: uppercase; font-size: 12px; box-shadow: 0 4px 6px rgba(37,99,235,0.2); }
+        .btn-primary:active { transform: scale(0.96); }
         .label { display: block; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-        
-        /* Login (Style V91.1) */
-        #login-screen { position: fixed; inset: 0; background: #f8fafc; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
+        .nav-btn { color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; font-weight: 700; transition: color 0.2s; }
+        .nav-btn.active { color: var(--blue); transform: translateY(-2px); }
+        .input-mini { text-align: center; padding: 8px 4px; font-size: 13px; }
+
+        /* Login */
+        #login-layer { position: fixed; inset: 0; background: #f8fafc; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; transition: opacity 0.3s; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
         .status-wait { background: #eab308; animation: pulse 1s infinite; }
-        .status-ok { background: #22c55e; }
+        .status-ok { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
         
-        /* Chat UI */
+        /* Chat */
         #chat-layer { position: fixed; inset: 0; background: #e5ddd5; z-index: 2000; display: none; flex-direction: column; }
         .chat-bg { background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px); background-size: 20px 20px; }
-        #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 14px; }
-        .chat-me { background: #dcf8c6; align-self: flex-end; }
-        .chat-other { background: white; align-self: flex-start; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
+        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 16px; margin-bottom: 4px; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .chat-me { background: #dcf8c6; color: #1f2937; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .chat-other { background: white; color: #1f2937; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .chat-input-container { background: white; padding: 10px; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 
         /* Modal */
-        .modal-wrap { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .modal-wrap { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
         .modal-box { background: white; width: 100%; max-width: 400px; border-radius: 24px; padding: 24px; max-height: 85vh; overflow-y: auto; }
-        
+
         .stat-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; background: #eff6ff; color: #1d4ed8; font-weight: bold; display: inline-block; margin: 2px; border: 1px solid #dbeafe; }
-        .nav-btn { color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; font-weight: 700; }
-        .nav-btn.active { color: var(--blue); transform: translateY(-2px); }
-        .input-mini { text-align: center; padding: 8px 2px; font-size: 13px; }
-        
+        .multi-select-box { max-height: 120px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 12px; padding: 8px; background: white; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <!-- 1. LOGIN SCREEN (CORE V91.1) -->
-    <div id="login-screen">
+    <!-- 1. LOGIN LAYER -->
+    <div id="login-layer">
         <div class="w-24 h-24 bg-blue-600 rounded-[28px] flex items-center justify-center text-white text-5xl font-black mb-6 shadow-xl">5</div>
         <h1 class="text-3xl font-black text-slate-800 mb-1">Nấm Ông 5</h1>
-        <p class="text-xs font-bold text-blue-500 mb-10 tracking-widest">● V93 Final</p>
+        <p class="text-xs font-bold text-blue-500 mb-10 tracking-widest">● V92.1 Final</p>
         
         <div class="w-full max-w-sm space-y-4">
             <div id="login-status" class="text-center text-xs font-bold text-slate-400 mb-2 flex items-center justify-center">
                 <span class="status-dot status-wait"></span> <span id="status-text">Đang kết nối...</span>
             </div>
             <select id="login-user" class="input-box text-center appearance-none" disabled><option>Vui lòng đợi...</option></select>
-            <input id="login-pin" type="tel" placeholder="Nhập PIN" class="input-box text-center text-xl tracking-widest" disabled maxlength="6">
+            <input id="login-pin" type="tel" placeholder="Nhập PIN (Vd: 1234)" class="input-box text-center text-xl tracking-widest" disabled maxlength="6">
             <button id="login-btn" onclick="app.doLogin()" class="btn-primary opacity-50 cursor-not-allowed" disabled>ĐĂNG NHẬP</button>
-            <button id="rescue-btn" onclick="app.actions.seedAdmin()" class="hidden w-full border-2 border-red-100 text-red-500 py-3 rounded-xl font-bold text-xs mt-4">KHỞI TẠO ADMIN (9999)</button>
+            <button id="rescue-btn" onclick="app.actions.seedAdmin()" class="hidden w-full border-2 border-red-100 text-red-500 py-3 rounded-xl font-bold text-xs mt-4">KHỞI TẠO ADMIN</button>
         </div>
         <button onclick="localStorage.clear(); location.reload()" class="mt-8 text-xs text-slate-400 underline">Reset ứng dụng</button>
     </div>
@@ -74,13 +77,13 @@
     <!-- 2. HEADER -->
     <header id="app-header">
         <div class="flex items-center gap-3">
-            <button id="back-chat-btn" onclick="app.ui.tab('home')" class="hidden w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500"><i class="fas fa-arrow-left"></i></button>
-            <div class="bg-blue-600 text-white w-9 h-9 rounded-lg flex items-center justify-center font-black shadow-md text-lg">5</div>
+            <button id="back-chat-btn" onclick="app.ui.tab('home')" class="hidden w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 active:bg-slate-200"><i class="fas fa-arrow-left"></i></button>
+            <div class="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center font-black shadow-md text-lg">5</div>
             <h1 class="text-sm font-black uppercase text-slate-800">Nấm Ông 5</h1>
         </div>
         <div class="flex items-center gap-2">
             <div class="text-right"><p id="head-user" class="font-bold text-xs">...</p><p id="head-role" class="text-[9px] text-blue-500 font-bold uppercase">...</p></div>
-            <button onclick="app.ui.openModal('settings-modal')" class="w-9 h-9 bg-slate-50 rounded-full border flex items-center justify-center text-slate-500"><i class="fas fa-cog"></i></button>
+            <button onclick="app.ui.showModal('settings-modal')" class="w-9 h-9 bg-slate-50 rounded-full border flex items-center justify-center text-slate-500 active:bg-slate-100"><i class="fas fa-cog"></i></button>
         </div>
     </header>
 
@@ -104,7 +107,7 @@
                 <div class="flex justify-between items-center mb-3"><span class="text-xs font-black text-blue-600 uppercase">Giao việc mới</span><select id="assign-mode" onchange="app.toggleAssign()" class="text-[10px] font-bold bg-slate-100 p-1 rounded"><option value="ind">Cá nhân</option><option value="team">Tổ</option></select></div>
                 <div class="space-y-3">
                     <input id="task-title" placeholder="Tên công việc..." class="input-box bg-white" list="sop-list" onchange="app.actions.fillSOP()"><datalist id="sop-list"></datalist>
-                    <div><p class="label">Chọn Nhà</p><div id="house-multi-select" class="multi-select-box"></div></div>
+                    <div><p class="label">Chọn Nhà (Đa chọn)</p><div id="house-multi-select" class="multi-select-box"></div></div>
                     <div class="grid grid-cols-2 gap-2"><div><p class="label">Định mức</p><input type="number" id="task-target" class="input-box bg-white text-center"></div></div>
                     <div id="assign-ind-zone" class="multi-select-box"></div>
                     <div id="assign-team-zone" class="hidden bg-slate-50 p-2 rounded-xl border space-y-2 text-xs font-bold"><label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Sản Xuất" checked> Tổ Sản Xuất</label><label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Thu Hoạch"> Tổ Thu Hoạch</label></div>
@@ -143,21 +146,21 @@
                          <div id="th-percent-display" class="grid grid-cols-4 gap-1 mt-3 pt-2 border-t border-slate-200 text-center text-[9px] text-slate-500 font-bold"></div>
                      </div>
                      <div class="flex justify-between items-center bg-green-50 p-4 rounded-2xl border border-green-100"><span class="font-bold text-green-800 text-xs">TỔNG HÁI:</span><span id="th-total-display" class="font-black text-2xl text-green-600">0 kg</span></div>
-                     <div class="grid grid-cols-2 gap-3"><div><p class="label text-red-500">Hủy chân</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-orange-500">Đổi trả</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
-                     <div class="grid grid-cols-2 gap-3"><div><p class="label text-blue-500">Xuất Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Snack TP</p><input type="number" id="th-snack-tp" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Xuất Snack</p><input type="number" id="th-xuat-snack" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
-                     <div><p class="label">Ghi chú</p><input type="text" id="th-note" class="input-box bg-white p-2"></div>
+                     <div class="grid grid-cols-2 gap-3"><div><p class="label text-red-500">Hủy chân (kg)</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-orange-500">Đổi trả (kg)</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
+                     <div class="grid grid-cols-2 gap-3"><div><p class="label text-blue-500">Xuất NL Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Snack TP</p><input type="number" id="th-snack-tp" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Xuất NL Snack</p><input type="number" id="th-xuat-snack" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
+                     <div><p class="label">Ghi chú thêm</p><input type="text" id="th-note" class="input-box bg-white p-2"></div>
                      <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 mt-1">CẬP NHẬT KHO</button>
                  </div>
              </div>
              <div id="th-log-list" class="space-y-2 pb-20"></div>
         </div>
 
-        <!-- TEAM -->
+        <!-- E. TEAM -->
         <div id="view-team" class="view-section hidden">
-             <div class="card border border-blue-100"><p class="label mb-3">ĐIỂM DANH</p><div class="grid grid-cols-2 gap-3"><button onclick="app.actions.checkIn('Sáng')" class="btn-primary bg-yellow-500 text-white">☀️ CA SÁNG</button><button onclick="app.actions.checkIn('Chiều')" class="btn-primary bg-indigo-500 text-white">🌙 CA CHIỀU</button></div></div>
-             <div class="card bg-slate-50 border border-slate-200"><p class="label mb-3">HÀNH CHÍNH</p><div class="grid grid-cols-2 gap-3"><button onclick="app.ui.openModal('modal-leave')" class="btn-primary bg-white text-slate-600 border">Xin nghỉ</button><button onclick="app.ui.openModal('modal-buy')" class="btn-primary bg-white text-slate-600 border">Mua hàng</button></div></div>
+             <div class="card border border-blue-100"><p class="label mb-3">ĐIỂM DANH CÁ NHÂN</p><div class="grid grid-cols-2 gap-3"><button onclick="app.actions.checkIn('Sáng')" class="btn-primary bg-yellow-500 text-white">☀️ CA SÁNG</button><button onclick="app.actions.checkIn('Chiều')" class="btn-primary bg-indigo-500 text-white">🌙 CA CHIỀU</button></div></div>
+             <div class="card bg-slate-50 border border-slate-200"><p class="label mb-3">HÀNH CHÍNH</p><div class="grid grid-cols-2 gap-3"><button onclick="app.ui.showModal('modal-leave')" class="btn-primary bg-white text-slate-600 border">Xin nghỉ</button><button onclick="app.ui.showModal('modal-buy')" class="btn-primary bg-white text-slate-600 border">Mua hàng</button></div></div>
              <button onclick="app.actions.remindAttendance()" class="w-full text-center text-xs text-blue-500 font-bold mb-3">📢 Nhắc nhở toàn bộ</button>
-             <p class="label px-2">NHÂN SỰ</p>
+             <p class="label px-2">DANH SÁCH NHÂN SỰ</p>
              <div id="team-list" class="space-y-2 pb-20"></div>
         </div>
     </main>
@@ -182,7 +185,7 @@
         <button onclick="app.ui.tab('sx')" class="nav-btn" id="btn-sx"><i class="fas fa-industry text-xl"></i><span>SX</span></button>
         <button onclick="app.ui.tab('th')" class="nav-btn" id="btn-th"><i class="fas fa-box-open text-xl"></i><span>TH</span></button>
         <button onclick="app.ui.tab('team')" class="nav-btn" id="btn-team"><i class="fas fa-users text-xl"></i><span>TEAM</span></button>
-        <button onclick="app.ui.openChat()" class="nav-btn"><i class="fas fa-comments text-xl"></i><span>CHAT</span></button>
+        <button onclick="app.ui.tab('chat')" class="nav-btn"><i class="fas fa-comments text-xl"></i><span>CHAT</span></button>
     </nav>
 
     <!-- 6. MODALS -->
@@ -193,10 +196,13 @@
                 <button onclick="app.actions.exportAll()" class="btn-primary bg-white text-blue-700 border border-blue-200 shadow-sm">XUẤT BÁO CÁO NGÀY</button>
                 <div id="admin-tools" class="hidden space-y-3 border-t pt-3">
                     <p class="label border-b pb-2">Quản trị viên</p>
-                    <button onclick="app.ui.openModal('modal-add-emp')" class="btn-primary bg-slate-700 text-xs">Thêm Nhân Sự</button>
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                         <div class="flex gap-2"><input id="new-emp-name" placeholder="Tên NV" class="input-box text-xs bg-white"><input id="new-emp-pin" placeholder="PIN" class="input-box text-xs w-20 text-center bg-white"></div>
+                         <button onclick="app.actions.addEmployee()" class="btn-primary bg-slate-700 text-xs">Thêm Nhân Sự</button>
+                    </div>
                     <button onclick="app.actions.addHouse()" class="btn-primary bg-slate-500 text-xs">Thêm Nhà Nấm</button>
-                    <button onclick="app.ui.openModal('modal-add-sop')" class="btn-primary bg-slate-400 text-xs">Thêm Quy Trình</button>
-                    <button onclick="app.ui.openModal('modal-approve')" class="btn-primary bg-green-600 text-xs">Duyệt Đơn Từ</button>
+                    <button onclick="app.ui.showModal('modal-add-sop')" class="btn-primary bg-slate-400 text-xs">Thêm Quy Trình</button>
+                    <button onclick="app.ui.showModal('modal-approve')" class="btn-primary bg-green-600 text-xs">Duyệt Đơn Từ</button>
                 </div>
                 <button onclick="app.actions.logout()" class="btn-primary bg-red-500 mt-4">Đăng xuất</button>
             </div>
@@ -211,7 +217,6 @@
     <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Đề xuất mua</h3><div class="space-y-3"><input type="text" id="pur-item" placeholder="Tên hàng..." class="input-box"><div class="grid grid-cols-2 gap-3"><input type="number" id="pur-qty" placeholder="SL" class="input-box"><input type="text" id="pur-unit" placeholder="Đơn vị" class="input-box"></div><button onclick="app.actions.submitHR('PURCHASE')" class="btn-primary bg-green-600">Gửi</button></div></div></div>
     <div id="modal-approve" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-approve')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-red-600">Duyệt đơn</h3><div id="approval-list" class="space-y-3"></div></div></div>
     <div id="modal-add-sop" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-sop')"><div class="modal-box"><h3 class="font-bold mb-4">Thêm Quy Trình</h3><div class="space-y-3"><input id="new-sop-name" placeholder="Tên công việc" class="input-box"><input id="new-sop-val" placeholder="Định mức (Số)" class="input-box"><button onclick="app.actions.addSOP()" class="btn-primary">Lưu</button></div></div></div>
-    <div id="modal-add-emp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-emp')"><div class="modal-box"><h3 class="font-bold mb-4">Thêm Nhân Sự</h3><div class="space-y-3"><input id="new-emp-name" placeholder="Tên" class="input-box"><div class="flex gap-2"><input id="new-emp-id" placeholder="ID" class="input-box"><input id="new-emp-pin" placeholder="PIN" class="input-box"></div><button onclick="app.actions.addEmployee()" class="btn-primary">Lưu</button></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -225,17 +230,19 @@
 
         window.app = {
             data: { employees: [], houses: [], chat: [], tasks: [], production: [], harvest: [], hr: [] },
-            user: JSON.parse(localStorage.getItem('n5_v93_user')) || null,
+            user: JSON.parse(localStorage.getItem('n5_v92_1_user')) || null,
             assignMode: 'ind',
+            currentPhoto: null,
 
             ui: {
-                openModal: id => document.getElementById(id).classList.remove('hidden'),
+                showModal: id => document.getElementById(id).classList.remove('hidden'),
                 closeModal: id => document.getElementById(id).classList.add('hidden'),
                 openChat: () => {
                     document.getElementById('chat-layer').style.display = 'flex';
                     setTimeout(() => document.getElementById('chat-box').scrollTop = 99999, 100);
                 },
                 closeChat: () => document.getElementById('chat-layer').style.display = 'none',
+                toggleModal: id => { const el = document.getElementById(id); el.classList.toggle('hidden'); },
                 
                 tab: (id) => {
                     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
@@ -243,17 +250,7 @@
                     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('nav-active'));
                     const btn = document.querySelector(`button[onclick="app.ui.tab('${id}')"]`);
                     if(btn) btn.classList.add('nav-active');
-                    
-                    if (id === 'chat') {
-                         document.getElementById('app-header').classList.add('hidden');
-                         document.getElementById('app-nav').classList.add('hidden');
-                         document.getElementById('chat-layer').style.display = 'flex';
-                         setTimeout(() => document.getElementById('chat-box').scrollTop = 99999, 100);
-                    } else {
-                         document.getElementById('app-header').classList.remove('hidden');
-                         document.getElementById('app-nav').classList.remove('hidden');
-                         document.getElementById('chat-layer').style.display = 'none';
-                    }
+                    if(id === 'chat') setTimeout(() => document.getElementById('chat-box').scrollTop = 9999, 100);
                 },
                 setSXMode: (m) => {
                     document.getElementById('sx-action').value = m;
@@ -283,7 +280,7 @@
                         status.classList.replace('text-yellow-500', 'text-red-500');
                         document.getElementById('rescue-btn').classList.remove('hidden');
                     }
-                }, 3000);
+                }, 5000);
 
                 signInAnonymously(getAuth(appInstance)).then(() => {
                     status.innerText = "Đã kết nối";
@@ -293,17 +290,15 @@
             },
 
             sync: () => {
-                const mapData = s => s.docs.map(d => ({...d.data(), _id: d.id}));
-                
                 onSnapshot(collection(db, `${ROOT}/employees`), s => {
-                    app.data.employees = mapData(s);
+                    app.data.employees = s.docs.map(d => ({...d.data(), _id: d.id}));
                     app.renderLogin();
                     if(app.user) app.renderTeam();
                 });
                 ['houses', 'tasks', 'production_logs', 'harvest_logs', 'hr_requests', 'attendance_logs', 'sop'].forEach(col => {
                     onSnapshot(collection(db, `${ROOT}/${col}`), s => {
                         const key = col.includes('logs') ? col.split('_')[0] : (col === 'hr_requests' ? 'hr' : col);
-                        app.data[key] = mapData(s);
+                        app.data[key] = s.docs.map(d => ({...d.data(), _id: d.id}));
                         if(app.user) app.renderDynamic();
                     });
                 });
@@ -315,20 +310,20 @@
 
             renderLogin: () => {
                 const s = document.getElementById('login-user');
+                const btn = document.getElementById('login-btn');
+                const pin = document.getElementById('login-pin');
                 if (app.data.employees.length > 0) {
                     s.innerHTML = '<option value="">-- Chọn tên --</option>' + app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-                    s.disabled = false;
-                    document.getElementById('login-pin').disabled = false;
-                    document.getElementById('login-btn').disabled = false;
-                    document.getElementById('login-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+                    s.disabled = false; pin.disabled = false; btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     document.getElementById('login-status').innerText = "Sẵn sàng đăng nhập";
                     document.getElementById('login-status').classList.replace('text-yellow-500', 'text-green-500');
                     document.getElementById('rescue-btn').classList.add('hidden');
                 }
-                if(app.user) {
-                    document.getElementById('login-layer').classList.add('hidden');
-                    app.renderApp();
-                    app.ui.tab('home');
+                if(app.user) { 
+                    document.getElementById('login-overlay').classList.add('hidden'); 
+                    app.renderApp(); 
+                    app.ui.tab('home'); 
                 }
             },
 
@@ -337,8 +332,9 @@
                 const pin = document.getElementById('login-pin').value.trim();
                 const emp = app.data.employees.find(e => String(e.id) === String(id) && String(e.pin).trim() === String(pin));
                 if(emp) {
-                    app.user = emp; localStorage.setItem('n5_v93_user', JSON.stringify(emp));
-                    document.getElementById('login-layer').classList.add('hidden'); app.renderApp();
+                    app.user = emp; localStorage.setItem('n5_v92_1_user', JSON.stringify(emp));
+                    document.getElementById('login-overlay').classList.add('hidden'); 
+                    app.renderApp();
                     app.ui.tab('home');
                 } else alert("Sai mã PIN!");
             },
@@ -360,7 +356,6 @@
                 const hSelect = document.getElementById('th-area'); if(hSelect.innerHTML==="") hSelect.innerHTML=houseOpts;
                 const houseMulti = document.getElementById('house-multi-select'); if(houseMulti && houseMulti.innerHTML==="") houseMulti.innerHTML=app.data.houses.map(h => `<label class="flex items-center gap-1 text-[10px] p-2 border rounded"><input type="checkbox" value="${h.name}" name="h-check"> ${h.name}</label>`).join('');
                 
-                // House Grid
                 document.getElementById('house-list').innerHTML = app.data.houses.map(h => `
                     <div class="card flex justify-between items-center !p-3 !mb-2 border-l-4 border-blue-500 mb-3">
                         <div><p class="font-bold text-sm">${h.name}</p><p class="text-[10px] text-slate-400">AM: ${h.temp?.am||'-'} | PM: ${h.temp?.pm||'-'}</p></div>
@@ -370,7 +365,6 @@
                         </div>
                     </div>`).join('');
 
-                // Task List Grouped
                 const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
                 let tasks = app.data.tasks.filter(t => t.status !== 'completed');
                 if(!isAdmin) tasks = tasks.filter(t => t.assignee == app.user.id);
@@ -379,10 +373,8 @@
                     return `<div class="card !p-3 border-l-4 border-indigo-500 flex justify-between items-center"><div><p class="font-bold text-xs">${t.title} (${t.houseId})</p></div><div class="flex gap-2">${isAdmin?`<button onclick="app.actions.nudgeTask('${t._id}')" class="text-yellow-500"><i class="fas fa-bell"></i></button><button onclick="app.actions.delTask('${t._id}')" class="text-red-400"><i class="fas fa-trash"></i></button>`:''}${t.assignee==app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-2 py-1 rounded text-xs">BÁO CÁO</button>`:`<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-2 py-1 rounded text-xs">NHẬN</button>`) : ''}</div></div>`;
                 }).join('');
                 
-                // Assign list
                 if(document.getElementById('assign-ind-zone').innerHTML==="") document.getElementById('assign-ind-zone').innerHTML = app.data.employees.map(e=>`<label class="flex gap-2 text-xs p-1"><input type="checkbox" name="u-chk" value="${e.id}"> ${e.name}</label>`).join('');
 
-                // Stats & Logs
                 document.getElementById('stat-online').innerText = app.data.employees.filter(e=>e.lastLogin===new Date().toISOString().split('T')[0]).length;
                 document.getElementById('sx-log-list').innerHTML = app.data.production.slice(0,5).map(l=>`<div class="text-[10px] p-2 border-b flex justify-between"><span>${l.action} ${l.type}</span><span>${l.qty}</span></div>`).join('');
                 document.getElementById('th-log-list').innerHTML = app.data.harvest.slice(0,5).map(l=>`<div class="text-[10px] p-2 border-b flex justify-between"><span>${l.area}</span><span>${l.total} kg</span></div>`).join('');
@@ -405,49 +397,34 @@
                 document.getElementById('chat-box').scrollTop = 99999;
             },
 
-            renderAdmin: () => {
-                const sopList = document.getElementById('sop-list');
-                const indZone = document.getElementById('assign-ind-zone');
-                if(sopList.innerHTML === "") sopList.innerHTML = (app.data.sop||[]).map(s => `<option value="${s.title}">`).join('');
-                if(indZone.innerHTML === "") indZone.innerHTML = app.data.employees.map(e => `<label class="flex items-center gap-2 p-2"><input type="checkbox" name="u-check" value="${e.id}"> <span class="text-xs font-bold">${e.name}</span></label>`).join('');
-            },
-
             actions: {
-                seedAdmin: async () => {
-                    if(confirm("Tạo tài khoản Admin khẩn cấp? (ID: 9999, PIN: 9999)")) {
-                        await addDoc(collection(db, `${ROOT}/employees`), { id: 9999, name: "Admin Cứu Hộ", pin: "9999", role: "Giám đốc", score: 100 });
-                        location.reload();
-                    }
-                },
-                logout: () => { localStorage.removeItem('n5_v93_user'); location.reload(); },
+                seedAdmin: async () => { if(confirm("Tạo Admin 9999?")) { await addDoc(collection(db, `${ROOT}/employees`), { id: 9999, name: "Admin", pin: "9999", role: "Giám đốc" }); location.reload(); } },
+                logout: () => { localStorage.removeItem('n5_v92_1_user'); location.reload(); },
+                
                 createTask: async () => {
                     const title = document.getElementById('task-title').value;
                     const houses = Array.from(document.querySelectorAll('input[name="h-chk"]:checked')).map(i => i.value);
                     const uids = Array.from(document.querySelectorAll('input[name="u-chk"]:checked')).map(i => i.value);
-                    if(!title || houses.length === 0 || uids.length === 0) return alert("Thiếu thông tin!");
+                    if(!title) return alert("Thiếu thông tin!");
                     for(let h of houses) { for(let u of uids) { await addDoc(collection(db, `${ROOT}/tasks`), { title, houseId: h, assignee: u, status: 'pending', time: Date.now() }); } }
-                    alert("Đã giao việc!");
+                    alert("Đã giao!");
                 },
                 startTask: async (id) => updateDoc(doc(db, `${ROOT}/tasks`, id), { status: 'in_progress', startTime: Date.now() }),
                 delTask: async (id) => { if(confirm("Xóa?")) deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
                 nudgeTask: async (id) => { alert("Đã gửi nhắc nhở!"); },
-                remindAttendance: async () => { alert("Đã gửi thông báo nhắc điểm danh đến toàn bộ nhân viên chưa vào ca!"); },
-                openReport: (id, title) => { document.getElementById('report-task-id').value = id; document.getElementById('report-title').innerText = title; app.ui.showModal('report-modal'); },
+                remindAttendance: async () => { alert("Đã gửi thông báo nhắc điểm danh!"); },
+                openReport: (id, title) => { document.getElementById('report-task-id').value = id; document.getElementById('report-title').innerText = title; app.ui.toggleModal('report-modal'); },
                 submitReport: async (status) => {
                     const id = document.getElementById('report-task-id').value;
-                    const val = document.getElementById('report-val').value;
-                    const note = document.getElementById('report-note').value;
-                    const task = app.data.tasks.find(t => t._id === id);
-                    await updateDoc(doc(db, `${ROOT}/tasks`, id), { status, actual: val, note: note, photo: app.currentPhoto, finishTime: Date.now(), duration: task.startTime ? ((Date.now() - task.startTime)/60000).toFixed(0) + " phút" : "N/A" });
-                    if(status === 'completed') { const emp = app.data.employees.find(e => e.id == task.assignee); if(emp) await updateDoc(doc(db, `${ROOT}/employees`, emp._id), { score: (emp.score || 0) + 10 }); }
-                    app.ui.closeModal('report-modal');
+                    await updateDoc(doc(db, `${ROOT}/tasks`, id), { status, actual: document.getElementById('report-val').value, finishTime: Date.now() });
+                    app.ui.toggleModal('report-modal');
                 },
                 handlePhoto: (input) => {
                     const r = new FileReader();
                     r.onload = e => { app.currentPhoto = e.target.result; document.getElementById('report-preview').src = e.target.result; document.getElementById('report-preview').classList.remove('hidden'); };
                     r.readAsDataURL(input.files[0]);
                 },
-                setSXMode: (m) => { document.getElementById('sx-action').value = m; document.getElementById('btn-sx-nhap').className = m==='NHẬP' ? 'flex-1 py-3 rounded-lg text-xs font-black bg-blue-600 text-white shadow-md' : 'flex-1 py-3 rounded-lg text-xs font-black text-slate-400'; document.getElementById('btn-sx-xuat').className = m==='XUẤT' ? 'flex-1 py-3 rounded-lg text-xs font-black bg-orange-500 text-white shadow-md' : 'flex-1 py-3 rounded-lg text-xs font-black text-slate-400'; },
+                setSXMode: (m) => { document.getElementById('sx-action').value = m; document.getElementById('btn-sx-nhap').className = m==='NHẬP' ? 'flex-1 py-2 rounded font-bold bg-blue-600 text-white' : 'flex-1 py-2 rounded font-bold text-slate-400'; document.getElementById('btn-sx-xuat').className = m==='XUẤT' ? 'flex-1 py-2 rounded font-bold bg-orange-500 text-white' : 'flex-1 py-2 rounded font-bold text-slate-400'; },
                 submitSX: async () => {
                     const d = { action: document.getElementById('sx-action').value, date: document.getElementById('sx-date').value, type: document.getElementById('sx-type').value, qty: Number(document.getElementById('sx-qty').value), batch: document.getElementById('sx-batch').value, dest: document.getElementById('sx-dest').value, bad: Number(document.getElementById('sx-bad').value), reuse: Number(document.getElementById('sx-reuse').value), user: app.user.name, time: Date.now() };
                     await addDoc(collection(db, `${ROOT}/production_logs`), d); alert("Đã lưu!");
@@ -461,57 +438,31 @@
                     document.getElementById('th-percent-display').innerHTML = html;
                 },
                 submitTH: async () => {
-                    const details = {};
-                    ['b2','a1','a2','b1','d1','ht','abf','b2f','b1f'].forEach(f => details[f] = Number(document.getElementById('th-'+f).value)||0);
-                    const total = Object.values(details).reduce((a,b)=>a+b,0);
-                    await addDoc(collection(db, `${ROOT}/harvest_logs`), { 
-                        area: document.getElementById('th-area').value, 
-                        details, total, 
-                        note: document.getElementById('th-note').value,
-                        note_err: document.getElementById('th-note-err').value,
-                        note_snack: document.getElementById('th-note-snack').value,
-                        xuat_say: document.getElementById('th-xuat-say').value,
-                        snack_tp: document.getElementById('th-snack-tp').value,
-                        user: app.user.name, time: Date.now() 
-                    }); 
-                    alert("Đã lưu!");
+                    const det = {}; ['b2','a1','a2','b1','d1','ht','abf','b2f','b1f'].forEach(id => det[id]=Number(document.getElementById('th-'+id).value)||0);
+                    const total = Object.values(det).reduce((a,b)=>a+b,0);
+                    await addDoc(collection(db, `${ROOT}/harvest_logs`), { area: document.getElementById('th-area').value, details: det, total, note: document.getElementById('th-note').value, user: app.user.name, time: Date.now() }); alert("Đã lưu!");
                 },
                 sendChat: async () => { const i = document.getElementById('chat-input'); if(!i.value) return; await addDoc(collection(db, `${ROOT}/chat`), { text: i.value, senderId: app.user.id, senderName: app.user.name, time: Date.now() }); i.value = ''; },
                 checkIn: async (shift) => { const today = new Date().toISOString().split('T')[0]; await addDoc(collection(db, `${ROOT}/attendance_logs`), { uid: app.user.id, name: app.user.name, shift, date: today }); await updateDoc(doc(db, `${ROOT}/employees`, app.user._id), { lastLogin: today }); alert("Đã điểm danh!"); },
-                submitHR: async (type) => { await addDoc(collection(db, `${ROOT}/hr_requests`), { type, requester: app.user.name, status: 'pending', content: type==='LEAVE' ? document.getElementById('leave-date').value : document.getElementById('buy-item').value }); alert("Đã gửi!"); app.ui.closeModal(type==='LEAVE'?'modal-leave':'modal-buy'); },
+                submitHR: async (type) => { await addDoc(collection(db, `${ROOT}/hr_requests`), { type, requester: app.user.name, status: 'pending', content: type==='LEAVE' ? document.getElementById('leave-date').value : document.getElementById('buy-item').value }); alert("Đã gửi!"); app.ui.toggleModal(type==='LEAVE'?'modal-leave':'modal-buy'); },
                 approve: async (id, status) => { await updateDoc(doc(db, `${ROOT}/hr_requests`, id), { status }); alert("Đã xử lý!"); },
-                openTemp: (id, name) => { document.getElementById('temp-id').value = id; document.getElementById('temp-name').innerText = name; app.ui.showModal('modal-temp'); },
-                saveTemp: async () => { const id = document.getElementById('temp-id').value; await updateDoc(doc(db, `${ROOT}/houses`, id), { 'temp.am': document.getElementById('temp-am').value, 'temp.pm': document.getElementById('temp-pm').value }); alert("Đã lưu!"); app.ui.closeModal('modal-temp'); },
+                openTemp: (id, name) => { document.getElementById('temp-id').value = id; document.getElementById('temp-name').innerText = name; app.ui.toggleModal('modal-temp'); },
+                saveTemp: async () => { const id = document.getElementById('temp-id').value; await updateDoc(doc(db, `${ROOT}/houses`, id), { 'temp.am': document.getElementById('temp-am').value, 'temp.pm': document.getElementById('temp-pm').value }); alert("Đã lưu!"); app.ui.toggleModal('modal-temp'); },
                 addEmployee: async () => { await addDoc(collection(db, `${ROOT}/employees`), { id: Number(document.getElementById('new-emp-id').value), name: document.getElementById('new-emp-name').value, pin: document.getElementById('new-emp-pin').value, role: 'Nhân viên', score: 100 }); alert("Đã thêm!"); },
                 addSOP: async () => { await addDoc(collection(db, `${ROOT}/sop`), { title: document.getElementById('new-sop-name').value, sop: Number(document.getElementById('new-sop-val').value) }); alert("Đã thêm!"); },
                 addHouse: async () => { const name = prompt("Nhập tên nhà:"); if(name) await addDoc(collection(db, `${ROOT}/houses`), { name, temp: {am:0, pm:0} }); },
                 fillSOP: () => { const val = document.getElementById('task-title').value; const item = (app.data.sop||[]).find(s => s.title === val); if(item) document.getElementById('task-target').value = item.sop; },
-                toggleAssignMode: () => {
-                    const m = document.getElementById('assign-mode').value;
-                    document.getElementById('assign-ind-zone').classList.toggle('hidden', m !== 'ind');
-                    document.getElementById('assign-team-zone').classList.toggle('hidden', m !== 'team');
-                },
                 exportAll: () => { alert("Xuất báo cáo..."); },
                 exportSX: () => { alert("Xuất SX..."); },
                 exportTH: () => { alert("Xuất TH..."); },
-                
-                // New Action: View House Logs
                 viewHouseLogs: (houseName) => {
                     const logs = [
                         ...app.data.production.filter(l => l.dest === houseName).map(l => ({...l, type: 'SX'})),
                         ...app.data.harvest.filter(l => l.area === houseName).map(l => ({...l, type: 'TH'}))
                     ].sort((a,b) => b.time - a.time);
-                    
                     document.getElementById('history-house-name').innerText = houseName;
-                    document.getElementById('history-content').innerHTML = logs.length ? logs.map(l => `
-                        <div class="border-b pb-1 mb-1">
-                            <span class="font-bold ${l.type==='SX'?'text-blue-500':'text-green-500'}">[${l.type}]</span> 
-                            ${new Date(l.time).toLocaleDateString()} - 
-                            ${l.type==='SX' ? `${l.action} ${l.qty}` : `Hái ${l.total}kg`}
-                        </div>
-                    `).join('') : 'Chưa có dữ liệu';
-                    
-                    app.ui.showModal('modal-house-history');
+                    document.getElementById('history-content').innerHTML = logs.length ? logs.map(l => `<div class="border-b pb-1 mb-1"><span class="font-bold ${l.type==='SX'?'text-blue-500':'text-green-500'}">[${l.type}]</span> ${new Date(l.time).toLocaleDateString()} - ${l.type==='SX' ? `${l.action} ${l.qty}` : `Hái ${l.total}kg`}</div>`).join('') : 'Chưa có dữ liệu';
+                    app.ui.toggleModal('modal-house-history');
                 }
             }
         };
