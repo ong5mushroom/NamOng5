@@ -37,19 +37,19 @@
         .status-wait { background: #eab308; animation: pulse 1s infinite; }
         .status-ok { background: #22c55e; }
 
-        /* Khung Chat (Platinum Shiitake Design) */
+        /* Khung Chat (Platinum Shiitake Design Fixed) */
         #chat-layer { position: fixed; inset: 0; background: #efeae2; z-index: 2000; display: none; flex-direction: column; }
         .shiitake-pattern { 
             background-color: #efeae2;
             background-image: radial-gradient(var(--shiitake) 0.5px, transparent 0.5px);
             background-size: 24px 24px;
-            opacity: 0.8;
+            /* Đã xóa opacity: 0.8 để không bị trong suốt */
         }
         #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
         .chat-bubble { max-width: 82%; padding: 10px 14px; border-radius: 16px; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; line-height: 1.4; }
         .chat-me { background: #dcf8c6; color: #1f2937; align-self: flex-end; border-bottom-right-radius: 2px; }
         .chat-other { background: white; color: #1f2937; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .chat-system { background: #fee2e2; color: #991b1b; align-self: center; border-radius: 8px; font-size: 11px; font-weight: 700; text-align: center; max-width: 90%; border: 1px dashed #f87171; box-shadow: none; }
+        .chat-system { background: #fee2e2; color: #991b1b; align-self: center; border-radius: 8px; font-size: 11px; font-weight: 700; text-align: center; max-width: 90%; border: 1px dashed #f87171; box-shadow: none; padding: 6px 12px; margin: 4px 0; }
         
         .chat-sender-tag { font-size: 9px; font-weight: 900; color: var(--shiitake); margin-bottom: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 4px; }
         .chat-avatar { width: 20px; height: 20px; border-radius: 50%; background: var(--blue); color: white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; border: 1px solid white; }
@@ -193,7 +193,7 @@
                      <div class="grid grid-cols-2 gap-3"><div><p class="label text-red-500">Hủy chân (kg)</p><input type="number" id="th-huy-chan" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-orange-500">Đổi trả (kg)</p><input type="number" id="th-doi-tra" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
                      <div class="grid grid-cols-3 gap-2"><div><p class="label text-blue-500">Xuất Sấy</p><input type="number" id="th-xuat-say" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Snack TP</p><input type="number" id="th-snack-tp" class="input-box bg-white text-center p-2" placeholder="0"></div><div><p class="label text-purple-500">Xuất Snack</p><input type="number" id="th-xuat-snack" class="input-box bg-white text-center p-2" placeholder="0"></div></div>
                      <div><p class="label">Ghi chú thêm</p><input type="text" id="th-note" class="input-box bg-white p-2 text-xs"></div>
-                     <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 mt-1 shadow-green-100 uppercase tracking-widest">Cập nhật kho nấm</button>
+                     <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 mt-1 shadow-green-100 uppercase tracking-widest">CẬP NHẬT KHO NẤM</button>
                  </div>
              </div>
              <div id="th-log-list" class="space-y-2 pb-20"></div>
@@ -201,15 +201,15 @@
 
         <!-- E. TEAM -->
         <div id="view-team" class="view-section hidden">
-             <div class="card border border-blue-100"><p class="label mb-3">ĐIỂM DANH CA LÀM</p><div class="grid grid-cols-2 gap-3"><button onclick="app.actions.checkIn('Sáng')" class="btn-primary bg-yellow-500 text-white shadow-yellow-100 uppercase">Ca Sáng</button><button onclick="app.actions.checkIn('Chiều')" class="btn-primary bg-indigo-500 text-white shadow-indigo-100 uppercase">Ca Chiều</button></div></div>
-             <div class="card bg-slate-50 border border-slate-200"><p class="label mb-3">HÀNH CHÍNH</p><div class="grid grid-cols-2 gap-3"><button onclick="app.ui.showModal('modal-leave')" class="btn-primary bg-white text-slate-600 border shadow-none text-xs uppercase"><i class="fas fa-calendar-times text-red-500"></i> Xin nghỉ</button><button onclick="app.ui.showModal('modal-buy')" class="btn-primary bg-white text-slate-600 border shadow-none text-xs uppercase"><i class="fas fa-shopping-cart text-green-500"></i> Mua hàng</button></div></div>
-             <button id="btn-remind-att" onclick="app.actions.remindAttendance()" class="hidden w-full text-center text-xs text-blue-600 font-bold mb-4 bg-blue-50 p-2.5 rounded-lg border border-blue-100 uppercase">📢 Nhắc điểm danh qua Chat</button>
+             <div class="card border border-blue-100 shadow-sm"><p class="label mb-3">ĐIỂM DANH CA LÀM</p><div class="grid grid-cols-2 gap-3"><button onclick="app.actions.checkIn('Sáng')" class="btn-primary bg-yellow-500 text-white shadow-yellow-100 uppercase">Ca Sáng</button><button onclick="app.actions.checkIn('Chiều')" class="btn-primary bg-indigo-500 text-white shadow-indigo-100 uppercase">Ca Chiều</button></div></div>
+             <div class="card bg-slate-50 border border-slate-200 shadow-sm"><p class="label mb-3">HÀNH CHÍNH</p><div class="grid grid-cols-2 gap-3"><button onclick="app.ui.showModal('modal-leave')" class="btn-primary bg-white text-slate-600 border shadow-none text-xs uppercase"><i class="fas fa-calendar-times text-red-500"></i> Xin nghỉ</button><button onclick="app.ui.showModal('modal-buy')" class="btn-primary bg-white text-slate-600 border shadow-none text-xs uppercase"><i class="fas fa-shopping-cart text-green-500"></i> Mua hàng</button></div></div>
+             <button id="btn-remind-att" onclick="app.actions.remindAttendance()" class="hidden w-full text-center text-xs text-blue-600 font-bold mb-4 bg-blue-50 p-2.5 rounded-lg border border-blue-100 uppercase">📢 Gửi nhắc nhở điểm danh qua Chat</button>
              <p class="label px-2 mb-2 tracking-widest font-black text-slate-400">DANH SÁCH NHÂN SỰ</p>
              <div id="team-list" class="space-y-2 pb-20"></div>
         </div>
     </div>
 
-    <!-- 5. CHAT LAYER (FIXED & REALTIME) -->
+    <!-- 5. CHAT OVERLAY -->
     <div id="chat-layer" class="shiitake-pattern">
         <div class="h-[70px] bg-white border-b flex items-end px-4 pb-3 shadow-sm flex-shrink-0">
              <button onclick="app.ui.closeChat()" class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mr-3 active:bg-slate-200 shadow-sm"><i class="fas fa-arrow-left text-slate-600"></i></button>
@@ -239,25 +239,25 @@
             <div class="space-y-4">
                 <button id="btn-export-all" onclick="app.actions.exportAll()" class="hidden btn-primary bg-white text-blue-700 border border-blue-200 shadow-sm uppercase tracking-widest">Xuất Báo Cáo Tổng</button>
                 <div id="admin-tools" class="hidden space-y-3 border-t pt-3">
-                    <p class="label border-b pb-2 italic">Dành cho Quản trị</p>
+                    <p class="label border-b pb-2 italic">Quản trị</p>
                     <button onclick="app.ui.showModal('modal-add-emp')" class="btn-primary bg-slate-700 text-xs uppercase shadow-none">Thêm Nhân Sự</button>
                     <button onclick="app.actions.addHouse()" class="btn-primary bg-slate-500 text-xs uppercase shadow-none">Thêm Nhà Nấm</button>
                     <button onclick="app.ui.showModal('modal-add-sop')" class="btn-primary bg-slate-400 text-xs uppercase shadow-none">Thêm Quy Trình SOP</button>
                     <button onclick="app.ui.showModal('modal-approve')" class="btn-primary bg-green-600 text-xs uppercase shadow-none">Duyệt Đơn Từ</button>
                 </div>
-                <button onclick="app.actions.logout()" class="btn-primary bg-red-500 mt-4 uppercase tracking-widest shadow-md">Đăng xuất tài khoản</button>
+                <button onclick="app.actions.logout()" class="btn-primary bg-red-500 mt-4 uppercase tracking-widest shadow-md">Đăng xuất</button>
             </div>
         </div>
     </div>
     
-    <!-- Other Modals -->
-    <div id="report-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('report-modal')"><div class="modal-box"><h3 class="font-black text-center mb-4 text-slate-800 uppercase">Báo cáo việc làm</h3><input type="hidden" id="report-task-id"><div class="mb-4"><p class="label text-center">Số lượng đạt được</p><input type="number" id="report-val" placeholder="0" class="input-box text-center text-3xl"></div><div class="mb-4"><p class="label text-center">Ghi chú (nếu có)</p><input id="report-note" class="input-box" placeholder="..."></div><div class="grid grid-cols-2 gap-2"><button onclick="app.actions.submitReport('completed')" class="btn-primary bg-green-600 shadow-green-100 uppercase">Hoàn thành</button><button onclick="app.actions.submitReport('unfinished')" class="btn-primary bg-orange-500 shadow-orange-100 uppercase">Chưa xong</button></div></div></div>
+    <!-- Report Modal -->
+    <div id="report-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('report-modal')"><div class="modal-box"><h3 class="font-black text-center mb-4 text-slate-800 uppercase">Báo cáo công việc</h3><input type="hidden" id="report-task-id"><div class="mb-4"><p class="label text-center">Số lượng đạt được</p><input type="number" id="report-val" placeholder="0" class="input-box text-center text-3xl"></div><div class="mb-4"><p class="label text-center">Ghi chú (nếu có)</p><input id="report-note" class="input-box" placeholder="..."></div><div class="grid grid-cols-2 gap-2"><button onclick="app.actions.submitReport('completed')" class="btn-primary bg-green-600 shadow-green-100 uppercase">Hoàn thành</button><button onclick="app.actions.submitReport('unfinished')" class="btn-primary bg-orange-500 shadow-orange-100 uppercase">Chưa xong</button></div></div></div>
     <div id="modal-house-history" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-house-history')"><div class="modal-box"><h3 class="font-bold text-center mb-2 text-blue-600 uppercase text-sm tracking-tighter">Lịch sử Nhà: <span id="history-house-name"></span></h3><div id="history-content" class="text-[11px] space-y-2 max-h-60 overflow-y-auto no-scrollbar tracking-tighter"></div></div></div>
     <div id="modal-temp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-temp')"><div class="modal-box text-center"><h3 class="font-bold mb-6 text-xl">Nhiệt độ <span id="temp-name" class="text-orange-500"></span></h3><input type="hidden" id="temp-id"><div class="grid grid-cols-2 gap-4 mb-6"><div><label class="label text-center">Sáng</label><input id="temp-am" type="number" class="input-box text-center text-2xl"></div><div><label class="label text-center">Chiều</label><input id="temp-pm" type="number" class="input-box text-center text-2xl"></div></div><button onclick="app.actions.saveTemp()" class="btn-primary bg-orange-500 uppercase shadow-none">Lưu thông số</button></div></div>
-    <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-leave')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-blue-600 uppercase tracking-tighter">Xin nghỉ phép</h3><div class="space-y-3"><p class="label">Ngày nghỉ</p><input id="leave-date" type="date" class="input-box"><p class="label">Lý do</p><select id="leave-reason" class="input-box"><option>Ốm đau</option><option>Việc riêng gia đình</option><option>Khác</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn-primary uppercase tracking-widest">Gửi yêu cầu</button></div></div></div>
-    <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-green-600 uppercase tracking-tighter">Đề xuất mua vật tư</h3><div class="space-y-3"><p class="label">Nội dung mua</p><input type="text" id="pur-item" placeholder="Vd: 50 bịch phôi..." class="input-box"><button onclick="app.actions.submitHR('PURCHASE')" class="btn-primary bg-green-600 uppercase tracking-widest">Gửi đề xuất</button></div></div></div>
+    <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-leave')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-blue-600 uppercase tracking-tighter">Xin nghỉ phép</h3><div class="space-y-3"><p class="label">Ngày bắt đầu</p><input id="leave-date" type="date" class="input-box"><p class="label">Lý do nghỉ</p><select id="leave-reason" class="input-box"><option>Ốm đau</option><option>Việc riêng gia đình</option><option>Khác</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn-primary uppercase tracking-widest">Gửi yêu cầu</button></div></div></div>
+    <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-green-600 uppercase tracking-tighter">Đề xuất mua vật tư</h3><div class="space-y-3"><p class="label">Nội dung mua hàng</p><input type="text" id="pur-item" placeholder="Vd: 50 bịch phôi..." class="input-box"><button onclick="app.actions.submitHR('PURCHASE')" class="btn-primary bg-green-600 uppercase tracking-widest">Gửi đề xuất</button></div></div></div>
     <div id="modal-approve" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-approve')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-red-600 uppercase text-center uppercase tracking-tighter">Phê duyệt đơn</h3><div id="approval-list" class="space-y-3"></div></div></div>
-    <div id="modal-add-sop" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-sop')"><div class="modal-box"><h3 class="font-bold mb-4 uppercase tracking-tighter">Thêm Quy trình SOP</h3><div class="space-y-3"><p class="label">Tên việc</p><input id="new-sop-name" placeholder="..." class="input-box"><p class="label">Định mức</p><input id="new-sop-val" placeholder="..." class="input-box"><button onclick="app.actions.addSOP()" class="btn-primary uppercase">Lưu SOP</button></div></div></div>
+    <div id="modal-add-sop" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-sop')"><div class="modal-box"><h3 class="font-bold mb-4 uppercase tracking-tighter">Thêm Quy trình SOP</h3><div class="space-y-3"><p class="label">Tên việc</p><input id="new-sop-name" placeholder="..." class="input-box"><p class="label">Định mức (Số)</p><input id="new-sop-val" placeholder="..." class="input-box"><button onclick="app.actions.addSOP()" class="btn-primary uppercase">Lưu SOP</button></div></div></div>
     <div id="modal-add-emp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-emp')">
         <div class="modal-box"><h3 class="font-bold mb-4 uppercase tracking-tighter">Thêm Nhân Sự</h3><div class="space-y-3">
             <p class="label">Tên nhân viên</p><input id="new-emp-name" placeholder="..." class="input-box">
@@ -297,8 +297,8 @@
                 tab: (id) => {
                     const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
                     if (!isAdmin) {
-                        if (id === 'sx' && app.user.team !== 'Tổ Sản Xuất') { app.ui.showMsg('Chỉ thành viên Tổ Sản Xuất mới vào được tab này!'); return; }
-                        if (id === 'th' && app.user.team !== 'Tổ Thu Hoạch') { app.ui.showMsg('Chỉ thành viên Tổ Thu Hoạch mới vào được tab này!'); return; }
+                        if (id === 'sx' && app.user.team !== 'Tổ Sản Xuất') { app.ui.showMsg('Chỉ Tổ Sản Xuất mới được vào thẻ này!'); return; }
+                        if (id === 'th' && app.user.team !== 'Tổ Thu Hoạch') { app.ui.showMsg('Chỉ Tổ Thu Hoạch mới được vào thẻ này!'); return; }
                     }
                     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
                     document.getElementById('view-'+id).classList.remove('hidden');
@@ -340,7 +340,7 @@
             sync: () => {
                 const mapData = s => s.docs.map(d => ({...d.data(), _id: d.id}));
                 
-                // Employees (Critical for Team list)
+                // Employees First (For Login & Team list)
                 onSnapshot(collection(db, `${ROOT}/employees`), s => {
                     app.data.employees = mapData(s);
                     app.renderLogin();
@@ -350,13 +350,13 @@
                     }
                 });
 
-                // Chat (Independent Listener)
+                // Chat Real-time (Platinum Logic)
                 onSnapshot(query(collection(db, `${ROOT}/chat`), orderBy("time", "asc"), limit(100)), s => {
                     app.data.chat = s.docs.map(d => d.data());
                     if(app.user) app.renderChat();
                 });
 
-                // Data Collections
+                // Collections Data
                 ['houses', 'tasks', 'production_logs', 'harvest_logs', 'hr_requests', 'attendance_logs', 'sop'].forEach(col => {
                     onSnapshot(collection(db, `${ROOT}/${col}`), s => {
                         const d = mapData(s);
@@ -372,7 +372,7 @@
             renderLogin: () => {
                 const s = document.getElementById('login-user');
                 if (app.data.employees.length > 0) {
-                    s.innerHTML = '<option value="">-- Chọn thành viên --</option>' + app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+                    s.innerHTML = '<option value="">-- Chọn tên thành viên --</option>' + app.data.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
                     s.disabled = false;
                     document.getElementById('login-pin').disabled = false;
                     document.getElementById('login-btn').disabled = false;
@@ -454,7 +454,7 @@
                             <div><p class="font-bold text-xs text-slate-700">${t.title} (${t.houseId})</p></div>
                             <div class="flex gap-2">
                                 ${isAdmin?`<button onclick="app.actions.nudgeTask('${t._id}', '${name}', '${t.title}')" class="text-yellow-500 w-8 h-8 flex items-center justify-center active:scale-90"><i class="fas fa-bell"></i></button><button onclick="app.actions.delTask('${t._id}')" class="text-red-400 w-8 h-8 flex items-center justify-center active:scale-90"><i class="fas fa-trash"></i></button>`:''}
-                                ${t.assignee==app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md uppercase tracking-tight">Báo cáo</button>`:`<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md animate-pulse uppercase tracking-tight">Nhận việc</button>`) : ''}
+                                ${t.assignee==app.user.id ? (isStarted ? `<button onclick="app.actions.openReport('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md uppercase tracking-tight">Báo cáo</button>`:`<button onclick="app.actions.startTask('${t._id}')" class="bg-green-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md animate-pulse uppercase tracking-tight">Nhận</button>`) : ''}
                             </div>
                         </div>`;
                     }).join('');
@@ -471,7 +471,7 @@
 
                 if(isAdmin && app.data.hr_requests) {
                     const pendingHR = app.data.hr_requests.filter(r => r.status === 'pending');
-                    document.getElementById('approval-list').innerHTML = pendingHR.length ? pendingHR.map(r => `<div class="p-3 bg-slate-50 border rounded-xl mb-2 text-xs"><p class="font-bold text-slate-800">${r.type} - ${r.requester}</p><p class="text-slate-500 mt-1">${r.content}</p><div class="flex gap-2 mt-2"><button onclick="app.actions.approve('${r._id}', 'approved')" class="flex-1 bg-green-600 text-white py-1.5 rounded-lg font-bold">DUYỆT</button><button onclick="app.actions.approve('${r._id}', 'rejected')" class="flex-1 bg-red-500 text-white py-1.5 rounded-lg font-bold uppercase tracking-tighter">Từ chối</button></div></div>`).join('') : '<p class="text-center text-slate-400 py-4 italic text-[11px]">Hệ thống đơn từ trống</p>';
+                    document.getElementById('approval-list').innerHTML = pendingHR.length ? pendingHR.map(r => `<div class="p-3 bg-slate-50 border rounded-xl mb-2 text-xs"><p class="font-bold text-slate-800">${r.type} - ${r.requester}</p><p class="text-slate-500 mt-1">${r.content}</p><div class="flex gap-2 mt-2"><button onclick="app.actions.approve('${r._id}', 'approved')" class="flex-1 bg-green-600 text-white py-1.5 rounded-lg font-bold">DUYỆT</button><button onclick="app.actions.approve('${r._id}', 'rejected')" class="flex-1 bg-red-500 text-white py-1.5 rounded-lg font-bold uppercase tracking-tighter">Hủy</button></div></div>`).join('') : '<p class="text-center text-slate-400 py-4 italic text-[11px]">Không có đơn từ chờ duyệt</p>';
                 }
             },
 
@@ -501,23 +501,23 @@
                 if(!box || !app.user) return;
                 
                 const html = (app.data.chat || []).map(m => {
-                    const isMe = String(m.senderId) === String(app.user.id);
+                    const isMe = String(m.senderId) == String(app.user.id);
                     const isSys = m.senderId === 'SYSTEM';
                     
                     if (isSys) {
-                        return `<div class="chat-bubble chat-system">SYSTEM: ${m.text}</div>`;
+                        return `<div class="chat-bubble chat-system">📢 ${m.text}</div>`;
                     }
                     
                     return `
                     <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-                        <div class="chat-sender-tag">${isMe ? '' : `<div class="chat-avatar">${m.senderName.charAt(0)}</div> ${m.senderName}`}</div>
+                        <div class="chat-sender-tag">${isMe ? '' : `<div class="chat-avatar">${m.senderName ? m.senderName.charAt(0) : '?'}</div> ${m.senderName}`}</div>
                         <div class="chat-bubble ${isMe ? 'chat-me' : 'chat-other'} shadow-sm">
                             <p class="font-medium">${m.text}</p>
                         </div>
                     </div>`;
                 }).join('');
                 
-                box.innerHTML = html || '<p class="text-center text-slate-400 italic text-xs py-12">Chưa có nội dung trò chuyện</p>';
+                box.innerHTML = html || '<p class="text-center text-slate-400 italic text-xs py-12">Chưa có nội dung thảo luận</p>';
                 box.scrollTop = box.scrollHeight;
             },
 
@@ -538,18 +538,18 @@
                     app.ui.showMsg("Đã ban hành lệnh làm việc!");
                 },
                 startTask: async (id) => updateDoc(doc(db, `${ROOT}/tasks`, id), { status: 'in_progress', startTime: Date.now() }),
-                delTask: async (id) => { if(confirm("Xóa lệnh này?")) deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
+                delTask: async (id) => { if(confirm("Xóa lệnh làm việc này?")) deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
                 
                 nudgeTask: async (id, name, task) => {
-                    const msg = `🔔 [LỆNH GẤP] Nhắc nhở [${name}] ưu tiên thực hiện: [${task}].`;
+                    const msg = `LỆNH GẤP: Nhắc nhở [${name}] ưu tiên thực hiện ngay việc [${task}]!`;
                     await addDoc(collection(db, `${ROOT}/chat`), { text: msg, senderId: 'SYSTEM', senderName: 'HỆ THỐNG', time: Date.now() });
-                    app.ui.showMsg("Đã gửi thúc giục!");
+                    app.ui.showMsg("Đã gửi thúc giục qua Chat!");
                 },
 
                 remindAttendance: async () => {
-                    const msg = `📢 [THÔNG BÁO] Toàn tổ lưu ý điểm danh đầu ca làm việc để ghi nhận công!`;
+                    const msg = `THÔNG BÁO: Toàn tổ lưu ý điểm danh đầu ca làm việc để ghi nhận công ca kịp thời!`;
                     await addDoc(collection(db, `${ROOT}/chat`), { text: msg, senderId: 'SYSTEM', senderName: 'HỆ THỐNG', time: Date.now() });
-                    app.ui.showMsg("Đã gửi lời nhắc điểm danh!");
+                    app.ui.showMsg("Đã gửi lời nhắc điểm danh vào Chat!");
                 },
 
                 openReport: (id, title) => { document.getElementById('report-task-id').value = id; app.ui.showModal('report-modal'); },
@@ -590,10 +590,10 @@
                 saveTemp: async () => { const id = document.getElementById('temp-id').value; await updateDoc(doc(db, `${ROOT}/houses`, id), { 'temp.am': document.getElementById('temp-am').value, 'temp.pm': document.getElementById('temp-pm').value }); app.ui.showMsg("Đã cập nhật nhiệt độ!"); app.ui.closeModal('modal-temp'); },
                 openTemp: (id, name) => { document.getElementById('temp-id').value = id; document.getElementById('temp-name').innerText = name; app.ui.showModal('modal-temp'); },
 
-                addEmployee: async () => { await addDoc(collection(db, `${ROOT}/employees`), { id: Number(document.getElementById('new-emp-id').value), name: document.getElementById('new-emp-name').value, pin: document.getElementById('new-emp-pin').value, team: document.getElementById('new-emp-team').value, role: document.getElementById('new-emp-role').value, score: 100 }); app.ui.showMsg("Thêm nhân viên mới thành công!"); app.ui.closeModal('modal-add-emp'); },
+                addEmployee: async () => { await addDoc(collection(db, `${ROOT}/employees`), { id: Number(document.getElementById('new-emp-id').value), name: document.getElementById('new-emp-name').value, pin: document.getElementById('new-emp-pin').value, team: document.getElementById('new-emp-team').value, role: document.getElementById('new-emp-role').value, score: 100 }); app.ui.showMsg("Đã thêm nhân sự!"); app.ui.closeModal('modal-add-emp'); },
                 delEmployee: async (id, name) => { if(confirm(`Xóa nhân viên ${name}? Dữ liệu sẽ mất vĩnh viễn!`)) deleteDoc(doc(db, `${ROOT}/employees`, id)); },
                 addSOP: async () => { await addDoc(collection(db, `${ROOT}/sop`), { title: document.getElementById('new-sop-name').value, sop: Number(document.getElementById('new-sop-val').value) }); app.ui.showMsg("Đã thêm quy trình SOP!"); app.ui.closeModal('modal-add-sop'); },
-                addHouse: async () => { const name = prompt("Tên nhà nấm mới:"); if(name) await addDoc(collection(db, `${ROOT}/houses`), { name, temp: {am:0, pm:0} }); },
+                addHouse: async () => { const name = prompt("Nhập tên nhà nấm:"); if(name) await addDoc(collection(db, `${ROOT}/houses`), { name, temp: {am:0, pm:0} }); },
                 fillSOP: () => { const val = document.getElementById('task-title').value; const item = (app.data.sop||[]).find(s => s.title === val); if(item) document.getElementById('task-target').value = item.sop; },
                 
                 viewHouseLogs: (name) => {
@@ -602,7 +602,7 @@
                         ...(app.data.harvest||[]).filter(l => l.area === name).map(l => `<span class="text-green-600 font-black text-[10px] uppercase">[TH]</span> Hái ${l.total}kg`)
                     ].reverse();
                     document.getElementById('history-house-name').innerText = name;
-                    document.getElementById('history-content').innerHTML = logs.length ? logs.join('<br>') : '<p class="italic text-slate-400">Không có nhật ký</p>';
+                    document.getElementById('history-content').innerHTML = logs.length ? logs.join('<br>') : '<p class="italic text-slate-400">Trống</p>';
                     app.ui.showModal('modal-house-history');
                 },
 
