@@ -121,6 +121,10 @@
              
              <!-- Tab 1: Thu hoạch -->
              <div id="th-sub-harvest" class="space-y-3">
+                 <div class="flex justify-between items-center px-1">
+                    <p class="label font-black text-slate-500 uppercase text-[9px]">Ghi nhận sản lượng hái</p>
+                    <button id="btn-export-th" onclick="app.actions.exportTH()" class="hidden text-[9px] font-bold text-green-600 bg-white border px-2 py-1 rounded-lg shadow-sm">Excel</button>
+                 </div>
                  <div class="card border-2 border-green-50 shadow-md">
                      <div class="space-y-3">
                          <div><p class="label font-black text-blue-600">Chọn nhà trồng</p><select id="th-area" class="input-box bg-white font-bold text-green-700"></select></div>
@@ -150,18 +154,14 @@
                  </div>
              </div>
              
-             <!-- Tab 2: Xuất kho (Gọn thao tác theo khách hàng) -->
+             <!-- Tab 2: Xuất kho -->
              <div id="th-sub-export" class="space-y-3 hidden">
                 <div class="card border-2 border-blue-50 shadow-md">
                     <div class="mb-4">
                         <p class="label font-black text-blue-600">Khách hàng / Nơi nhận đơn hàng</p>
                         <input id="export-customer-name" placeholder="Nhập tên khách hàng..." class="input-box bg-white shadow-inner">
                     </div>
-                    
-                    <div id="export-matrix" class="grid grid-cols-2 gap-3 mb-4">
-                        <!-- Mushroom types with qty inputs will be rendered here -->
-                    </div>
-                    
+                    <div id="export-matrix" class="grid grid-cols-2 gap-3 mb-4"></div>
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div class="bg-orange-50 p-3 rounded-xl border border-orange-100">
                             <p class="label text-orange-600">Đổi trả (Kg)</p>
@@ -182,7 +182,7 @@
         <div id="view-sx" class="view-section hidden">
             <div class="flex justify-between items-center px-1 mb-2">
                 <h2 class="font-black text-slate-800 uppercase text-xs tracking-tight">Quản lý Sản Xuất Phôi</h2>
-                <button onclick="app.actions.exportCSVByTeam('Tổ Sản Xuất')" class="text-[9px] font-bold text-blue-600 bg-white border px-2 py-1 rounded-lg shadow-sm">Báo cáo Tổ SX</button>
+                <button id="btn-export-sx-team" onclick="app.actions.exportCSVByTeam('Tổ Sản Xuất')" class="hidden text-[9px] font-bold text-blue-600 bg-white border px-2 py-1 rounded-lg shadow-sm">Báo cáo Tổ SX</button>
             </div>
             <div class="card border-2 border-indigo-50 shadow-md">
                 <div class="flex bg-slate-100 p-1 rounded-xl mb-4">
@@ -221,7 +221,7 @@
              
              <button id="btn-remind-att" onclick="app.actions.remindAttendance()" class="hidden w-full text-center text-[10px] text-blue-600 font-bold mb-4 bg-blue-50 p-2.5 rounded-lg border border-blue-100 uppercase tracking-tighter shadow-sm">📢 Nhắc điểm danh qua Chat</button>
              
-             <div class="flex flex-col gap-2 mb-3">
+             <div id="team-export-btns" class="hidden flex flex-col gap-2 mb-3">
                 <button onclick="app.actions.exportCSVByTeam('Tổ Thu Hoạch')" class="w-full bg-white border border-green-200 text-green-700 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-sm">BC Tổ Thu Hoạch</button>
                 <button onclick="app.actions.exportCSVByTeam('Tổ Đóng Gói')" class="w-full bg-white border border-blue-200 text-blue-700 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-sm">BC Tổ Thu Hoạch Đóng Gói</button>
              </div>
@@ -259,7 +259,7 @@
         <div class="modal-box">
             <h3 class="font-black text-xl mb-6 text-slate-800 uppercase tracking-tighter border-b pb-2 text-center">Hệ thống</h3>
             <div class="space-y-4">
-                <button onclick="app.actions.exportAll()" class="btn-primary bg-white text-blue-700 border border-blue-200 shadow-sm">Xuất Báo Cáo Tổng</button>
+                <button id="btn-export-all" onclick="app.actions.exportAll()" class="hidden btn-primary bg-white text-blue-700 border border-blue-200 shadow-sm">Xuất Báo Cáo Tổng</button>
                 <div id="admin-tools" class="hidden space-y-3 border-t pt-3">
                     <button onclick="app.ui.showModal('modal-add-emp')" class="btn-primary bg-slate-700 uppercase shadow-none">Thêm Nhân Sự</button>
                     <button onclick="app.actions.addHouse()" class="btn-primary bg-slate-500 uppercase shadow-none">Thêm Nhà Nấm</button>
@@ -292,7 +292,7 @@
 
     <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-leave')"><div class="modal-box"><h3 class="font-bold mb-4 uppercase text-blue-600 text-center">Gửi đơn xin nghỉ</h3><div class="space-y-3"><p class="label">Ngày xin nghỉ</p><input id="leave-date" type="date" class="input-box"><p class="label">Lý do chính</p><select id="leave-reason" class="input-box"><option>Sức khỏe / Ốm</option><option>Việc gia đình</option><option>Khác</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn-primary">Gửi đơn trình quản lý</button></div></div></div>
     <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box"><h3 class="font-bold mb-4 uppercase text-green-600 text-center">Đề xuất vật tư</h3><div class="space-y-3"><input type="text" id="pur-item" placeholder="Nhập tên vật tư cần mua..." class="input-box"><button onclick="app.actions.submitHR('PURCHASE')" class="btn-primary bg-green-600">Gửi đề xuất mua</button></div></div></div>
-    <div id="modal-approve" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-approve')"><div class="modal-box"><h3 class="font-bold mb-4 uppercase text-red-600 text-center">Duyệt đề xuất</h3><div id="approval-list" class="space-y-3"></div></div></div>
+    <div id="modal-approve" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-approve')"><div class="modal-box"><h3 class="font-bold mb-4 uppercase text-red-600 text-center">Phê duyệt</h3><div id="approval-list" class="space-y-3"></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -316,6 +316,17 @@
                 closeChat: () => document.getElementById('chat-layer').style.display = 'none',
                 
                 tab: (id) => {
+                    // LOGIC PHÂN QUYỀN TRUY CẬP THẺ (TAB ACCESS)
+                    const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
+                    if (!isAdmin) {
+                        if (id === 'sx' && app.user.team !== 'Tổ Sản Xuất') {
+                            return app.ui.showMsg("Thẻ Sản xuất chỉ dành cho Tổ Sản Xuất!");
+                        }
+                        if (id === 'th' && app.user.team !== 'Tổ Thu Hoạch') {
+                            return app.ui.showMsg("Thẻ Thu hoạch chỉ dành cho Tổ Thu Hoạch!");
+                        }
+                    }
+
                     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
                     document.getElementById('view-'+id).classList.remove('hidden');
                     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
@@ -370,7 +381,7 @@
 
             init: () => {
                 signInAnonymously(getAuth(appInstance)).then(() => {
-                    document.getElementById('status-text').innerText = 'Hợp nhất V104 Platinum Final';
+                    document.getElementById('status-text').innerText = 'Phân quyền tổ đội V104';
                     document.getElementById('login-status').querySelector('.status-dot').className = 'status-dot status-ok';
                     app.sync();
                 });
@@ -425,28 +436,47 @@
                     document.getElementById('login-overlay').classList.add('hidden'); 
                     app.renderApp();
                     app.ui.tab('home');
-                } else app.ui.showMsg("PIN không chính xác!");
+                } else app.ui.showMsg("Sai mã PIN!");
             },
 
             renderApp: () => {
                 document.getElementById('head-user').innerText = app.user.name;
                 document.getElementById('head-role').innerText = app.user.role;
                 const isAdmin = ['Giám đốc', 'Quản lý'].includes(app.user.role);
+                const canExport = app.user.role !== 'Nhân viên';
+
                 if(isAdmin) {
                     document.getElementById('admin-tools').classList.remove('hidden');
                     document.getElementById('admin-task-form').classList.remove('hidden');
                     document.getElementById('btn-remind-att').classList.remove('hidden');
                 }
+                
+                if (canExport) {
+                    document.getElementById('btn-export-all').classList.remove('hidden');
+                } else {
+                    document.getElementById('btn-export-all').classList.add('hidden');
+                }
+
                 app.renderDynamic();
                 app.renderTeam();
             },
 
             renderDynamic: () => {
                 const isAdmin = ['Giám đốc', 'Quản lý', 'Tổ trưởng'].includes(app.user.role);
+                const canExport = app.user.role !== 'Nhân viên';
                 const today = new Date().toISOString().split('T')[0];
                 
                 document.getElementById('stat-online').innerText = app.data.employees.filter(e=>e.lastLogin === today).length;
                 document.getElementById('stat-yield').innerText = app.data.harvest ? app.data.harvest.filter(h => new Date(h.time).toDateString() === new Date().toDateString()).reduce((a,b) => a + (b.total||0), 0) : 0;
+
+                const btnExpTH = document.getElementById('btn-export-th');
+                if (btnExpTH) btnExpTH.classList.toggle('hidden', !canExport);
+                
+                const btnExpSX = document.getElementById('btn-export-sx-team');
+                if (btnExpSX) btnExpSX.classList.toggle('hidden', !canExport);
+
+                const teamExpZone = document.getElementById('team-export-btns');
+                if (teamExpZone) teamExpZone.classList.toggle('hidden', !canExport);
 
                 const houseMulti = document.getElementById('house-multi-select');
                 if (houseMulti) {
@@ -471,7 +501,7 @@
                             <p class="text-[9px] text-slate-400 font-bold uppercase">AM: ${h.temp?.am||0}° | PM: ${h.temp?.pm||0}°</p>
                         </div>
                         <div class="flex gap-2">
-                             <button onclick="app.actions.exportCSVByHouse('${h.name}')" class="bg-blue-50 text-blue-600 w-9 h-9 rounded-full flex items-center justify-center shadow-sm"><i class="fas fa-file-export text-xs"></i></button>
+                             ${canExport ? `<button onclick="app.actions.exportCSVByHouse('${h.name}')" class="bg-blue-50 text-blue-600 w-9 h-9 rounded-full flex items-center justify-center shadow-sm"><i class="fas fa-file-export text-xs"></i></button>` : ''}
                              <button onclick="app.actions.openTemp('${h._id}', '${h.name}')" class="bg-orange-50 text-orange-600 w-9 h-9 rounded-full flex items-center justify-center shadow-sm"><i class="fas fa-temperature-high text-xs"></i></button>
                         </div>
                     </div>`).join('');
@@ -489,7 +519,7 @@
                             <p class="text-[9px] font-bold text-indigo-400 uppercase italic">Nhà: ${t.houseId} | ${name}</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            ${isAdmin ? `<button onclick="app.actions.nudgeTask('${t._id}', '${name}', '${t.title}')" class="text-yellow-500 w-8 h-8"><i class="fas fa-bell"></i></button><button onclick="app.actions.delTask('${t._id}')" class="text-red-400 w-8 h-8"><i class="fas fa-trash"></i></button>` : ''}
+                            ${isAdmin ? `<button onclick="app.actions.nudgeTask('${t._id}', '${name}', '${t.title}')" class="text-yellow-500 w-8 h-8 flex items-center justify-center"><i class="fas fa-bell"></i></button><button onclick="app.actions.delTask('${t._id}')" class="text-red-400 w-8 h-8 flex items-center justify-center"><i class="fas fa-trash"></i></button>` : ''}
                             ${isMyTask && t.status === 'pending' ? `<button onclick="app.actions.startTask('${t._id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase">Nhận</button>` : ''}
                             ${canReport && t.status === 'in_progress' ? `<button onclick="app.actions.openReport('${t._id}')" class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase">Báo cáo</button>` : ''}
                         </div>
@@ -509,7 +539,7 @@
             renderApproval: () => {
                 const list = document.getElementById('approval-list');
                 const pends = app.data.hr_requests.filter(r => r.status === 'pending');
-                list.innerHTML = pends.length ? pends.map(r => `<div class="p-3 bg-slate-50 rounded-xl border shadow-sm"><p class="font-bold text-slate-800 uppercase text-xs">${r.requester}</p><p class="text-[10px] text-blue-600 font-bold mb-2 uppercase">${r.type === 'LEAVE' ? 'Nghỉ' : 'Mua'}: ${r.content}</p><div class="grid grid-cols-2 gap-2"><button onclick="app.actions.approve('${r._id}', 'approved')" class="bg-green-600 text-white py-2 rounded-lg font-bold uppercase text-[9px]">Duyệt</button><button onclick="app.actions.approve('${r._id}', 'rejected')" class="bg-red-500 text-white py-2 rounded-lg font-bold uppercase text-[9px]">X</button></div></div>`).join('') : '<p class="text-center text-slate-400 italic text-xs py-4 uppercase font-bold">Trống đơn duyệt</p>';
+                list.innerHTML = pends.length ? pends.map(r => `<div class="p-3 bg-slate-50 rounded-xl border shadow-sm"><p class="font-bold text-slate-800 uppercase text-xs">${r.requester}</p><p class="text-[10px] text-blue-600 font-bold mb-2 uppercase">${r.type === 'LEAVE' ? 'Nghỉ' : 'Mua'}: ${r.content}</p><div class="grid grid-cols-2 gap-2"><button onclick="app.actions.approve('${r._id}', 'approved')" class="bg-green-600 text-white py-2 rounded-lg font-bold uppercase text-[9px]">Duyệt</button><button onclick="app.actions.approve('${r._id}', 'rejected')" class="bg-red-500 text-white py-2 rounded-lg font-bold uppercase text-[9px]">X</button></div></div>`).join('') : '<p class="text-center text-slate-400 italic text-xs py-4 uppercase font-bold">Sạch đơn duyệt</p>';
             },
 
             renderTeam: () => {
@@ -635,6 +665,7 @@
                     link.click(); document.body.removeChild(link);
                 },
                 exportCSVByHouse: (houseName) => {
+                    if (app.user.role === 'Nhân viên') return app.ui.showMsg("Bạn không có quyền xuất dữ liệu này!");
                     let csv = "NGAY;GIO;LOAI;CHI TIET;SO LUONG;NGUOI THUC HIEN\n";
                     app.data.harvest.filter(l => l.area === houseName).forEach(l => {
                         const d = new Date(l.time); csv += `${d.toLocaleDateString()};${d.toLocaleTimeString()};THU HOACH;Tong hai;${l.total};${l.user}\n`;
@@ -644,7 +675,17 @@
                     });
                     app.actions.downloadCSV(csv, `LichSu_Nha_${houseName}.csv`);
                 },
+                exportTH: () => {
+                    if (app.user.role === 'Nhân viên') return app.ui.showMsg("Bạn không có quyền xuất dữ liệu này!");
+                    let csv = "NGAY;GIO;NHA;TONG;B2;A1;A2;B1;CHAN;D1;HT;ABF;B2F;B1F;NGUOI HAI\n";
+                    app.data.harvest.sort((a,b)=>b.time-a.time).forEach(l => {
+                        const d = new Date(l.time); const det = l.details || {};
+                        csv += `${d.toLocaleDateString()};${d.toLocaleTimeString()};${l.area};${l.total};${det.b2||0};${det.a1||0};${det.a2||0};${det.b1||0};${det.chan||0};${det.d1||0};${det.ht||0};${det.abf||0};${det.b2f||0};${det.b1f||0};${l.user}\n`;
+                    });
+                    app.actions.downloadCSV(csv, "NhatKy_ThuHoach.csv");
+                },
                 exportCSVByTeam: (teamName) => {
+                    if (app.user.role === 'Nhân viên') return app.ui.showMsg("Bạn không có quyền xuất dữ liệu này!");
                     if (teamName === 'Tổ Sản Xuất') {
                         let csv = "NGAY;GIO;NHAP/XUAT;LOAI;SO LUONG;LO CAY;NOI DEN;HUY;TAN DUNG;NGUOI NHAP\n";
                         app.data.production.sort((a,b)=>b.time-a.time).forEach(l => {
@@ -670,6 +711,7 @@
                     }
                 },
                 exportAll: () => {
+                    if (app.user.role === 'Nhân viên') return app.ui.showMsg("Bạn không có quyền xuất dữ liệu này!");
                     let csv = "NGAY;GIO;NHAN VIEN;VIEC;NHA;KET QUA;GHI CHU\n";
                     app.data.tasks.filter(t=>t.status==='completed').forEach(t => {
                         const d = new Date(t.finishTime || t.time);
