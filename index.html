@@ -6,53 +6,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
-    <title>Nấm Ông 5 V92 - Final Perfect</title>
+    <title>Nấm Ông 5 V90.1 - Hybrid Upgrade</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { 
-            --blue: #2563eb; 
-            --header-h: 90px; 
-            --nav-h: 80px; 
-            --bg: #f8fafc;
-        }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #334155; margin: 0; height: 100vh; overflow: hidden; user-select: none; }
+        :root { --blue: #2563eb; --header-h: 90px; --nav-h: 80px; --bg: #f8fafc; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #1e293b; margin: 0; height: 100vh; overflow: hidden; user-select: none; }
         
-        /* --- LAYOUT ENGINE (V91 STABLE CORE) --- */
-        #app-header { height: var(--header-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; right: 0; z-index: 50; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding-left: 16px; padding-right: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        
-        #app-view-container { 
-            position: fixed; 
-            top: var(--header-h); 
-            bottom: var(--nav-h); 
-            left: 0; right: 0; 
-            overflow-y: auto; 
-            -webkit-overflow-scrolling: touch; 
-            padding: 16px; 
-            padding-bottom: 40px; 
-            z-index: 10;
-        }
-
+        /* Layout */
+        #app-header { height: var(--header-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; right: 0; z-index: 50; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        #app-view-container { position: fixed; top: var(--header-h); bottom: var(--nav-h); left: 0; right: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; padding-bottom: 40px; z-index: 10; }
         #app-nav { height: var(--nav-h); background: white; border-top: 1px solid #e2e8f0; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; padding-bottom: env(safe-area-inset-bottom); display: flex; justify-content: space-around; align-items: center; }
-
-        /* --- CHAT LAYER (ISOLATED) --- */
-        #chat-layer { 
-            position: fixed; inset: 0; 
-            background: #e5ddd5; 
-            z-index: 2000; /* Cao hơn tất cả */
-            display: none; 
-            flex-direction: column; 
-        }
-        .shiitake-bg { 
-            background-color: #e5ddd5;
-            background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
-            background-size: 20px 20px;
-        }
-        #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
-        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 16px; margin-bottom: 4px; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .chat-me { background: #dcf8c6; color: #1f2937; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .chat-other { background: white; color: #1f2937; align-self: flex-start; border-bottom-left-radius: 2px; }
 
         /* Components */
         .hidden { display: none !important; }
@@ -65,11 +30,23 @@
         .nav-btn { color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; font-weight: 700; transition: color 0.2s; }
         .nav-btn.active { color: var(--blue); transform: translateY(-2px); }
         
-        /* Login Overlay */
-        #login-overlay { position: fixed; inset: 0; background: #f8fafc; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; transition: opacity 0.3s; }
+        /* Login */
+        #login-layer { position: fixed; inset: 0; background: #f8fafc; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; transition: opacity 0.3s; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
         .status-wait { background: #eab308; animation: pulse 1s infinite; }
-        .status-ok { background: #22c55e; }
+        .status-ok { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+        
+        /* Chat Layer */
+        #chat-layer { position: fixed; inset: 0; background: #e5ddd5; z-index: 2000; display: none; flex-direction: column; }
+        .shiitake-bg { 
+            background-color: #e5ddd5;
+            background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+            background-size: 20px 20px;
+        }
+        #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
+        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 16px; margin-bottom: 4px; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .chat-me { background: #dcf8c6; color: #1f2937; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .chat-other { background: white; color: #1f2937; align-self: flex-start; border-bottom-left-radius: 2px; }
 
         /* Modal */
         .modal-wrap { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
@@ -83,11 +60,11 @@
 </head>
 <body>
 
-    <!-- 1. LOGIN SCREEN (GIỮ NGUYÊN V91.1) -->
-    <div id="login-overlay">
-        <div class="w-24 h-24 bg-blue-600 rounded-[28px] flex items-center justify-center text-white text-5xl font-black mb-6 shadow-xl shadow-blue-200">5</div>
+    <!-- 1. LOGIN LAYER -->
+    <div id="login-layer">
+        <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl font-black mb-6 shadow-xl">5</div>
         <h1 class="text-3xl font-black text-slate-800 mb-1">Nấm Ông 5</h1>
-        <p class="text-xs font-bold text-blue-500 mb-10 tracking-widest">● V92 Perfect</p>
+        <p class="text-xs font-bold text-blue-500 mb-10 tracking-widest">● V90.1 Hybrid Upgrade</p>
         
         <div class="w-full max-w-sm space-y-4">
             <div id="login-status" class="text-center text-xs font-bold text-slate-400 mb-2 flex items-center justify-center">
@@ -98,24 +75,25 @@
             <button id="login-btn" onclick="app.doLogin()" class="btn-primary opacity-50 cursor-not-allowed" disabled>ĐĂNG NHẬP</button>
             <button id="rescue-btn" onclick="app.actions.seedAdmin()" class="hidden w-full border-2 border-red-100 text-red-500 py-3 rounded-xl font-bold text-xs mt-4">KHỞI TẠO ADMIN (9999)</button>
         </div>
-        <button onclick="localStorage.clear(); location.reload()" class="mt-12 text-xs text-slate-400 underline font-bold">Xóa Cache & Tải lại</button>
+        <button onclick="localStorage.clear(); location.reload()" class="mt-8 text-xs text-slate-400 underline font-bold">Xóa Cache & Tải lại</button>
     </div>
 
     <!-- 2. HEADER -->
     <header id="app-header">
         <div class="flex items-center gap-3">
             <button id="back-chat-btn" onclick="app.ui.tab('home')" class="hidden w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 active:bg-slate-200"><i class="fas fa-arrow-left"></i></button>
-            <div class="bg-blue-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-black shadow-md text-lg">5</div>
-            <div><h1 class="text-xs font-black uppercase text-slate-800 tracking-wide">Nấm Ông 5</h1><p class="text-[8px] text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded inline-block mt-0.5">● Online</p></div>
+            <div class="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center font-black shadow-md">5</div>
+            <h1 class="text-sm font-black uppercase text-slate-800">Nấm Ông 5</h1>
         </div>
         <div class="flex items-center gap-2">
             <div class="text-right"><p id="head-user" class="font-bold text-xs">...</p><p id="head-role" class="text-[9px] text-blue-500 font-bold uppercase">...</p></div>
-            <button onclick="app.ui.showModal('settings-modal')" class="w-9 h-9 bg-slate-50 rounded-full border flex items-center justify-center text-slate-500 active:bg-slate-100"><i class="fas fa-cog"></i></button>
+            <button onclick="app.ui.toggleModal('settings-modal')" class="w-9 h-9 bg-slate-50 rounded-full border flex items-center justify-center text-slate-500 active:bg-slate-100"><i class="fas fa-cog"></i></button>
         </div>
     </header>
 
     <!-- 3. MAIN CONTENT -->
     <div id="app-view-container">
+        
         <!-- HOME -->
         <div id="view-home" class="view-section hidden">
             <div class="grid grid-cols-2 gap-3 mb-4">
@@ -123,7 +101,7 @@
                 <div class="card border-l-4 border-green-500 text-center !py-4 !mb-0"><p class="label">Tổng Hái (Kg)</p><p class="text-2xl font-black text-green-600" id="stat-yield">0</p></div>
             </div>
             <div class="card !p-4 border border-yellow-100"><h3 class="text-xs font-black text-yellow-600 uppercase mb-3"><i class="fas fa-crown"></i> Bảng Vàng</h3><div id="leaderboard" class="space-y-2 text-xs"></div></div>
-            <div class="flex justify-between items-center px-1 mb-2"><h3 class="text-xs font-black text-slate-500 uppercase tracking-widest">DANH SÁCH NHÀ</h3></div>
+            <div class="flex justify-between items-center px-1 mb-2"><h3 class="text-xs font-black text-slate-500 uppercase tracking-widest">DANH SÁCH NHÀ</h3><button onclick="app.actions.addHouse()" class="text-[10px] font-bold text-blue-600 border px-2 py-1 rounded">+ Thêm</button></div>
             <div id="house-list" class="space-y-3"></div>
         </div>
 
@@ -181,23 +159,23 @@
              <div id="th-log-list" class="space-y-2 pb-20"></div>
         </div>
 
-        <!-- TEAM -->
+        <!-- E. TEAM -->
         <div id="view-team" class="view-section hidden">
              <div class="card border border-blue-100"><p class="label mb-3">ĐIỂM DANH CÁ NHÂN</p><div class="grid grid-cols-2 gap-3"><button onclick="app.actions.checkIn('Sáng')" class="btn bg-yellow-50 text-yellow-700 border border-yellow-200">☀️ CA SÁNG</button><button onclick="app.actions.checkIn('Chiều')" class="btn bg-indigo-50 text-indigo-700 border border-indigo-200">🌙 CA CHIỀU</button></div></div>
-             <div class="card bg-slate-50 border border-slate-200"><p class="label mb-3">HÀNH CHÍNH</p><div class="grid grid-cols-2 gap-3"><button onclick="app.ui.showModal('modal-leave')" class="btn bg-white shadow-sm border text-slate-600"><i class="fas fa-calendar-times text-red-500"></i> Xin nghỉ</button><button onclick="app.ui.showModal('modal-buy')" class="btn bg-white shadow-sm border text-slate-600"><i class="fas fa-shopping-cart text-green-500"></i> Mua hàng</button></div></div>
+             <div class="card bg-slate-50 border border-slate-200"><p class="label mb-3">HÀNH CHÍNH</p><div class="grid grid-cols-2 gap-3"><button onclick="app.ui.toggleModal('modal-leave')" class="btn bg-white shadow-sm border text-slate-600"><i class="fas fa-calendar-times text-red-500"></i> Xin nghỉ</button><button onclick="app.ui.toggleModal('modal-buy')" class="btn bg-white shadow-sm border text-slate-600"><i class="fas fa-shopping-cart text-green-500"></i> Mua hàng</button></div></div>
              <button onclick="app.actions.remindAttendance()" class="w-full text-center text-xs text-blue-500 font-bold mb-3 bg-blue-50 p-2 rounded-lg">📢 Nhắc nhở toàn bộ</button>
              <p class="label px-2">DANH SÁCH NHÂN SỰ</p>
              <div id="team-list" class="space-y-2 pb-20"></div>
         </div>
     </main>
 
-    <!-- 4. CHAT LAYER (ISOLATED) -->
-    <div id="chat-layer">
+    <!-- 4. CHAT LAYER (FIXED) -->
+    <div id="chat-layer" class="chat-bg hidden fixed inset-0 z-[2000] flex flex-col bg-[#e5ddd5] shiitake-bg">
         <div class="h-[90px] bg-white border-b flex items-end px-4 pb-3 shadow-sm flex-shrink-0">
              <button onclick="app.ui.closeChat()" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mr-3 active:bg-slate-200"><i class="fas fa-arrow-left text-slate-600"></i></button>
              <div><h2 class="font-bold text-slate-800 text-lg">Thảo luận chung</h2></div>
         </div>
-        <div id="chat-box" class="shiitake-bg"></div>
+        <div id="chat-box"></div>
         <div style="background: white; padding: 12px; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; padding-bottom: calc(12px + env(safe-area-inset-bottom));">
             <input id="chat-input" type="text" class="flex-1 bg-slate-100 rounded-full px-5 py-3 text-sm outline-none border border-slate-200" placeholder="Nhập tin nhắn..." onkeyup="if(event.key==='Enter') app.actions.sendChat()">
             <button onclick="app.actions.sendChat()" class="w-12 h-12 bg-blue-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-90"><i class="fas fa-paper-plane text-xs"></i></button>
@@ -211,21 +189,24 @@
         <button onclick="app.ui.tab('sx')" class="nav-btn" id="btn-sx"><i class="fas fa-industry text-xl"></i><span>SX</span></button>
         <button onclick="app.ui.tab('th')" class="nav-btn" id="btn-th"><i class="fas fa-box-open text-xl"></i><span>TH</span></button>
         <button onclick="app.ui.tab('team')" class="nav-btn" id="btn-team"><i class="fas fa-users text-xl"></i><span>TEAM</span></button>
-        <button onclick="app.ui.openChat()" class="nav-btn"><i class="fas fa-comments text-xl"></i><span>CHAT</span></button>
+        <button onclick="app.ui.tab('chat')" class="nav-btn"><i class="fas fa-comments text-xl"></i><span>CHAT</span></button>
     </nav>
 
     <!-- 6. MODALS -->
-    <div id="settings-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('settings-modal')">
+    <div id="settings-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.toggleModal('settings-modal')">
         <div class="modal-box">
             <h3 class="font-black text-xl mb-6">Cài đặt</h3>
             <div class="space-y-4">
                 <button onclick="app.actions.exportAll()" class="btn bg-white text-blue-700 border border-blue-200 shadow-sm"><i class="fas fa-file-export"></i> XUẤT BÁO CÁO NGÀY</button>
                 <div id="admin-tools" class="hidden space-y-3 border-t pt-3">
                     <p class="label border-b pb-2">Quản trị viên</p>
-                    <button onclick="app.ui.showModal('modal-add-emp')" class="btn bg-slate-100 text-slate-700 border text-xs">Thêm Nhân Sự</button>
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                         <div class="flex gap-2"><input id="new-emp-name" placeholder="Tên NV" class="input-box text-xs bg-white"><input id="new-emp-pin" placeholder="PIN" class="input-box text-xs w-20 text-center bg-white"></div>
+                         <button onclick="app.actions.addEmployee()" class="btn btn-blue text-xs">Thêm Nhân Sự</button>
+                    </div>
                     <button onclick="app.actions.addHouse()" class="btn bg-slate-100 text-slate-700 border text-xs">Thêm Nhà Nấm</button>
-                    <button onclick="app.ui.showModal('modal-add-sop')" class="btn bg-slate-100 text-slate-700 border text-xs">Thêm Quy Trình</button>
-                    <button onclick="app.ui.showModal('modal-approve')" class="w-full bg-green-100 text-green-700 p-3 rounded-xl text-left text-xs font-bold flex justify-between items-center hover:bg-green-200 transition"><span>Duyệt Đơn Từ</span> <i class="fas fa-check"></i></button>
+                    <button onclick="app.ui.toggleModal('modal-add-sop')" class="btn bg-slate-100 text-slate-700 border text-xs">Thêm Quy Trình</button>
+                    <button onclick="app.ui.toggleModal('modal-approve')" class="w-full bg-green-100 text-green-700 p-3 rounded-xl text-left text-xs font-bold flex justify-between items-center hover:bg-green-200 transition"><span>Duyệt Đơn Từ</span> <i class="fas fa-check"></i></button>
                 </div>
                 <button onclick="app.actions.logout()" class="btn btn-red text-xs mt-4">Đăng xuất</button>
             </div>
@@ -233,28 +214,16 @@
     </div>
     
     <!-- Report Task -->
-    <div id="report-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('report-modal')"><div class="modal-box"><h3 class="font-bold text-center mb-4">Báo cáo</h3><input type="hidden" id="report-task-id"><input type="number" id="report-val" placeholder="Số lượng" class="input-box text-center text-3xl mb-4"><input id="report-note" class="input-box mb-4" placeholder="Ghi chú"><div class="grid grid-cols-2 gap-2"><button onclick="app.actions.submitReport('completed')" class="btn btn-green">Hoàn thành</button><button onclick="app.actions.submitReport('unfinished')" class="btn btn-orange">Chưa xong</button></div></div></div>
+    <div id="report-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.toggleModal('report-modal')"><div class="modal-box"><h3 class="font-bold text-center mb-4">Báo cáo</h3><input type="hidden" id="report-task-id"><input type="number" id="report-val" placeholder="Số lượng" class="input-box text-center text-3xl mb-4"><input id="report-note" class="input-box mb-4" placeholder="Ghi chú"><div class="grid grid-cols-2 gap-2"><button onclick="app.actions.submitReport('completed')" class="btn btn-green">Hoàn thành</button><button onclick="app.actions.submitReport('unfinished')" class="btn btn-orange">Chưa xong</button></div></div></div>
     
     <!-- House History Modal -->
-    <div id="modal-house-history" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-house-history')"><div class="modal-box"><h3 class="font-bold text-center mb-2">Lịch sử: <span id="history-house-name"></span></h3><div id="history-content" class="text-xs space-y-2 max-h-60 overflow-y-auto"></div></div></div>
+    <div id="modal-house-history" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.toggleModal('modal-house-history')"><div class="modal-box"><h3 class="font-bold text-center mb-2">Lịch sử: <span id="history-house-name"></span></h3><div id="history-content" class="text-xs space-y-2 max-h-60 overflow-y-auto"></div></div></div>
 
-    <div id="modal-temp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-temp')"><div class="modal-box text-center"><h3 class="font-bold mb-6 text-xl">Nhiệt độ <span id="temp-name" class="text-orange-500"></span></h3><input type="hidden" id="temp-id"><div class="grid grid-cols-2 gap-4 mb-6"><div><label class="label text-center">Sáng</label><input id="temp-am" type="number" class="input-box text-center text-2xl"></div><div><label class="label text-center">Chiều</label><input id="temp-pm" type="number" class="input-box text-center text-2xl"></div></div><button onclick="app.actions.saveTemp()" class="btn btn-orange">Lưu</button></div></div>
-    <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-leave')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Xin nghỉ</h3><div class="space-y-3"><input id="leave-date" type="date" class="input-box"><select id="leave-reason" class="input-box"><option>Ốm</option><option>Việc riêng</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn btn-blue">Gửi</button></div></div></div>
-    <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Đề xuất mua</h3><div class="space-y-3"><input type="text" id="pur-item" placeholder="Tên hàng..." class="input-box"><div class="grid grid-cols-2 gap-3"><input type="number" id="pur-qty" placeholder="SL" class="input-box"><input type="text" id="pur-unit" placeholder="Đơn vị" class="input-box"></div><button onclick="app.actions.submitHR('PURCHASE')" class="btn btn-green">Gửi</button></div></div></div>
-    <div id="modal-approve" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-approve')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-red-600">Duyệt đơn</h3><div id="approval-list" class="space-y-3"></div></div></div>
-    <div id="modal-add-sop" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-sop')"><div class="modal-box"><h3 class="font-bold mb-4">Thêm Quy Trình</h3><div class="space-y-3"><input id="new-sop-name" placeholder="Tên công việc" class="input-box"><input id="new-sop-val" placeholder="Định mức (Số)" class="input-box"><button onclick="app.actions.addSOP()" class="btn-primary">Lưu</button></div></div></div>
-    
-    <!-- ADD EMP MODAL -->
-    <div id="modal-add-emp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-emp')">
-        <div class="modal-box">
-            <h3 class="font-bold mb-4 text-lg">Thêm Nhân Sự</h3>
-            <div class="space-y-3">
-                <input id="new-emp-name" placeholder="Tên nhân viên" class="input-box">
-                <div class="grid grid-cols-2 gap-3"><input id="new-emp-id" placeholder="ID (Số)" class="input-box"><input id="new-emp-pin" placeholder="PIN" class="input-box"></div>
-                <button onclick="app.actions.addEmployee()" class="btn-primary">Thêm Mới</button>
-            </div>
-        </div>
-    </div>
+    <div id="modal-temp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.toggleModal('modal-temp')"><div class="modal-box text-center"><h3 class="font-bold mb-6 text-xl">Nhiệt độ <span id="temp-name" class="text-orange-500"></span></h3><input type="hidden" id="temp-id"><div class="grid grid-cols-2 gap-4 mb-6"><div><label class="label text-center">Sáng</label><input id="temp-am" type="number" class="input-box text-center text-2xl"></div><div><label class="label text-center">Chiều</label><input id="temp-pm" type="number" class="input-box text-center text-2xl"></div></div><button onclick="app.actions.saveTemp()" class="btn btn-orange">Lưu</button></div></div>
+    <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.toggleModal('modal-leave')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Xin nghỉ</h3><div class="space-y-3"><input id="leave-date" type="date" class="input-box"><select id="leave-reason" class="input-box"><option>Ốm</option><option>Việc riêng</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn btn-blue">Gửi</button></div></div></div>
+    <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.toggleModal('modal-buy')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg">Đề xuất mua</h3><div class="space-y-3"><input type="text" id="pur-item" placeholder="Tên hàng..." class="input-box"><div class="grid grid-cols-2 gap-3"><input type="number" id="pur-qty" placeholder="SL" class="input-box"><input type="text" id="pur-unit" placeholder="Đơn vị" class="input-box"></div><button onclick="app.actions.submitHR('PURCHASE')" class="btn btn-green">Gửi</button></div></div></div>
+    <div id="modal-approve" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.toggleModal('modal-approve')"><div class="modal-box"><h3 class="font-bold mb-4 text-lg text-red-600">Duyệt đơn</h3><div id="approval-list" class="space-y-3"></div></div></div>
+    <div id="modal-add-sop" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.toggleModal('modal-add-sop')"><div class="modal-box"><h3 class="font-bold mb-4">Thêm Quy Trình</h3><div class="space-y-3"><input id="new-sop-name" placeholder="Tên công việc" class="input-box"><input id="new-sop-val" placeholder="Định mức (Số)" class="input-box"><button onclick="app.actions.addSOP()" class="btn-primary">Lưu</button></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -288,6 +257,7 @@
                     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('nav-active'));
                     const btn = document.querySelector(`button[onclick="app.ui.tab('${id}')"]`);
                     if(btn) btn.classList.add('nav-active');
+                    if(id === 'chat') setTimeout(() => document.getElementById('chat-box').scrollTop = 9999, 100);
                 },
                 setSXMode: (m) => {
                     document.getElementById('sx-action').value = m;
@@ -533,11 +503,6 @@
                 addSOP: async () => { await addDoc(collection(db, `${ROOT}/sop`), { title: document.getElementById('new-sop-name').value, sop: Number(document.getElementById('new-sop-val').value) }); alert("Đã thêm!"); },
                 addHouse: async () => { const name = prompt("Nhập tên nhà:"); if(name) await addDoc(collection(db, `${ROOT}/houses`), { name, temp: {am:0, pm:0} }); },
                 fillSOP: () => { const val = document.getElementById('task-title').value; const item = (app.data.sop||[]).find(s => s.title === val); if(item) document.getElementById('task-target').value = item.sop; },
-                toggleAssignMode: () => {
-                    const m = document.getElementById('assign-mode').value;
-                    document.getElementById('assign-ind-zone').classList.toggle('hidden', m !== 'ind');
-                    document.getElementById('assign-team-zone').classList.toggle('hidden', m !== 'team');
-                },
                 exportAll: () => { alert("Xuất báo cáo..."); },
                 exportSX: () => { alert("Xuất SX..."); },
                 exportTH: () => { alert("Xuất TH..."); },
