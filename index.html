@@ -7,18 +7,21 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Nấm Ông 5">
     <meta name="theme-color" content="#2563eb">
-    <link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/3252/3252932.png">
     
-    <title>Nấm Ông 5 V144 - Platinum Supreme</title>
+    <title>Nấm Ông 5 V150 - Platinum Supreme</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --blue: #2563eb; --header-h: 120px; --nav-h: 80px; --bg: #f8fafc; --shiitake: #5d2b0c; }
+        :root { --blue: #2563eb; --header-h: 125px; --nav-h: 80px; --bg: #f8fafc; --shiitake: #5d2b0c; }
         
-        /* Cấu hình Font Times New Roman theo yêu cầu */
+        /* Cấu hình Font Times New Roman cưỡng bức nhưng loại trừ Icons */
+        * { font-family: "Times New Roman", Times, serif; }
+        .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands { 
+            font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; 
+        }
+        
         body { 
-            font-family: "Times New Roman", Times, serif; 
             background: var(--bg); 
             color: #334155; 
             margin: 0; 
@@ -27,23 +30,23 @@
             user-select: none; 
         }
         
-        #app-header { height: var(--header-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        #app-header { height: var(--header-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         #app-view-container { position: fixed; top: var(--header-h); bottom: var(--nav-h); left: 0; right: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; padding-bottom: 40px; z-index: 10; }
         #app-nav { height: var(--nav-h); background: white; border-top: 1px solid #e2e8f0; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; padding-bottom: env(safe-area-inset-bottom); display: flex; justify-content: space-around; align-items: center; }
 
         .hidden { display: none !important; }
         .card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .input-box { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 600; outline: none; font-size: 15px; transition: all 0.2s; font-family: inherit; }
+        .input-box { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 600; outline: none; font-size: 15px; transition: all 0.2s; }
         .input-box:focus { border-color: var(--blue); background: white; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
         
-        .btn-primary { background: var(--blue); color: white; font-weight: 800; padding: 14px; border-radius: 14px; width: 100%; text-transform: uppercase; font-size: 12px; box-shadow: 0 4px 6px rgba(37,99,235,0.2); transition: all 0.2s; border: none; cursor: pointer; font-family: inherit; }
+        .btn-primary { background: var(--blue); color: white; font-weight: 800; padding: 14px; border-radius: 14px; width: 100%; text-transform: uppercase; font-size: 12px; box-shadow: 0 4px 6px rgba(37,99,235,0.2); transition: all 0.2s; border: none; cursor: pointer; }
         .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
-        .label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+        .label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.02em; }
         
-        .nav-btn { color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; font-weight: 700; transition: color 0.2s; background: none; border: none; outline: none; font-family: inherit; }
+        .nav-btn { color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 9px; font-weight: 700; transition: color 0.2s; background: none; border: none; outline: none; }
         .nav-btn.active { color: var(--blue); transform: translateY(-2px); }
         
-        .sub-tab-btn { flex: 1; padding: 10px; font-size: 11px; font-weight: 800; text-align: center; border-radius: 10px; color: #64748b; transition: all 0.2s; background: none; border: none; font-family: inherit; }
+        .sub-tab-btn { flex: 1; padding: 10px; font-size: 11px; font-weight: 800; text-align: center; border-radius: 10px; color: #64748b; transition: all 0.2s; background: none; border: none; }
         .sub-tab-btn.active { background: white; color: var(--blue); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
         #login-overlay { position: fixed; inset: 0; background: #f8fafc; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
@@ -54,18 +57,18 @@
         /* Chat Pattern Background (Shiitake) */
         #chat-layer { position: fixed; inset: 0; background: #efeae2; z-index: 2000; display: none; flex-direction: column; }
         .chat-bg { background-image: url('data:image/svg+xml;utf8,<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 5c-5 0-9 4-9 9 0 3 2 5 5 6v10h8V20c3-1 5-3 5-6 0-5-4-9-9-9z" fill="%2378350f" fill-opacity="0.05"/></svg>'); }
-        #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
         .chat-bubble { max-width: 82%; padding: 10px 14px; border-radius: 16px; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; }
         .chat-me { background: #dcf8c6; align-self: flex-end; border-bottom-right-radius: 2px; }
         .chat-other { background: white; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .chat-system { background: #fee2e2; color: #991b1b; align-self: center; border-radius: 8px; font-size: 11px; font-weight: 700; text-align: center; border: 1px dashed #f87171; padding: 8px 16px; margin: 5px 0; width: 90%; }
-        .reaction-bar { position: absolute; bottom: -12px; right: 0; display: flex; gap: 2px; background: white; border-radius: 20px; padding: 2px 6px; border: 1px solid #eee; font-size: 9px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 5; }
+        .chat-system { background: #fee2e2; color: #991b1b; align-self: center; border-radius: 8px; font-size: 12px; font-weight: 700; text-align: center; border: 1px dashed #f87171; padding: 8px 16px; margin: 5px 0; width: 95%; }
+        .reaction-bar { position: absolute; bottom: -12px; right: 0; display: flex; gap: 2px; background: white; border-radius: 20px; padding: 2px 6px; border: 1px solid #eee; font-size: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 5; }
 
         .modal-wrap { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
         .modal-box { background: white; width: 100%; max-width: 400px; border-radius: 24px; padding: 24px; max-height: 85vh; overflow-y: auto; }
         
-        /* Shiitake Logo SVG */
-        .shiitake-logo { width: 240px; height: 240px; margin-bottom: 25px; filter: drop-shadow(0 15px 35px rgba(93,43,12,0.3)); }
+        /* Logo SVG - Shiitake */
+        .shiitake-logo { width: 240px; height: 240px; margin-bottom: 25px; filter: drop-shadow(0 15px 35px rgba(93,43,12,0.35)); }
         
         .staff-online { border: 2px solid #22c55e !important; background: #f0fdf4 !important; }
         .staff-offline { opacity: 0.6; filter: grayscale(0.8); background: #f1f5f9 !important; }
@@ -75,44 +78,49 @@
         .log-table td { padding: 10px; border: 1px solid #e2e8f0; font-weight: 600; color: #475569; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        .slogan { font-size: 12px; font-weight: 900; color: var(--shiitake); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 5px; }
+        .slogan { font-size: 13px; font-weight: 900; color: var(--shiitake); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <div id="msg-box"></div>
 
-    <!-- 1. LOGIN OVERLAY (GỐC 104) -->
+    <!-- 1. LOGIN OVERLAY -->
     <div id="login-overlay">
         <!-- SVG Nấm Shiitake Chuyên Nghiệp -->
         <svg class="shiitake-logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-            <path d="M256 80c-130 0-220 70-220 160 0 40 30 70 70 90-20 60 40 100 120 100v80h60v-80c80 0 140-40 120-100 40-20 70-50 70-90 0-90-90-160-220-160z" fill="#5d2b0c"/>
-            <path d="M140 220c30-10 60-15 116-15s86 5 116 15" fill="none" stroke="#3e1c08" stroke-width="20" stroke-linecap="round"/>
-            <circle cx="180" cy="160" r="15" fill="#fff" opacity="0.15"/>
-            <circle cx="340" cy="190" r="12" fill="#fff" opacity="0.1"/>
+            <path d="M216 350c0 40 10 98 40 98s40-58 40-98z" fill="#D2B48C" />
+            <path d="M256 90c-140 0-230 80-230 180 0 40 40 70 80 80 40 10 110 20 150 20s110-10 150-20c40-10 80-40 80-80 0-100-90-180-230-180z" fill="#5D2B0C"/>
+            <ellipse cx="180" cy="180" rx="25" ry="15" fill="#8B4513" opacity="0.4" />
+            <ellipse cx="320" cy="210" rx="35" ry="20" fill="#8B4513" opacity="0.4" />
+            <ellipse cx="240" cy="250" rx="30" ry="15" fill="#8B4513" opacity="0.4" />
+            <path d="M120 230c40-15 100-25 136-25s96 10 136 25" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" opacity="0.2"/>
         </svg>
         <h1 class="text-4xl font-black text-slate-800 mb-0.5 tracking-tight text-center italic leading-none">Nấm Ông 5</h1>
         <p class="slogan mb-12 text-center">TRAO SỨC KHỎE, TRỌN YÊU THƯƠNG</p>
         
         <div class="w-full max-w-sm space-y-4">
-            <div id="login-status" class="text-center text-xs font-bold text-slate-400 mb-2 flex items-center justify-center">
-                <span class="status-dot status-wait"></span> <span id="status-text">Đang nhận diện bảo mật...</span>
+            <div id="login-status" class="text-center text-xs font-bold text-slate-400 mb-2 flex items-center justify-center font-black italic">
+                <span class="status-dot status-wait" id="auth-dot"></span> <span id="status-text">Đang nhận diện bảo mật...</span>
             </div>
             <select id="login-user" class="input-box text-center appearance-none shadow-sm" disabled><option value="">Đang tải nhân sự...</option></select>
             <input id="login-pin" type="password" placeholder="Mã PIN 4 số" class="input-box text-center text-2xl tracking-[0.4em] shadow-inner" disabled maxlength="6" inputmode="numeric">
-            <button id="login-btn" onclick="app.doLogin()" class="btn-primary opacity-50 cursor-not-allowed bg-amber-900" disabled>KÍCH HOẠT HỆ THỐNG</button>
+            <button id="login-btn" onclick="app.doLogin()" class="btn-primary opacity-50 cursor-not-allowed bg-amber-900 shadow-amber-900/20" disabled>VÀO HỆ THỐNG</button>
         </div>
     </div>
 
     <!-- 2. HEADER -->
     <header id="app-header">
         <div class="flex items-center gap-3">
-            <div class="bg-amber-900 p-1.5 rounded-xl shadow-lg">
-                <svg width="28" height="28" viewBox="0 0 512 512" fill="white"><path d="M256 80c-130 0-220 70-220 160 0 40 30 70 70 90-20 60 40 100 120 100v80h60v-80c80 0 140-40 120-100 40-20 70-50 70-90 0-90-90-160-220-160z"/></svg>
+            <div class="bg-amber-900 p-2 rounded-xl shadow-lg border border-amber-800">
+                <svg width="28" height="28" viewBox="0 0 512 512" fill="white">
+                   <path d="M216 350c0 40 10 98 40 98s40-58 40-98z" fill="#D2B48C" opacity="0.3" />
+                   <path d="M256 90c-140 0-230 80-230 180 0 40 40 70 80 80 40 10 110 20 150 20s110-10 150-20c40-10 80-40 80-80 0-100-90-180-230-180z" fill="currentColor"/>
+                </svg>
             </div>
             <div class="leading-none">
-                <h1 class="text-sm font-black uppercase text-slate-800 tracking-wide">Nấm Ông 5</h1>
-                <p class="text-[7px] font-black text-amber-800 uppercase mt-1.5 tracking-tighter">TRAO SỨC KHỎE, TRỌN YÊU THƯƠNG</p>
+                <h1 class="text-base font-black uppercase text-slate-800 tracking-wide leading-none">Nấm Ông 5</h1>
+                <p class="text-[7px] font-black text-amber-800 uppercase mt-1 tracking-tighter italic">TRAO SỨC KHỎE, TRỌN YÊU THƯƠNG</p>
             </div>
         </div>
         <div class="flex items-center gap-2">
@@ -123,31 +131,31 @@
 
     <!-- 3. MAIN CONTAINER -->
     <div id="app-view-container">
-        <!-- HOME -->
-        <div id="view-home" class="view-section hidden">
+        <!-- HOME (Trang chủ) -->
+        <div id="view-home" class="view-section hidden animate-in fade-in">
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <div class="card border-l-4 border-blue-500 text-center shadow-sm"><p class="label">Trực tuyến</p><p class="text-2xl font-black text-blue-600" id="stat-online">0</p></div>
-                <div class="card border-l-4 border-green-500 text-center shadow-sm"><p class="label uppercase">Tổng hái ngày (Kg)</p><p class="text-2xl font-black text-green-600" id="stat-yield">0.00</p></div>
+                <div class="card border-l-4 border-blue-500 text-center shadow-sm"><p class="label mb-1">Trực tuyến</p><p class="text-2xl font-black text-blue-600" id="stat-online">0</p></div>
+                <div class="card border-l-4 border-green-500 text-center shadow-sm"><p class="label uppercase mb-1">Hái ngày (Kg)</p><p class="text-2xl font-black text-green-600" id="stat-yield">0.00</p></div>
             </div>
             
             <div class="card border border-yellow-100 shadow-sm mb-4">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-xs font-black text-yellow-600 uppercase tracking-widest leading-none italic">Bảng Vàng Thi Đua</h3>
+                    <h3 class="text-xs font-black text-yellow-600 uppercase tracking-widest leading-none italic"><i class="fas fa-trophy mr-1"></i> Bảng Vàng Thi Đua</h3>
                     <button onclick="app.actions.exportTH()" class="text-[10px] font-black text-blue-500 bg-blue-50 px-2.5 py-1 rounded shadow-sm uppercase italic">Báo Cáo Tổng</button>
                 </div>
                 <div id="leaderboard" class="space-y-2 text-xs"></div>
             </div>
             
-            <p class="label px-2 mb-2 tracking-widest font-black text-slate-400 italic">Nhà trồng & Báo cáo riêng lẻ</p>
+            <p class="label px-2 mb-2 tracking-widest font-black text-slate-400 italic">Theo dõi Nhà trồng & Nhật ký hái</p>
             <div id="house-list" class="space-y-3"></div>
         </div>
 
         <!-- VIỆC (TASKS) -->
-        <div id="view-tasks" class="view-section hidden">
+        <div id="view-tasks" class="view-section hidden animate-in fade-in">
              <div id="admin-task-form" class="hidden card border-2 border-blue-50 shadow-md">
-                <div class="flex justify-between items-center mb-3"><span class="text-xs font-black text-blue-600 uppercase italic">Giao việc nhân sự</span><select id="assign-mode" onchange="app.ui.toggleAssign()" class="text-[10px] font-bold bg-slate-100 p-1 rounded shadow-inner"><option value="ind">Cá nhân</option><option value="team">Cả Tổ</option></select></div>
+                <div class="flex justify-between items-center mb-3"><span class="text-xs font-black text-blue-600 uppercase italic">Ban lệnh giao việc</span><select id="assign-mode" onchange="app.ui.toggleAssign()" class="text-[10px] font-bold bg-slate-100 p-1 rounded shadow-inner"><option value="ind">Cá nhân</option><option value="team">Cả Tổ</option></select></div>
                 <div class="space-y-3">
-                    <input id="task-title" placeholder="Tên công việc..." class="input-box bg-white text-sm shadow-inner font-bold">
+                    <input id="task-title" placeholder="Tên công việc..." class="input-box bg-white text-sm shadow-inner font-bold italic">
                     <div><p class="label">Chọn Nhà nấm</p><div id="house-multi-select" class="grid grid-cols-3 gap-1 bg-slate-50 p-2 rounded border max-h-32 overflow-y-auto shadow-inner"></div></div>
                     <div id="assign-ind-zone" class="max-h-32 overflow-y-auto border p-2 rounded bg-slate-50 grid grid-cols-2 gap-1 shadow-inner"></div>
                     <div id="assign-team-zone" class="hidden bg-slate-50 p-2 rounded-xl border space-y-2 text-xs font-bold shadow-inner"><label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Sản Xuất" checked> Tổ Sản Xuất</label><label class="flex items-center gap-2"><input type="radio" name="team-radio" value="Tổ Thu Hoạch"> Tổ Thu Hoạch</label></div>
@@ -158,7 +166,7 @@
         </div>
 
         <!-- SẢN XUẤT -->
-        <div id="view-sx" class="view-section hidden">
+        <div id="view-sx" class="view-section hidden animate-in fade-in">
             <h2 class="font-black text-slate-800 uppercase text-xs tracking-tight mb-2 px-1 italic">Quản lý Phôi Nấm</h2>
             <div class="card border-2 border-indigo-50 shadow-md">
                 <div class="flex bg-slate-100 p-1 rounded-xl mb-4 shadow-inner">
@@ -168,34 +176,34 @@
                 <input type="hidden" id="sx-action" value="NHẬP">
                 <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3">
-                        <div><p class="label font-black text-blue-600 uppercase">Loại Phôi</p><input id="sx-type" list="phoi-list" class="input-box bg-white p-2 text-xs shadow-inner" placeholder="Chọn..."><datalist id="phoi-list"><option value="049 Đạt"><option value="049 TD"></datalist></div>
-                        <div><p class="label font-black text-blue-600 uppercase">Lô cấy / Nhà</p><input id="sx-batch" class="input-box bg-white text-center p-2 text-xs shadow-inner" placeholder="..."></div>
+                        <div><p class="label font-black text-blue-600 uppercase mb-1 leading-none">Loại Phôi</p><input id="sx-type" list="phoi-list" class="input-box bg-white p-2 text-xs shadow-inner" placeholder="Chọn..."><datalist id="phoi-list"><option value="049 Đạt"><option value="049 TD"></datalist></div>
+                        <div><p class="label font-black text-blue-600 uppercase mb-1 leading-none">Lô cấy / Nhà</p><input id="sx-batch" class="input-box bg-white text-center p-2 text-xs shadow-inner" placeholder="..."></div>
                     </div>
-                    <div><p class="label font-black uppercase text-[9px]">Số túi phôi</p><input type="number" id="sx-qty" class="input-box bg-white text-center font-black text-lg p-2 shadow-inner"></div>
-                    <button onclick="app.actions.submitSX()" class="btn-primary bg-indigo-600 mt-2 shadow-md italic">Ghi nhận dữ liệu SX</button>
+                    <div><p class="label font-black uppercase text-[9px] mb-1 leading-none">Số túi phôi</p><input type="number" id="sx-qty" class="input-box bg-white text-center font-black text-lg p-2 shadow-inner"></div>
+                    <button onclick="app.actions.submitSX()" class="btn-primary bg-indigo-600 mt-2 shadow-md italic uppercase font-black">Lưu dữ liệu SX</button>
                 </div>
             </div>
             <div id="sx-log-list" class="space-y-2 mt-4 pb-20"></div>
         </div>
 
         <!-- THU HOẠCH & ĐÓNG GÓI (THDG) -->
-        <div id="view-th" class="view-section hidden">
-             <div class="flex bg-slate-200 p-1 rounded-xl mb-4 shadow-inner">
-                 <button onclick="app.ui.setTHSubTab('harvest')" id="sub-btn-harvest" class="sub-tab-btn active uppercase font-black">Thu hoạch</button>
-                 <button onclick="app.ui.setTHSubTab('export')" id="sub-btn-export" class="sub-tab-btn uppercase font-black">Xuất bán</button>
+        <div id="view-th" class="view-section hidden animate-in fade-in">
+             <div class="flex bg-slate-200 p-1 rounded-xl mb-4 shadow-inner border border-slate-300">
+                 <button onclick="app.ui.setTHSubTab('harvest')" id="sub-btn-harvest" class="sub-tab-btn active uppercase font-black italic">Hái nấm sạch</button>
+                 <button onclick="app.ui.setTHSubTab('export')" id="sub-btn-export" class="sub-tab-btn uppercase font-black italic">Xuất đơn hàng</button>
              </div>
              
              <div id="th-sub-harvest" class="space-y-3">
                  <div class="card border-2 border-green-50 shadow-md">
                      <div class="space-y-3">
-                         <div><p class="label font-black text-blue-600 italic uppercase mb-1 text-[10px]">Vị trí nhà hái</p><select id="th-area" class="input-box bg-white font-bold text-green-700 shadow-sm" onchange="app.ui.resetTHInputs()"></select></div>
+                         <div><p class="label font-black text-blue-600 italic uppercase leading-none mb-2 text-[10px]">Vị trí nhà hái</p><select id="th-area" class="input-box bg-white font-bold text-green-700 shadow-sm" onchange="app.ui.resetTHInputs()"></select></div>
                          <div class="bg-slate-50 p-3 rounded-2xl border shadow-inner">
                              <div class="grid grid-cols-5 gap-2 mb-2">
                                 <div><label class="text-center text-[9px] font-black block mb-1 uppercase text-slate-400">B2</label><input type="number" id="th-b2" step="0.01" class="input-box !p-2 text-center shadow-inner" oninput="app.ui.calcTH()"></div>
                                 <div><label class="text-center text-[9px] font-black block mb-1 uppercase text-slate-400">A1</label><input type="number" id="th-a1" step="0.01" class="input-box !p-2 text-center shadow-inner" oninput="app.ui.calcTH()"></div>
                                 <div><label class="text-center text-[9px] font-black block mb-1 uppercase text-slate-400">A2</label><input type="number" id="th-a2" step="0.01" class="input-box !p-2 text-center shadow-inner" oninput="app.ui.calcTH()"></div>
                                 <div><label class="text-center text-[9px] font-black block mb-1 uppercase text-slate-400">B1</label><input type="number" id="th-b1" step="0.01" class="input-box !p-2 text-center shadow-inner" oninput="app.ui.calcTH()"></div>
-                                <div><label class="text-center text-[9px] font-black block mb-1 text-blue-600 font-black italic uppercase leading-none">Chân</label><input type="number" id="th-chan" step="0.01" class="input-box !p-2 text-center border-blue-100 font-black shadow-inner" oninput="app.ui.calcTH()"></div>
+                                <div><label class="text-center text-[9px] font-black block mb-1 text-blue-600 font-black italic">CHÂN</label><input type="number" id="th-chan" step="0.01" class="input-box !p-2 text-center border-blue-100 font-black shadow-inner" oninput="app.ui.calcTH()"></div>
                             </div>
                              <div class="grid grid-cols-5 gap-2">
                                 <div><label class="text-center text-[9px] font-black block mb-1 uppercase text-slate-400">D1</label><input type="number" id="th-d1" step="0.01" class="input-box !p-2 text-center shadow-inner" oninput="app.ui.calcTH()"></div>
@@ -205,15 +213,15 @@
                                 <div><label class="text-center text-[9px] font-black block mb-1 uppercase text-slate-400">HT</label><input type="number" id="th-ht" step="0.01" class="input-box !p-2 text-center shadow-inner" oninput="app.ui.calcTH()"></div>
                             </div>
                          </div>
-                         <div class="bg-green-50 p-4 rounded-xl border border-green-200 flex justify-between items-center shadow-sm"><span class="text-xs font-bold uppercase text-green-800 italic font-black">Khối lượng đạt được:</span><span id="th-total-display" class="font-black text-2xl text-green-600">0.00 kg</span></div>
-                         <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 shadow-lg uppercase font-black italic">Ghi nhận phiếu hái sạch</button>
+                         <div class="bg-green-50 p-4 rounded-xl border border-green-200 flex justify-between items-center shadow-sm"><span class="text-xs font-bold uppercase text-green-800 italic font-black">Khối lượng đạt:</span><span id="th-total-display" class="font-black text-2xl text-green-600">0.00 kg</span></div>
+                         <button onclick="app.actions.submitTH()" class="btn-primary bg-green-600 shadow-lg uppercase font-black italic">Ghi nhận phiếu hái nấm sạch</button>
                      </div>
                  </div>
              </div>
              
              <div id="th-sub-export" class="space-y-3 hidden">
                 <div class="card border-2 border-blue-50 shadow-lg">
-                    <div class="mb-4"><p class="label font-black text-blue-600 uppercase tracking-tighter italic leading-none mb-2">Đối tác nhận hàng</p><input id="export-customer-name" placeholder="Ví dụ: Chị Năm, Anh Ba, Kho A..." class="input-box bg-white shadow-inner font-bold italic"></div>
+                    <div class="mb-4"><p class="label font-black text-blue-600 uppercase tracking-tighter italic leading-none mb-2">Thông tin đối tác nhận hàng</p><input id="export-customer-name" placeholder="Ví dụ: Chị Năm, Anh Ba, Kho A..." class="input-box bg-white shadow-inner font-bold italic leading-none"></div>
                     <div id="export-matrix" class="grid grid-cols-1 gap-1.5 mb-4"></div>
                     <button onclick="app.actions.submitExport()" class="btn-primary bg-blue-600 shadow-md uppercase font-black italic">Xác nhận đơn xuất bán</button>
                 </div>
@@ -224,22 +232,23 @@
         </div>
 
         <!-- TEAM (Nhân sự & Chấm công) -->
-        <div id="view-team" class="view-section hidden px-1">
+        <div id="view-team" class="view-section hidden px-1 animate-in fade-in">
              <div class="card p-4 text-center shadow-sm mb-4 border-2 border-blue-100 shadow-inner"><p class="label mb-3 uppercase tracking-widest font-black italic text-blue-600 leading-none">Hệ thống điểm danh</p><div class="grid grid-cols-2 gap-3"><button onclick="app.actions.checkIn('Sáng')" class="btn-primary bg-yellow-500 shadow-yellow-100 uppercase font-black italic">☀️ Ca Sáng</button><button onclick="app.actions.checkIn('Chiều')" class="btn-primary bg-indigo-500 shadow-indigo-100 uppercase font-black italic">🌙 Ca Chiều</button></div></div>
              
              <div class="card bg-slate-50 border-slate-200 shadow-sm mb-4">
-                <p class="label mb-3 uppercase font-black text-[9px]">Hành chính & Báo cáo Tổ</p>
+                <p class="label mb-3 uppercase font-black text-[9px] italic leading-none">Hành chính & Báo cáo Tổ</p>
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="app.ui.showModal('modal-leave')" class="btn-primary bg-white text-slate-600 border shadow-none text-[10px] italic font-black shadow-sm border-slate-300"><i class="fas fa-calendar-times text-red-500 mr-1"></i> Xin nghỉ</button>
-                    <button onclick="app.ui.showModal('modal-buy')" class="btn-primary bg-white text-slate-600 border shadow-none text-[10px] italic font-black shadow-sm border-slate-300"><i class="fas fa-shopping-cart text-green-500 mr-1"></i> Mua hàng</button>
+                    <button onclick="app.ui.showModal('modal-leave')" class="btn-primary bg-white text-slate-600 border shadow-none text-[10px] italic font-black shadow-sm border-slate-300 leading-none"><i class="fas fa-calendar-times text-red-500 mr-1"></i> Xin nghỉ</button>
+                    <button onclick="app.ui.showModal('modal-buy')" class="btn-primary bg-white text-slate-600 border shadow-none text-[10px] italic font-black shadow-sm border-slate-300 leading-none"><i class="fas fa-shopping-cart text-green-500 mr-1"></i> Mua hàng</button>
                 </div>
                 <div class="mt-5 pt-4 border-t border-slate-200 flex flex-col gap-2">
+                    <p class="label text-[8px] text-center mb-1 font-black italic uppercase">Khu vực báo cáo tổ đội</p>
                     <button onclick="app.actions.exportCSVByTeam(app.user.team)" class="w-full bg-blue-700 text-white py-3 rounded-xl font-black text-[11px] uppercase shadow-md italic tracking-widest leading-none">Báo cáo Sản lượng Tổ ${app.user.team || ''}</button>
-                    <button onclick="app.actions.exportAttendance()" class="w-full bg-slate-200 text-slate-700 py-3 rounded-xl font-black text-[11px] uppercase shadow-inner italic tracking-tight border">Xuất File Chấm Công</button>
+                    <button onclick="app.actions.exportAttendance()" class="w-full bg-slate-200 text-slate-700 py-3 rounded-xl font-black text-[11px] uppercase shadow-inner italic tracking-tight border border-slate-300 leading-none">Xuất File Chấm Công Tổ</button>
                 </div>
              </div>
              
-             <p class="label px-2 mb-2 tracking-widest font-black text-slate-400 uppercase text-[9px]">Thành viên trực tuyến</p>
+             <p class="label px-2 mb-2 tracking-widest font-black text-slate-400 uppercase text-[9px] leading-none">Thành viên trực tuyến</p>
              <div id="team-list" class="space-y-2 pb-24"></div>
         </div>
     </div>
@@ -247,13 +256,13 @@
     <!-- 4. CHAT -->
     <div id="chat-layer">
         <div class="h-[70px] bg-white border-b flex items-end px-4 pb-3 shadow-sm">
-             <button onclick="app.ui.closeChat()" class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mr-3 active:bg-slate-200 shadow-sm"><i class="fas fa-arrow-left text-slate-600"></i></button>
-             <h2 class="font-black text-slate-800 text-lg uppercase tracking-tight leading-none italic">Thảo luận Platinum</h2>
+             <button onclick="app.ui.closeChat()" class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mr-3 active:bg-slate-200 shadow-sm shadow-inner"><i class="fas fa-arrow-left text-slate-600"></i></button>
+             <h2 class="font-black text-slate-800 text-lg uppercase tracking-tight leading-none italic">Kênh Thảo Luận</h2>
         </div>
         <div id="chat-box" class="no-scrollbar chat-bg shadow-inner"></div>
         <div class="chat-input-area bg-white p-3 flex gap-2 border-t shadow-lg pb-10">
-            <button class="w-11 h-11 rounded-full bg-red-50 text-red-500 flex items-center justify-center active:scale-75 shadow-sm" onclick="app.actions.sendReaction('❤️')"><i class="fas fa-heart"></i></button>
-            <input id="chat-input" type="text" class="flex-1 bg-slate-100 rounded-full px-5 py-2.5 text-sm outline-none border shadow-inner font-medium" placeholder="Nhập tin nhắn..." onkeyup="if(event.key==='Enter') app.actions.sendChat()">
+            <button class="w-11 h-11 rounded-full bg-red-50 text-red-500 flex items-center justify-center active:scale-75 shadow-sm" onclick="app.actions.sendReaction('❤️')"><i class="fas fa-heart text-sm"></i></button>
+            <input id="chat-input" type="text" class="flex-1 bg-slate-100 rounded-full px-5 py-2.5 text-sm outline-none border shadow-inner font-medium italic" placeholder="Nhập tin nhắn..." onkeyup="if(event.key==='Enter') app.actions.sendChat()">
             <button onclick="app.actions.sendChat()" class="w-11 h-11 bg-blue-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-90"><i class="fas fa-paper-plane text-xs"></i></button>
         </div>
     </div>
@@ -271,10 +280,10 @@
     <!-- 6. MODALS -->
     <div id="settings-modal" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('settings-modal')">
         <div class="modal-box shadow-2xl border-2 border-slate-50">
-            <h3 class="font-black text-xl mb-6 text-slate-800 uppercase border-b pb-3 text-center italic text-blue-600 leading-none">Trung tâm Quản trị</h3>
+            <h3 class="font-black text-xl mb-6 text-slate-800 uppercase border-b pb-3 text-center italic text-blue-600 leading-none font-black">Trung tâm Điều khiển</h3>
             <div class="space-y-4">
                 <div id="admin-tools" class="hidden space-y-3">
-                    <button onclick="app.actions.resetLeaderboard()" class="btn-primary bg-orange-600 uppercase font-black shadow-lg flex items-center justify-center gap-3"><i class="fas fa-history text-xs"></i> Reset BXH Tháng</button>
+                    <button onclick="app.actions.resetLeaderboard()" class="btn-primary bg-orange-600 uppercase font-black shadow-lg flex items-center justify-center gap-3 italic"><i class="fas fa-history text-xs"></i> Reset BXH Tháng</button>
                     <div class="border-t pt-5 space-y-2">
                         <button onclick="app.ui.showModal('modal-add-staff')" class="btn-primary bg-slate-700 uppercase shadow-none text-[10px] italic font-black">Thêm nhân sự mới</button>
                         <button onclick="app.actions.addHouse()" class="btn-primary bg-slate-500 uppercase shadow-none text-[10px] italic font-black">Thêm nhà nấm mới</button>
@@ -285,30 +294,29 @@
         </div>
     </div>
 
-    <!-- CÁC MODAL HÀNH CHÍNH & NHIỆT ĐỘ -->
     <div id="modal-temp" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-temp')">
         <div class="modal-box text-center shadow-2xl p-8 border-2 border-orange-50">
             <h3 class="font-black mb-8 text-xl uppercase tracking-tighter text-slate-800 italic leading-none tracking-tight">Nhiệt độ Nhà <span id="temp-name" class="text-orange-500"></span></h3>
             <input type="hidden" id="temp-id">
             <div class="grid grid-cols-2 gap-6 mb-8">
-                <div><label class="label text-center font-black uppercase tracking-widest leading-none mb-1 text-orange-500 italic">☀️ Sáng</label><input id="temp-am" type="number" step="0.1" class="input-box text-center text-4xl font-black text-orange-600 bg-orange-50 shadow-inner" placeholder="0.0"></div>
+                <div><label class="label text-center font-black uppercase leading-none mb-1 text-orange-500 italic">☀️ Sáng</label><input id="temp-am" type="number" step="0.1" class="input-box text-center text-4xl font-black text-orange-600 bg-orange-50 shadow-inner" placeholder="0.0"></div>
                 <div><label class="label text-center font-black uppercase tracking-widest leading-none mb-1 text-blue-500 italic">🌙 Chiều</label><input id="temp-pm" type="number" step="0.1" class="input-box text-center text-4xl font-black text-blue-500 bg-blue-50 shadow-inner" placeholder="0.0"></div>
             </div>
             <button onclick="app.actions.saveTemp()" class="btn-primary bg-orange-500 shadow-lg font-black py-5 italic uppercase">Cập nhật dữ liệu</button>
         </div>
     </div>
 
-    <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-leave')"><div class="modal-box shadow-2xl p-8"><h3 class="font-bold mb-6 uppercase text-blue-600 text-center italic leading-none">Gửi đơn xin nghỉ phép</h3><div class="space-y-4 pt-2"><p class="label font-black">Ngày bắt đầu nghỉ</p><input id="leave-date" type="date" class="input-box shadow-inner"><p class="label font-black">Lý do nghỉ</p><select id="leave-reason" class="input-box shadow-inner"><option>Sức khỏe / Ốm</option><option>Việc gia đình</option><option>Khác</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn-primary shadow-md italic uppercase font-black">Xác nhận gửi đơn</button></div></div></div>
+    <div id="modal-leave" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-leave')"><div class="modal-box shadow-2xl p-8 border-2 border-blue-50"><h3 class="font-bold mb-6 uppercase text-blue-600 text-center italic leading-none">Đơn xin nghỉ phép</h3><div class="space-y-4 pt-2"><p class="label font-black italic text-[11px] mb-0">Ngày bắt đầu nghỉ</p><input id="leave-date" type="date" class="input-box shadow-inner"><p class="label font-black italic text-[11px] mb-0 leading-none">Lý do chính</p><select id="leave-reason" class="input-box shadow-inner font-black"><option>Sức khỏe / Ốm</option><option>Việc gia đình</option><option>Khác</option></select><button onclick="app.actions.submitHR('LEAVE')" class="btn-primary shadow-md italic uppercase font-black mt-2">Xác nhận gửi đơn</button></div></div></div>
     
-    <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box shadow-2xl p-8"><h3 class="font-bold mb-6 uppercase text-green-600 text-center italic leading-none">Đề xuất mua vật tư</h3><div class="space-y-4 pt-2"><p class="label font-black italic leading-none text-[10px]">Tên hàng / Vật tư cần nhập gấp</p><input type="text" id="pur-item" placeholder="Nhập tên vật tư..." class="input-box shadow-inner font-bold italic"><button onclick="app.actions.submitHR('PURCHASE')" class="btn-primary bg-green-600 shadow-md italic uppercase font-black">Gửi đề xuất mua</button></div></div></div>
+    <div id="modal-buy" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-buy')"><div class="modal-box shadow-2xl p-8 border-2 border-green-50"><h3 class="font-bold mb-6 uppercase text-green-600 text-center italic leading-none">Đề xuất mua vật tư</h3><div class="space-y-4 pt-2"><p class="label font-black italic leading-none text-[11px] uppercase">Tên hàng / Vật tư cần nhập gấp</p><input type="text" id="pur-item" placeholder="Nhập tên vật tư..." class="input-box shadow-inner font-bold italic leading-none"><button onclick="app.actions.submitHR('PURCHASE')" class="btn-primary bg-green-600 shadow-md italic uppercase font-black mt-2">Gửi đề xuất mua</button></div></div></div>
 
     <div id="modal-add-staff" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-add-staff')">
-        <div class="modal-box shadow-2xl p-8"><h3 class="font-bold mb-6 uppercase text-center italic leading-tight text-blue-600 leading-none">Cấp tài khoản nhân sự mới</h3><div class="space-y-4"><input id="new-emp-name" placeholder="Họ và tên..." class="input-box shadow-inner"><div class="grid grid-cols-2 gap-3"><input id="new-emp-id" placeholder="Mã ID" class="input-box shadow-inner" inputmode="numeric"><input id="new-emp-pin" placeholder="PIN 4-6 số" class="input-box shadow-inner" inputmode="numeric" maxlength="6"></div><select id="new-emp-role" class="input-box shadow-inner"><option value="Nhân viên">Nhân viên</option><option value="Tổ trưởng">Tổ trưởng</option><option value="Quản lý">Quản lý</option></select><select id="new-emp-team" class="input-box shadow-inner"><option value="Tổ Thu Hoạch">Tổ Thu Hoạch</option><option value="Tổ Sản Xuất">Tổ Sản Xuất</option></select><button onclick="app.actions.addEmployee()" class="btn-primary shadow-md font-black uppercase italic">Kích hoạt tài khoản</button></div></div>
+        <div class="modal-box shadow-2xl p-8"><h3 class="font-bold mb-6 uppercase text-center italic leading-tight text-blue-600 leading-none">Tạo tài khoản nhân sự mới</h3><div class="space-y-4"><input id="new-emp-name" placeholder="Họ và tên..." class="input-box shadow-inner italic font-black"><div class="grid grid-cols-2 gap-3"><input id="new-emp-id" placeholder="Mã ID" class="input-box shadow-inner" inputmode="numeric"><input id="new-emp-pin" placeholder="PIN 4-6 số" class="input-box shadow-inner" inputmode="numeric" maxlength="6"></div><select id="new-emp-role" class="input-box shadow-inner italic font-black"><option value="Nhân viên">Nhân viên</option><option value="Tổ trưởng">Tổ trưởng</option><option value="Quản lý">Quản lý</option></select><select id="new-emp-team" class="input-box shadow-inner italic font-black"><option value="Tổ Thu Hoạch">Tổ Thu Hoạch</option><option value="Tổ Sản Xuất">Tổ Sản Xuất</option></select><button onclick="app.actions.addEmployee()" class="btn-primary shadow-md font-black uppercase italic">Kích hoạt tài khoản</button></div></div>
     </div>
 
     <div id="modal-score-info" class="modal-wrap hidden" onclick="if(event.target===this) app.ui.closeModal('modal-score-info')">
-        <div class="modal-box p-8 text-center border-2 border-yellow-100">
-            <h3 class="font-black text-lg mb-4 text-slate-800 uppercase tracking-widest border-b pb-2 italic text-yellow-600">Quy tắc cộng điểm</h3>
+        <div class="modal-box p-8 text-center border-2 border-yellow-100 shadow-2xl">
+            <h3 class="font-black text-lg mb-4 text-slate-800 uppercase tracking-widest border-b pb-2 italic text-yellow-600 leading-none">Hệ thống cộng điểm</h3>
             <ul class="space-y-4 text-sm font-bold text-slate-600 italic text-left">
                 <li class="flex items-center gap-4"><div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center font-black shadow-sm">+10</div><span>Ghi nhận phiếu hái nấm sạch</span></li>
                 <li class="flex items-center gap-4"><div class="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center font-black shadow-sm">+2</div><span>Mỗi lần điểm danh ca làm việc</span></li>
@@ -329,21 +337,12 @@
         const db = getFirestore(appInstance);
         const ROOT = "artifacts/namong5_production/public/data";
 
-        // PWA Safe Init
-        const initPWA = () => {
-            const manifest = { "name": "Nấm Ông 5 Supreme", "short_name": "Nấm Ông 5", "start_url": ".", "display": "standalone", "background_color": "#f8fafc", "theme_color": "#2563eb", "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3252/3252932.png", "sizes": "512x512", "type": "image/png" }] };
-            const manifestStr = JSON.stringify(manifest);
-            const blob = new Blob([manifestStr], {type: 'application/json'});
-            const manifestURL = URL.createObjectURL(blob);
-            const link = document.createElement('link'); link.rel = 'manifest'; link.href = manifestURL; document.head.appendChild(link);
-        };
-
         window.app = {
             data: { employees: [], houses: [], harvest: [], exports: [], chat: [], production: [], attendance: [], tasks: [], hr_requests: [] },
             user: JSON.parse(localStorage.getItem('n5_v101_user')) || null,
 
             getEmpName: (id) => {
-                const emp = app.data.employees.find(e => String(e.id) === String(id));
+                const emp = window.app.data.employees.find(e => String(e.id) === String(id));
                 return emp ? emp.name : id;
             },
 
@@ -354,6 +353,14 @@
                 openChat: () => { document.getElementById('chat-layer').style.display = 'flex'; window.app.renderChat(); },
                 closeChat: () => { document.getElementById('chat-layer').style.display = 'none'; },
                 
+                initPWA: () => {
+                    const manifest = { "name": "Nấm Ông 5 Supreme", "short_name": "Nấm Ông 5", "start_url": ".", "display": "standalone", "background_color": "#f8fafc", "theme_color": "#2563eb", "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3252/3252932.png", "sizes": "512x512", "type": "image/png" }] };
+                    const manifestStr = JSON.stringify(manifest);
+                    const blob = new Blob([manifestStr], {type: 'application/json'});
+                    const manifestURL = URL.createObjectURL(blob);
+                    const link = document.createElement('link'); link.rel = 'manifest'; link.href = manifestURL; document.head.appendChild(link);
+                },
+
                 tab: (id) => {
                     if (!window.app.user) return;
                     const isAdmin = ['Giám đốc', 'Quản lý'].includes(window.app.user.role);
@@ -392,7 +399,7 @@
                         <div class="bg-white p-3 rounded-2xl border flex items-center justify-between shadow-sm mb-1">
                             <div class="flex flex-col leading-none w-32">
                                 <span class="text-[10px] font-black text-blue-600 uppercase mb-1 leading-none italic">${t.n}</span>
-                                <span class="text-[8px] text-slate-400 font-bold leading-none mt-1 italic">Tồn kho: ${stock[t.id].toFixed(2)} Kg</span>
+                                <span class="text-[8px] text-slate-400 font-bold leading-none mt-1 italic text-[7px]">Tồn: ${stock[t.id].toFixed(2)} Kg</span>
                             </div>
                             <input type="number" id="exp-qty-${t.id}" step="0.01" class="input-box !p-2 !text-center font-black !bg-slate-50 flex-1 mx-3 shadow-inner" placeholder="0.00">
                         </div>`).join('');
@@ -423,11 +430,11 @@
                 }
             },
 
-            // --- LOGIC INIT VÀ SYNC BẢN 104 ---
+            // --- GIỮ NGUYÊN LOGIC INIT VÀ SYNC BẢN 104 ---
             init: () => {
-                initPWA();
+                window.app.ui.initPWA();
                 signInAnonymously(auth).then(() => {
-                    const statusText = document.getElementById('status-text'); if(statusText) statusText.innerText = 'Bản Supreme Đã Kết Nối';
+                    const statusText = document.getElementById('status-text'); if(statusText) statusText.innerText = 'Dữ liệu Heritage Đã Sẵn Sàng';
                     const dot = document.querySelector('#login-status .status-dot'); if(dot) dot.className = 'status-dot status-ok';
                     window.app.sync();
                 });
@@ -462,10 +469,10 @@
                 const s = document.getElementById('login-user');
                 if (s && window.app.data.employees.length > 0) {
                     const savedId = s.value;
-                    s.innerHTML = '<option value="">-- Chọn danh tính của bạn --</option>' + 
+                    s.innerHTML = '<option value="">-- Click chọn danh tính --</option>' + 
                         window.app.data.employees.map(e => `<option value="${e.id}" ${e.id==savedId?'selected':''}>${e.name}</option>`).join('');
                     s.disabled = false;
-                    const pin = document.getElementById('login-pin'); if(pin) pin.disabled = false;
+                    document.getElementById('login-pin').disabled = false;
                     const btn = document.getElementById('login-btn'); if(btn) btn.disabled = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
@@ -510,18 +517,18 @@
                 document.getElementById('stat-yield').innerText = totalYield.toFixed(2);
 
                 const houseMulti = document.getElementById('house-multi-select');
-                if (houseMulti) houseMulti.innerHTML = window.app.data.houses.map(h => `<label class="flex items-center gap-1 text-[10px] font-bold bg-white p-2 rounded border shadow-sm"><input type="checkbox" name="h-chk" value="${h.name}"> ${h.name}</label>`).join('');
+                if (houseMulti) houseMulti.innerHTML = window.app.data.houses.map(h => `<label class="flex items-center gap-1 text-[10px] font-bold bg-white p-2 rounded border shadow-sm font-black italic"><input type="checkbox" name="h-chk" value="${h.name}"> ${h.name}</label>`).join('');
 
                 const assignInd = document.getElementById('assign-ind-zone');
-                if (assignInd) assignInd.innerHTML = window.app.data.employees.map(e => `<label class="flex items-center gap-1 text-[10px] font-bold bg-white p-2 rounded border shadow-sm"><input type="checkbox" name="u-chk" value="${e.id}"> ${e.name}</label>`).join('');
+                if (assignInd) assignInd.innerHTML = window.app.data.employees.map(e => `<label class="flex items-center gap-1 text-[10px] font-bold bg-white p-2 rounded border shadow-sm font-black italic"><input type="checkbox" name="u-chk" value="${e.id}"> ${e.name}</label>`).join('');
 
                 const thArea = document.getElementById('th-area');
                 if (thArea) {
                     const cur = thArea.value;
-                    thArea.innerHTML = '<option value="">-- Chọn nhà hái nấm --</option>' + app.data.houses.map(h => `<option value="${h.name}" ${h.name===cur?'selected':''}>${h.name}</option>`).join('');
+                    thArea.innerHTML = '<option value="">-- Chọn nhà hái nấm --</option>' + window.app.data.houses.map(h => `<option value="${h.name}" ${h.name===cur?'selected':''}>${h.name}</option>`).join('');
                 }
 
-                // 1. NHẬT KÝ THEO TỪNG NHÀ (CHỈ HIỆN KG VÀ NGÀY)
+                // 1. NHẬT KÝ THEO TỪNG NHÀ (KG VÀ NGÀY)
                 document.getElementById('house-list').innerHTML = window.app.data.houses.map(h => {
                     const lastH = [...window.app.data.harvest].filter(x => x.area === h.name).pop();
                     const lastDate = lastH ? new Date(lastH.time).toLocaleDateString('vi-VN') : 'N/A';
@@ -531,15 +538,15 @@
                             <div class="leading-none flex-1 mr-2">
                                 <div class="flex items-center gap-2 mb-1">
                                     <p class="font-black text-sm uppercase text-slate-800 leading-none">${h.name}</p>
-                                    <button onclick="app.actions.exportCSVByHouse('${h.name}')" class="text-[8px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded shadow-inner uppercase font-black italic border">BC Nhà</button>
+                                    <button onclick="app.actions.exportCSVByHouse('${h.name}')" class="text-[8px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded shadow-inner uppercase font-black italic border leading-none">BC Nhà</button>
                                 </div>
                                 <p class="text-[9px] text-slate-400 font-bold uppercase italic leading-none tracking-tight">Nhiệt: AM ${h.temp?.am||0}° | PM ${h.temp?.pm||0}°</p>
                             </div>
                             <button onclick="app.actions.openTemp('${h._id}', '${h.name}')" class="bg-orange-50 text-orange-600 w-9 h-9 rounded-full flex items-center justify-center border border-orange-100 shadow-sm active:scale-75 transition"><i class="fas fa-thermometer-half text-xs"></i></button>
                         </div>
                         <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100 mt-3 flex justify-between items-center shadow-inner">
-                            <p class="text-[11px] font-bold text-slate-600 leading-none">${lastH ? `Hái <span class="text-blue-600 font-black">${lastH.total.toFixed(2)} Kg</span>` : 'Chưa hái'}</p>
-                            <p class="text-[10px] font-bold text-slate-400 italic leading-none">${lastDate}</p>
+                            <p class="text-[11px] font-bold text-slate-600 leading-none italic font-black">${lastH ? `Hái <span class="text-blue-600 font-black">${lastH.total.toFixed(2)} Kg</span>` : 'Chưa hái'}</p>
+                            <p class="text-[10px] font-bold text-slate-400 italic leading-none font-black">${lastDate}</p>
                         </div>
                     </div>`}).join('');
 
@@ -555,21 +562,21 @@
 
                 document.getElementById('task-list-grouped').innerHTML = Object.keys(taskGroup).length ? Object.keys(taskGroup).map(name => `
                     <div class="card !p-0 overflow-hidden border-2 border-slate-100 shadow-sm">
-                        <div class="bg-slate-100 p-3.5 flex justify-between items-center">
-                            <span class="font-black text-xs uppercase text-slate-700 leading-none">${name}</span>
+                        <div class="bg-slate-100 p-3.5 flex justify-between items-center border-b">
+                            <span class="font-black text-xs uppercase text-slate-700 leading-none italic font-black">${name}</span>
                             ${isAdmin ? `<button onclick="app.actions.nudgeStaff('${name}')" class="bg-red-500 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-sm">Thúc giục</button>` : ''}
                         </div>
                         <div class="p-3.5 space-y-2">
                             ${taskGroup[name].map(t => `
                                 <div class="flex justify-between items-center border-b border-dashed border-slate-100 pb-2 last:border-0 last:pb-0">
-                                    <div class="leading-tight flex-1 mr-2"><p class="font-bold text-[11px] text-slate-700">${t.title}</p><p class="text-[9px] text-indigo-500 italic uppercase font-black">Tại: ${t.houseId}</p></div>
+                                    <div class="leading-tight flex-1 mr-2"><p class="font-bold text-[11px] text-slate-700">${t.title}</p><p class="text-[9px] text-indigo-500 italic uppercase font-black leading-none mt-1">Tại: ${t.houseId}</p></div>
                                     <div class="flex gap-2">
-                                        ${isAdmin ? `<button onclick="app.actions.delTask('${t._id}')" class="text-red-400 w-7 h-7 flex items-center justify-center bg-red-50 rounded-lg shadow-sm"><i class="fas fa-trash-alt text-[10px]"></i></button>` : ''}
+                                        ${isAdmin ? `<button onclick="app.actions.delTask('${t._id}')" class="text-red-400 w-7 h-7 flex items-center justify-center bg-red-50 rounded-lg shadow-sm border border-red-100"><i class="fas fa-trash-alt text-[10px]"></i></button>` : ''}
                                         ${String(t.assignee) === String(window.app.user.id) ? `<button onclick="app.actions.completeTask('${t._id}', '${t.title}')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black shadow-sm italic uppercase">XONG</button>` : ''}
                                     </div>
                                 </div>`).join('')}
                         </div>
-                    </div>`).join('') : '<p class="text-center py-10 text-slate-400 font-bold uppercase text-[10px] italic leading-none">Sạch lệnh công việc</p>';
+                    </div>`).join('') : '<p class="text-center py-10 text-slate-400 font-bold uppercase text-[10px] italic leading-none font-black">Sạch lệnh công việc</p>';
 
                 window.app.renderLeaderboard();
                 window.app.renderTHTable();
@@ -584,16 +591,16 @@
 
                 el.innerHTML = `
                 <table class="log-table shadow-sm mb-6">
-                    <thead><tr><th>Nhà</th><th>DABF</th><th>AB</th><th>B</th><th>H.Thủ</th><th>Tổng</th><th>User</th></tr></thead>
+                    <thead><tr><th>Nhà</th><th>DABF</th><th>AB</th><th>B</th><th>HT</th><th>Tổng</th><th>User</th></tr></thead>
                     <tbody>${logs.map(l => {
                             const d = l.details || {};
-                            const DABF = (Number(d.d1)||0) + (Number(d.a1f)||0) + (Number(d.a2f)||0) + (Number(d.b2f)||0);
+                            const DABF = (Number(d.d1)||0) + (Number(d.a1f)||0) + (Number(d.a2f)||0) + (Number(d.b1f)||0) + (Number(d.b2f)||0);
                             const AB = (Number(d.a1)||0) + (Number(d.a2)||0);
                             const B = (Number(d.b1)||0) + (Number(d.b2)||0);
-                            return `<tr><td class="font-black text-blue-600">${l.area}</td><td>${DABF.toFixed(2)}</td><td>${AB.toFixed(2)}</td><td>${B.toFixed(2)}</td><td class="text-orange-600">${(Number(d.ht)||0).toFixed(2)}</td><td class="font-black bg-slate-50">${l.total.toFixed(2)}</td><td class="tracking-tighter font-bold uppercase text-slate-400 opacity-60">${l.user}</td></tr>`}).join('')}
+                            return `<tr><td class="font-black text-blue-600 italic leading-none">${l.area}</td><td>${DABF.toFixed(2)}</td><td>${AB.toFixed(2)}</td><td>${B.toFixed(2)}</td><td class="text-orange-600 font-black">${(Number(d.ht)||0).toFixed(2)}</td><td class="font-black bg-slate-50">${l.total.toFixed(2)}</td><td class="tracking-tighter font-bold uppercase text-slate-400 opacity-60 leading-none">${l.user}</td></tr>`}).join('')}
                     </tbody>
                 </table>
-                <p class="label px-1 mt-4 text-blue-600 font-black italic uppercase text-[9px]">Lịch sử Xuất kho (2 ngày gần nhất)</p>
+                <p class="label px-1 mt-4 text-blue-600 font-black italic uppercase text-[9px] leading-none mb-1">Xuất kho tươi (Lịch sử 2 ngày)</p>
                 <table class="log-table shadow-sm mt-2">
                     <thead><tr><th>Ngày</th><th>Khách</th><th>Tổng</th><th>User</th></tr></thead>
                     <tbody>${expRecent.map(e => `<tr><td>${new Date(e.time).toLocaleDateString('vi-VN')}</td><td class="font-black italic">${e.customer}</td><td class="text-green-600 font-black">${e.total_qty.toFixed(2)}</td><td class="uppercase text-[7px] font-black leading-none">${e.user}</td></tr>`).join('')}</tbody>
@@ -607,24 +614,24 @@
                 el.innerHTML = sorted.map((e, i) => `
                     <div class="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border mb-1">
                         <div class="flex items-center gap-2">
-                            <span class="w-5 h-5 flex items-center justify-center ${i===0?'bg-yellow-500':'bg-blue-600'} text-white rounded-full font-black text-[9px] shadow-sm">${i+1}</span>
-                            <span class="font-bold text-slate-700 uppercase text-[10px] leading-none">${e.name}</span>
+                            <span class="w-5 h-5 flex items-center justify-center ${i===0?'bg-yellow-500 font-black':'bg-blue-600'} text-white rounded-full font-black text-[9px] shadow-sm">${i+1}</span>
+                            <span class="font-bold text-slate-700 uppercase text-[11px] italic font-black leading-none">${e.name}</span>
                         </div>
-                        <span class="font-black text-blue-600 text-[11px]">${(e.score||0).toFixed(0)}đ</span>
+                        <span class="font-black text-blue-600 text-[11px] leading-none">${(e.score||0).toFixed(0)}đ</span>
                     </div>`).join('');
             },
 
             renderTeam: () => {
                 const list = document.getElementById('team-list');
                 if(!list) return;
-                const today = new Date().toISOString().split('T')[0];
+                const todayStr = new Date().toISOString().split('T')[0];
                 list.innerHTML = window.app.data.employees.map(e => `
-                    <div class="card flex justify-between items-center !p-4 ${e.lastLogin===today?'staff-online shadow-md':'border-slate-200 staff-offline shadow-none'}">
+                    <div class="card flex justify-between items-center !p-4 ${e.lastLogin===todayStr?'staff-online shadow-md':'border-slate-200 staff-offline shadow-none'}">
                         <div class="flex items-center gap-4">
-                            <div class="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border-2 border-white shadow-inner uppercase text-lg">${e.name.charAt(0)}</div>
+                            <div class="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 border-2 border-white shadow-inner uppercase text-lg italic leading-none">${e.name.charAt(0)}</div>
                             <div>
-                                <p class="text-xs font-bold uppercase text-slate-700 leading-none">${e.name}</p>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase mt-1.5 italic">${e.team || 'N/A'} | ${e.role}</p>
+                                <p class="text-sm font-bold uppercase text-slate-700 leading-none font-black italic">${e.name}</p>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase mt-1.5 italic leading-none">${e.team || 'N/A'} | ${e.role}</p>
                             </div>
                         </div>
                         ${['Giám đốc', 'Quản lý'].includes(window.app.user.role) ? `<button onclick="app.actions.delEmployee('${e._id}', '${e.name}')" class="text-red-300 w-10 h-10 flex items-center justify-center active:scale-75 transition"><i class="fas fa-trash-alt text-xs"></i></button>` : ''}
@@ -641,8 +648,8 @@
                     let reacts = m.reactions ? `<div class="reaction-bar">${Object.entries(m.reactions).map(([r, count]) => `<span>${r}${count > 1 ? count : ''}</span>`).join('')}</div>` : '';
                     return `
                     <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-                        <div class="chat-sender-tag text-[9px] font-black uppercase text-slate-400 mb-1 px-1 leading-none">${isMe ? '' : m.senderName}</div>
-                        <div class="chat-bubble ${isMe ? 'chat-me' : 'chat-other'} font-medium shadow-sm relative" ondblclick="app.actions.reactMessage('${m._id}', '❤️')">
+                        <div class="chat-sender-tag text-[9px] font-black uppercase text-slate-400 mb-1 px-1 leading-none italic">${isMe ? '' : m.senderName}</div>
+                        <div class="chat-bubble ${isMe ? 'chat-me' : 'chat-other'} font-medium shadow-sm relative italic" ondblclick="app.actions.reactMessage('${m._id}', '❤️')">
                             ${m.text}${reacts}
                         </div>
                     </div>`;
@@ -653,8 +660,18 @@
             actions: {
                 notify: (title, body) => { if ("Notification" in window && Notification.permission === "granted") { new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/3252/3252932.png' }); }},
                 logout: () => { localStorage.removeItem('n5_v101_user'); location.reload(); },
+                
+                pushChatNotify: async (msg) => {
+                    await addDoc(collection(db, `${ROOT}/chat`), {
+                        text: msg,
+                        senderId: 'SYSTEM',
+                        senderName: 'HỆ THỐNG',
+                        time: Date.now()
+                    });
+                },
+
                 nudgeStaff: async (name) => {
-                    await addDoc(collection(db, `${ROOT}/chat`), { text: `LỆNH KHẨN: Quản lý nhắc nhở [${name}] hoàn thành các việc tồn đọng ngay!`, senderId: 'SYSTEM', time: Date.now() });
+                    await window.app.actions.pushChatNotify(`THÚC GIỤC: Quản lý yêu cầu [${name}] khẩn trương hoàn thành các việc được giao!`);
                 },
                 createTask: async () => {
                     const title = document.getElementById('task-title').value;
@@ -662,11 +679,11 @@
                     const u = Array.from(document.querySelectorAll('input[name="u-chk"]:checked')).map(i => i.value);
                     if(!title || h.length===0 || u.length===0) return window.app.ui.showMsg("Thiếu tin!");
                     for(let house of h) for(let uid of u) { await addDoc(collection(db, `${ROOT}/tasks`), { title, houseId: house, assignee: uid, status: 'pending', time: Date.now() }); }
-                    await addDoc(collection(db, `${ROOT}/chat`), { text: `TÁC VỤ MỚI: ${title} tại Nhà ${h.join(', ')}`, senderId: 'SYSTEM', time: Date.now() });
+                    await window.app.actions.pushChatNotify(`GIAO VIỆC: Lệnh mới [${title}] tại Nhà ${h.join(', ')}`);
                 },
                 completeTask: async (id, title) => {
                     await updateDoc(doc(db, `${ROOT}/tasks`, id), { status: 'completed', finishTime: Date.now() });
-                    await addDoc(collection(db, `${ROOT}/chat`), { text: `HOÀN THÀNH: ${window.app.user.name} đã làm xong: ${title}`, senderId: 'SYSTEM', time: Date.now() });
+                    await window.app.actions.pushChatNotify(`BÁO CÁO: ${window.app.user.name} đã hoàn tất công việc: ${title}`);
                 },
                 delTask: async (id) => { if(confirm("Xóa lệnh này?")) deleteDoc(doc(db, `${ROOT}/tasks`, id)); },
                 submitTH: async () => {
@@ -675,7 +692,7 @@
                     const total = Object.values(d).reduce((a,b)=>a+b,0);
                     await addDoc(collection(db, `${ROOT}/harvest_logs`), { area, details: d, total, user: window.app.user.name, time: Date.now() });
                     await updateDoc(doc(db, `${ROOT}/employees`, window.app.user._id), { score: (window.app.user.score||0) + 10 });
-                    await addDoc(collection(db, `${ROOT}/chat`), { text: `HÁI NẤM: ${window.app.user.name} hái ${total.toFixed(2)} Kg tại Nhà ${area}`, senderId: 'SYSTEM', time: Date.now() });
+                    await window.app.actions.pushChatNotify(`THU HOẠCH: ${window.app.user.name} vừa hái ${total.toFixed(2)} Kg nấm sạch tại Nhà ${area}`);
                     window.app.ui.showMsg("Đã lưu!"); window.app.ui.resetTHInputs();
                 },
                 submitExport: async () => {
@@ -685,19 +702,20 @@
                     types.forEach(t => { const v = Number(document.getElementById('exp-qty-'+t)?.value) || 0; if(v > 0) { det[t] = v; total += v; } });
                     if(total === 0) return window.app.ui.showMsg("Nhập số lượng!");
                     await addDoc(collection(db, `${ROOT}/export_logs`), { customer, details: det, total_qty: total, time: Date.now(), user: window.app.user.name });
-                    await addDoc(collection(db, `${ROOT}/chat`), { text: `XUẤT KHO: ${window.app.user.name} chốt đơn ${total.toFixed(2)} Kg cho ${customer}`, senderId: 'SYSTEM', time: Date.now() });
+                    await window.app.actions.pushChatNotify(`XUẤT KHO: ${window.app.user.name} chốt đơn ${total.toFixed(2)} Kg cho ${customer}`);
                     window.app.ui.showMsg("Đã xuất kho!"); document.getElementById('export-customer-name').value = '';
                 },
                 submitSX: async () => {
                     const data = { action: document.getElementById('sx-action').value, type: document.getElementById('sx-type').value, qty: Number(document.getElementById('sx-qty').value), batch: document.getElementById('sx-batch').value, user: window.app.user.name, time: Date.now() };
                     await addDoc(collection(db, `${ROOT}/production_logs`), data);
-                    await addDoc(collection(db, `${ROOT}/chat`), { text: `SẢN XUẤT: ${window.app.user.name} ${data.action} ${data.qty} túi phôi nấm`, senderId: 'SYSTEM', time: Date.now() });
+                    await window.app.actions.pushChatNotify(`SẢN XUẤT: ${window.app.user.name} đã ${data.action} ${data.qty} túi phôi nấm`);
                     app.ui.showMsg("Đã lưu dữ liệu SX!");
                 },
                 checkIn: async (shift) => { 
                     const today = new Date().toISOString().split('T')[0]; 
                     await updateDoc(doc(db, `${ROOT}/employees`, window.app.user._id), { lastLogin: today, score: (window.app.user.score||0) + 2 }); 
                     await addDoc(collection(db, `${ROOT}/attendance_logs`), { date: today, time: Date.now(), user: window.app.user.name, uid: window.app.user.id, shift, team: window.app.user.team || 'Thành viên' });
+                    await window.app.actions.pushChatNotify(`ĐIỂM DANH: ${window.app.user.name} vào ca ${shift.toUpperCase()}`);
                     app.ui.showMsg("Điểm danh xong!"); 
                 },
                 reactMessage: async (msgId, icon) => {
@@ -716,16 +734,20 @@
                 },
                 submitHR: async (type) => { 
                     const content = type==='LEAVE' ? document.getElementById('leave-date').value : document.getElementById('pur-item').value;
+                    const label = type==='LEAVE' ? 'XIN NGHỈ PHÉP' : 'MUA HÀNG';
                     await addDoc(collection(db, `${ROOT}/hr_requests`), { type, requester: window.app.user.name, status: 'pending', content, time: Date.now() }); 
+                    await window.app.actions.pushChatNotify(`HÀNH CHÍNH: ${window.app.user.name} vừa trình đơn ${label}: ${content}`);
                     window.app.ui.showMsg("Đã trình đơn!"); window.app.ui.closeModal(type==='LEAVE'?'modal-leave':'modal-buy'); 
                 },
 
-                // --- HỆ THỐNG BÁO CÁO CỘT EXCEL (TÁCH BIỆT TUYỆT ĐỐI + SỬA LỖI FONT) ---
+                // --- HỆ THỐNG BÁO CÁO CỘT EXCEL (FIX LỖI FONT CHỮ CƯƠNG QUYẾT) ---
                 downloadCSV: (csv, filename) => {
-                    // Thêm BOM (Byte Order Mark) để Excel nhận diện UTF-8 có tiếng Việt
-                    // Thêm sep=; để Excel tự động chia cột
-                    const contentWithHeader = "sep=;\n" + csv;
-                    const blob = new Blob(["\uFEFF" + contentWithHeader], { type: 'text/csv;charset=utf-8;' });
+                    // Dùng mã UTF-8 BOM (\uFEFF) giúp Excel nhận diện font Tiếng Việt
+                    // Dùng sep=; giúp Excel tự động chia cột
+                    // Đảm bảo mã hóa toàn bộ dữ liệu là Unicode
+                    const bom = "\uFEFF";
+                    const separatorHint = "sep=;\n";
+                    const blob = new Blob([bom + separatorHint + csv], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement("a");
                     link.setAttribute("href", url); link.setAttribute("download", filename);
@@ -733,25 +755,25 @@
                     link.click(); document.body.removeChild(link);
                 },
                 exportAttendance: () => {
-                    let csv = "NGAY;GIO;NHAN VIEN;ID;CA LAM;TO DOI\n";
+                    let csv = "NGÀY;GIỜ;NHÂN VIÊN;ID;CA LÀM;TỔ ĐỘI\n";
                     window.app.data.attendance.filter(a => a.team === window.app.user.team || ['Giám đốc', 'Quản lý'].includes(window.app.user.role)).sort((a,b)=>b.time-a.time).forEach(l => {
                         csv += `${l.date};${new Date(l.time).toLocaleTimeString()};${l.user};${l.uid};${l.shift};${l.team}\n`;
                     });
-                    window.app.actions.downloadCSV(csv, "BaoCao_ChamCong.csv");
+                    window.app.actions.downloadCSV(csv, "BaoCao_ChamCong_Platinum.csv");
                 },
                 exportTH: () => {
-                    let csv = "NGAY;GIO;NHA;DABF;AB;B;HT;TONG;USER\n";
+                    let csv = "NGÀY;GIỜ;NHÀ;DABF;AB;B;HT;TỔNG;USER\n";
                     window.app.data.harvest.sort((a,b)=>b.time-a.time).forEach(l => {
                         const d = l.details || {};
-                        const DABF = (Number(d.d1)||0) + (Number(d.a1f)||0) + (Number(d.a2f)||0) + (Number(d.b2f)||0);
+                        const DABF = (Number(d.d1)||0) + (Number(d.a1f)||0) + (Number(d.a2f)||0) + (Number(d.b1f)||0) + (Number(d.b2f)||0);
                         const AB = (Number(d.a1)||0) + (Number(d.a2)||0);
                         const B = (Number(d.b1)||0) + (Number(d.b2)||0);
                         csv += `${new Date(l.time).toLocaleDateString()};${new Date(l.time).toLocaleTimeString()};${l.area};${DABF.toFixed(2)};${AB.toFixed(2)};${B.toFixed(2)};${(Number(d.ht)||0).toFixed(2)};${l.total.toFixed(2)};${l.user}\n`;
                     });
-                    window.app.actions.downloadCSV(csv, "BaoCao_TongHeThong.csv");
+                    window.app.actions.downloadCSV(csv, "BaoCao_HeThong_Tong.csv");
                 },
                 exportCSVByTeam: (teamName) => {
-                    let csv = "NGAY;GIO;USER;NHA;KG;TEAM\n";
+                    let csv = "NGÀY;GIỜ;USER;NHÀ;SẢN LƯỢNG;TỔ\n";
                     window.app.data.harvest.filter(a => {
                         const emp = window.app.data.employees.find(e => e.name === a.user);
                         return emp && emp.team === teamName;
@@ -761,20 +783,21 @@
                     window.app.actions.downloadCSV(csv, `BaoCao_SanLuong_To_${teamName}.csv`);
                 },
                 exportCSVByHouse: (houseName) => {
-                    let csv = "NGAY;GIO;USER;DABF;AB;B;HT;TOTAL\n";
+                    let csv = "NGÀY;GIỜ;USER;DABF;AB;B;HT;TỔNG\n";
                     window.app.data.harvest.filter(h => h.area === houseName).forEach(l => {
                         const d = l.details || {};
-                        const DABF = (Number(d.d1)||0) + (Number(d.a1f)||0) + (Number(d.a2f)||0) + (Number(d.b2f)||0);
+                        const DABF = (Number(d.d1)||0) + (Number(d.a1f)||0) + (Number(d.a2f)||0) + (Number(d.b1f)||0) + (Number(d.b2f)||0);
                         const AB = (Number(d.a1)||0) + (Number(d.a2)||0);
                         const B = (Number(d.b1)||0) + (Number(d.b2)||0);
                         csv += `${new Date(l.time).toLocaleDateString()};${new Date(l.time).toLocaleTimeString()};${l.user};${DABF.toFixed(2)};${AB.toFixed(2)};${B.toFixed(2)};${(Number(d.ht)||0).toFixed(2)};${l.total.toFixed(2)}\n`;
                     });
                     window.app.actions.downloadCSV(csv, `BaoCao_Nha_${houseName}.csv`);
                 },
-                resetLeaderboard: async () => { if(confirm("RESET ĐIỂM THÁNG?")) { for(let e of window.app.data.employees) await updateDoc(doc(db, `${ROOT}/employees`, e._id), { score: 0 }); }},
+                resetLeaderboard: async () => { if(confirm("RESET ĐIỂM THÁNG MỚI?")) { for(let e of window.app.data.employees) await updateDoc(doc(db, `${ROOT}/employees`, e._id), { score: 0 }); window.app.ui.showMsg("Đã reset!"); }},
                 saveTemp: async () => { const id = document.getElementById('temp-id')?.value; await updateDoc(doc(db, `${ROOT}/houses`, id), { 'temp.am': Number(document.getElementById('temp-am')?.value), 'temp.pm': Number(document.getElementById('temp-pm')?.value) }); app.ui.showMsg("Đã lưu!"); app.ui.closeModal('modal-temp'); },
                 openTemp: (id, name) => { const h = window.app.data.houses.find(x => x._id === id); document.getElementById('temp-id').value = id; document.getElementById('temp-name').innerText = name; document.getElementById('temp-am').value = h.temp?.am||0; document.getElementById('temp-pm').value = h.temp?.pm||0; window.app.ui.showModal('modal-temp'); },
-                addEmployee: async () => { const n = document.getElementById('new-emp-name').value; const id = Number(document.getElementById('new-emp-id').value); const p = document.getElementById('new-emp-pin').value; if(!n||!id||!p) return window.app.ui.showMsg("Thiếu tin!"); await addDoc(collection(db, `${ROOT}/employees`), { id, name: n, pin: p, team: document.getElementById('new-emp-team').value, role: document.getElementById('new-emp-role').value, score: 0 }); app.ui.closeModal('modal-add-staff'); },
+                addEmployee: async () => { const n = document.getElementById('new-emp-name').value; const id = Number(document.getElementById('new-emp-id').value); const p = document.getElementById('new-emp-pin').value; if(!n||!id||!p) return window.app.ui.showMsg("Thiếu tin!"); await addDoc(collection(db, `${ROOT}/employees`), { id, name: n, pin: p, team: document.getElementById('new-emp-team').value, role: document.getElementById('new-emp-role').value, score: 0 }); app.ui.closeModal('modal-add-staff'); window.app.ui.showMsg("Đã thêm nhân sự!"); },
+                delEmployee: async (id, name) => { if(confirm(`Xóa nhân sự ${name}?`)) deleteDoc(doc(db, `${ROOT}/employees`, id)); },
                 addHouse: async () => { const name = prompt("Tên nhà nấm mới:"); if(name) await addDoc(collection(db, `${ROOT}/houses`), { name, temp: {am:0, pm:0} }); }
             }
         };
