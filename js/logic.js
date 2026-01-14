@@ -10,9 +10,25 @@ const App = {
         signInAnonymously(auth).then(() => {
             const statusEl = document.getElementById('login-status');
             if(statusEl) statusEl.innerHTML = '<span class="text-green-500">✔ Đã kết nối</span>';
-            App.sync();
+            
+            // BƯỚC 1: CHỈ TẢI DANH SÁCH NHÂN VIÊN ĐỂ ĐĂNG NHẬP (Nhẹ, Nhanh)
+            App.syncEmployees();
+
+            // Nếu đã từng đăng nhập trước đó (F5 lại trang), thì mới tải dữ liệu còn lại
+            if(App.user) {
+                App.syncData();
+                App.ui.switchTab('home');
+                document.getElementById('login-overlay').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                document.getElementById('head-user').innerText = App.user.name;
+                document.getElementById('head-role').innerText = App.user.role;
+                const adminTools = document.getElementById('admin-tools');
+                if(['Giám đốc', 'Quản lý', 'Kế toán'].includes(App.user.role) && adminTools) adminTools.classList.remove('hidden');
+            }
+
         }).catch(err => console.error("Lỗi kết nối:", err));
         
+        // ... (Giữ nguyên logic click) ...
         document.body.addEventListener('click', (e) => {
             const btn = e.target.closest('.btn-action');
             if(btn) {
@@ -30,7 +46,6 @@ const App = {
             if(e.target.closest('#btn-open-chat')) {
                 const layer = document.getElementById('chat-layer');
                 layer.classList.remove('hidden'); layer.style.display = 'flex';
-                // Trigger render ngay lập tức khi mở
                 App.ui.renderChat();
             }
         });
@@ -39,21 +54,45 @@ const App = {
         });
     },
 
-    sync: () => {
-        const mapD = s => s.docs.map(d => ({...d.data(), _id: d.id}));
-        
-        // 1. TẢI NHÂN VIÊN TRƯỚC (Để đăng nhập nhanh)
+    // 1. Tải nhân viên (Chạy ngay lập tức)
+    syncEmployees: () => {
         onSnapshot(collection(db, `${ROOT_PATH}/employees`), s => {
-            App.data.employees = mapD(s);
-            // Render ngay lập tức khi có data nhân viên, không đợi các cái khác
+            App.data.employees = s.docs.map(d => ({...d.data(), _id: d.id}));
+            // Chỉ render dropdown nếu chưa đăng nhập
             if(!App.user) UI.renderEmployeeOptions(App.data.employees); 
-            else App.ui.refresh();
         });
+    },
 
-        // 2. Tải các phần nặng sau
-        ['chat', 'hr_requests', 'houses', 'harvest_logs', 'tasks', 'production_logs', 'attendance_logs', 'shipping_logs'].forEach(col => {
+    // 2. Tải dữ liệu chính (Chỉ chạy SAU KHI ĐĂNG NHẬP THÀNH CÔNG) -> BẢO MẬT & TỐI ƯU
+    syncData: () => {
+        const mapD = s => s.docs.map(d => ({...d.data(), _id: d.id}));
+        const collections = ['chat', 'hr_requests', 'houses', 'harvest_logs', 'tasks', 'production_logs', 'attendance_logs', 'shipping_logs'];
+        
+        collections.forEach(col => {
             onSnapshot(collection(db, `${ROOT_PATH}/${col}`), s => {
                 const data = mapD(s);
+                
+                // LOGIC THÔNG BÁO THỰC (Real-time Notification)
+                s.docChanges().forEach((change) => {
+                    if (change.type === "added" && App.user) {
+                        const newItem = change.doc.data();
+                        // Chỉ báo nếu dữ liệu mới tạo trong vòng 30 giây (tránh báo lại cái cũ khi F5)
+                        const isRecent = (Date.now() - (newItem.time || 0)) < 30000;
+                        if(isRecent) {
+                            if(col === 'chat' && String(newItem.senderId) !== String(App.user.id)) {
+                                UI.showMsg(`💬 Tin nhắn mới từ ${newItem.senderName}`, 'notify');
+                                if(!document.getElementById('chat-layer').classList.contains('hidden')) App.ui.renderChat();
+                            }
+                            if(col === 'tasks' && newItem.assignee === App.user.id) {
+                                UI.showMsg(`📋 Bạn có việc mới: ${newItem.title}`, 'notify');
+                            }
+                            if(col === 'hr_requests' && ['Giám đốc','Quản lý'].includes(App.user.role)) {
+                                UI.showMsg(`🔔 Có đơn mới từ ${newItem.requester}`, 'notify');
+                            }
+                        }
+                    }
+                });
+
                 if(col==='harvest_logs') App.data.harvest = data;
                 else if(col==='production_logs') App.data.production = data;
                 else if(col==='attendance_logs') App.data.attendance = data;
@@ -61,7 +100,6 @@ const App = {
                 else App.data[col] = data;
 
                 if(App.user) {
-                    // Fix lỗi chat không hiện tin nhắn mới nếu đang mở
                     if(col === 'chat' && !document.getElementById('chat-layer').classList.contains('hidden')) App.ui.renderChat();
                     if(col === 'hr_requests' && document.getElementById('approval-list')) UI.renderApproveList(App.data.hr_requests);
                     App.ui.refresh();
@@ -83,6 +121,10 @@ const App = {
                 document.getElementById('head-role').innerText = emp.role;
                 const adminTools = document.getElementById('admin-tools');
                 if(['Giám đốc', 'Quản lý', 'Kế toán'].includes(emp.role) && adminTools) adminTools.classList.remove('hidden');
+                
+                // QUAN TRỌNG: Đăng nhập xong mới được tải dữ liệu nhạy cảm
+                App.syncData();
+                
                 App.ui.switchTab('home');
             } else UI.showMsg("Sai mã PIN!");
         }
