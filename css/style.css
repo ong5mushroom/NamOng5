@@ -1,318 +1,132 @@
 :root {
     --blue: #2563eb;
-    --header-h: 80px; /* Tăng chiều cao header để thoáng hơn */
+    --header-h: 70px;
     --nav-h: 70px;
     --bg: #f8fafc;
     --shiitake: #5d2b0c;
 }
 
 * {
-    font-family: "Times New Roman", Times, serif;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Đổi font cho dễ đọc hơn trên điện thoại */
     -webkit-tap-highlight-color: transparent;
     user-select: none;
-    box-sizing: border-box; /* Đảm bảo padding không làm vỡ layout */
-}
-
-.fas, .far, .fab {
-    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+    box-sizing: border-box;
 }
 
 body {
     background: var(--bg);
-    color: #1e293b;
+    color: #334155;
     margin: 0;
     height: 100vh;
-    overflow: hidden; /* Ngăn cuộn trang body, chỉ cuộn phần nội dung */
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 
-/* HEADER */
+/* --- HEADER (ĐÃ CHỈNH SỬA) --- */
 #app-header {
     height: var(--header-h);
     background: white;
     border-bottom: 1px solid #e2e8f0;
-    position: fixed; /* Cố định header */
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000; /* Đảm bảo header luôn ở trên cùng */
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    padding-top: env(safe-area-inset-top); /* Hỗ trợ tai thỏ iPhone */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    padding-top: env(safe-area-inset-top);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 2000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
-/* MAIN CONTENT CONTAINER */
-#app-view-container {
-    position: absolute; /* Thay đổi từ fixed sang absolute để linh hoạt hơn trong container cha */
-    top: var(--header-h);
-    bottom: var(--nav-h);
-    left: 0;
-    right: 0;
-    overflow-y: auto; /* Cho phép cuộn dọc */
-    padding: 16px;
-    padding-bottom: 40px; /* Khoảng trống dưới cùng để không bị che bởi nav */
-    -webkit-overflow-scrolling: touch; /* Cuộn mượt trên iOS */
-    z-index: 10; /* Nội dung nằm dưới header và nav */
+/* Phần hiển thị Tên & Vai trò */
+.user-info-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
-/* NAVIGATION BAR */
+#head-user {
+    font-size: 16px !important; /* Tăng cỡ chữ tên */
+    font-weight: 900;
+    color: var(--blue);
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+
+#head-role {
+    font-size: 12px !important; /* Tăng cỡ chữ vai trò */
+    color: #64748b;
+    font-weight: 600;
+}
+
+/* Nút Cài đặt (Bánh xe) - SỬA LỖI BẤM */
+#btn-open-settings {
+    width: 48px;  /* Vùng bấm rộng hơn */
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border-radius: 50%; /* Bo tròn nút */
+    border: none;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+#btn-open-settings i {
+    font-size: 24px; /* Icon to rõ */
+    color: #475569;
+    pointer-events: none; /* QUAN TRỌNG: Cho phép bấm xuyên qua icon */
+}
+
+/* --- NAV BAR --- */
 #app-nav {
     height: var(--nav-h);
     background: white;
     border-top: 1px solid #e2e8f0;
-    position: fixed; /* Cố định nav */
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000; /* Đảm bảo nav luôn ở trên cùng */
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding-bottom: env(safe-area-inset-bottom); /* Hỗ trợ thanh home iPhone */
-    box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000;
+    display: flex; justify-content: space-around; align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* UTILITIES */
-.hidden { display: none !important; }
-
-.card {
-    background: white;
-    border-radius: 16px;
-    padding: 16px; /* Tăng padding */
-    margin-bottom: 16px; /* Tăng khoảng cách giữa các card */
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
-
-.input-box {
-    width: 100%;
-    background: #f1f5f9;
-    border: 1.5px solid #cbd5e1;
-    padding: 12px;
-    border-radius: 12px;
-    font-weight: 700;
-    outline: none;
-    font-size: 14px;
-    transition: 0.2s;
-}
-
-.input-box:focus {
-    border-color: var(--blue);
-    background: white;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-}
-
-.btn-primary {
-    background: var(--blue);
-    color: white;
-    font-weight: 800;
-    padding: 14px;
-    border-radius: 12px;
-    width: 100%;
-    text-transform: uppercase;
-    font-size: 12px;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 6px rgba(37,99,235,0.2);
-}
-
-.btn-primary:active {
-    transform: scale(0.98);
-    opacity: 0.9;
-}
-
-.label {
-    display: block;
-    font-size: 11px;
-    font-weight: 800;
-    color: #64748b;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-}
-
-/* NAV BUTTONS */
 .nav-btn {
-    color: #94a3b8;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    background: none;
-    border: none;
-    padding: 8px; /* Tăng vùng bấm */
-    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; color: #94a3b8;
+    font-size: 10px; font-weight: 700; padding: 5px;
 }
+.nav-btn i { font-size: 22px; margin-bottom: 2px; }
+.nav-btn.active { color: var(--blue); transform: translateY(-2px); transition: 0.2s; }
 
-.nav-btn.active {
-    color: var(--blue);
-    transform: translateY(-2px);
-}
-
-.nav-btn i {
-    font-size: 20px; /* Icon to hơn chút */
-}
-
-.sub-tab-btn {
-    flex: 1;
-    padding: 10px;
-    font-size: 11px;
-    font-weight: 800;
-    text-align: center;
-    border-radius: 10px;
-    color: #64748b;
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-
-.sub-tab-btn.active {
-    background: white;
-    color: var(--blue);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* LOGIN OVERLAY */
-#login-overlay {
-    position: fixed;
-    inset: 0;
-    background: #f8fafc;
-    z-index: 2000; /* Cao hơn tất cả */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-
-/* MESSAGES */
-#msg-box {
-    display: none;
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.85);
-    color: white;
-    padding: 10px 24px;
-    z-index: 5000;
-    border-radius: 30px;
-    font-size: 12px;
-    font-weight: bold;
-    backdrop-filter: blur(4px);
-    white-space: nowrap;
-}
-
-/* CHAT LAYER */
-#chat-layer {
-    position: fixed;
-    inset: 0;
-    background: #efeae2;
-    z-index: 1500; /* Trên header/nav nhưng dưới login/modal */
-    display: none; /* Mặc định ẩn, JS sẽ toggle flex */
-    flex-direction: column;
-}
-
-.chat-bg {
-    background-image: url('data:image/svg+xml;utf8,<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 5c-5 0-9 4-9 9 0 3 2 5 5 6v10h8V20c3-1 5-3 5-6 0-5-4-9-9-9z" fill="%2378350f" fill-opacity="0.05"/></svg>');
-}
-
-.chat-bubble {
-    max-width: 82%;
-    padding: 10px 14px;
-    border-radius: 16px;
-    font-size: 14px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    position: relative;
-    word-wrap: break-word; /* Xuống dòng nếu tin nhắn dài */
-}
-
-.chat-me {
-    background: #dcf8c6;
-    align-self: flex-end;
-    border-bottom-right-radius: 2px;
-}
-
-.chat-other {
-    background: white;
-    align-self: flex-start;
-    border-bottom-left-radius: 2px;
-}
-
-/* TABLE */
-.log-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 11px;
-    margin-top: 8px;
-    background: white;
-}
-
-.log-table th {
-    background: var(--shiitake);
-    text-align: left;
-    padding: 8px;
-    color: white;
-    border: 1px solid #4a220a;
-    font-weight: 800;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-.log-table td {
-    padding: 8px;
-    border: 1px solid #e2e8f0;
-    font-weight: 600;
-    color: #475569;
-}
-
-/* MODAL */
-.modal-wrap {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    z-index: 3000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    backdrop-filter: blur(4px);
-}
-
-.modal-box {
-    background: white;
-    width: 100%;
-    max-width: 400px;
-    border-radius: 24px;
-    padding: 24px;
-    max-height: 85vh;
-    overflow-y: auto;
-    position: relative;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-}
-
-.modal-close-btn {
+/* --- CONTENT --- */
+#app-view-container {
     position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 32px;
-    height: 32px;
-    background: #f1f5f9;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #64748b;
-    cursor: pointer;
-    transition: 0.2s;
+    top: var(--header-h); bottom: var(--nav-h); left: 0; right: 0;
+    overflow-y: auto; padding: 16px; z-index: 10;
+    background: var(--bg);
 }
 
-.modal-close-btn:hover {
-    background: #e2e8f0;
-    color: #1e293b;
+/* Các thẻ Card */
+.card {
+    background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px;
+    border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
+
+/* Chat & Form */
+.input-box { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; font-weight: 600; }
+.btn-primary { width: 100%; padding: 14px; background: var(--blue); color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 13px; text-transform: uppercase; }
+
+/* Login Overlay */
+#login-overlay { position: fixed; inset: 0; z-index: 3000; background: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+/* Modal & Chat Layer */
+.modal-wrap { position: fixed; inset: 0; z-index: 4000; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(2px); }
+.modal-box { background: white; width: 100%; max-width: 400px; padding: 20px; border-radius: 20px; max-height: 85vh; overflow-y: auto; position: relative; }
+.modal-close-btn { position: absolute; top: 15px; right: 15px; width: 30px; height: 30px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 16px; }
+
+#chat-layer { position: fixed; inset: 0; z-index: 2500; background: #efeae2; display: none; flex-direction: column; }
+.chat-bg { background-image: url('https://www.transparenttextures.com/patterns/cubes.png'); } /* Hoa văn nhẹ cho chat */
+.chat-bubble { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+.chat-me { background: #dcf8c6; align-self: flex-end; border-bottom-right-radius: 4px; }
+.chat-other { background: white; align-self: flex-start; border-bottom-left-radius: 4px; }
+
+#msg-box { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 30px; z-index: 5000; font-size: 12px; font-weight: bold; display: none; }
+.hidden { display: none !important; }
