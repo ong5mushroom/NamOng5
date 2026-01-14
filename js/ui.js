@@ -1,4 +1,4 @@
-// MODULE GIAO DIỆN (VIEW) - V166: XUẤT HÀNG THEO MÃ
+// MODULE GIAO DIỆN (VIEW) - V166 FIX
 export const UI = {
     showMsg: (t) => {
         const b = document.getElementById('msg-box'); 
@@ -114,10 +114,17 @@ export const UI = {
             const h = document.getElementById('sx-house-id').value;
             const zone = document.getElementById('sx-actions-zone');
             if(!zone) return;
+            // KHO A: Có Nhập mới VÀ Xuất Hủy
             if(h === 'Nhà A' || h.includes('A')) {
-                zone.innerHTML = `<button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow-lg" data-action="submitSX" data-payload="NHAP_MOI"><i class="fas fa-truck-moving mr-2"></i>Nhập Mới (Mua về)</button>`;
+                zone.innerHTML = `
+                    <button class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow-lg" data-action="submitSX" data-payload="NHAP_MOI"><i class="fas fa-truck-moving mr-2"></i>Nhập Mới</button>
+                    <button class="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow-lg" data-action="submitSX" data-payload="HUY"><i class="fas fa-trash mr-2"></i>Hủy Phôi</button>
+                `;
             } else {
-                zone.innerHTML = `<button class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow" data-action="submitSX" data-payload="LAY_TU_A"><i class="fas fa-download mr-1"></i>Lấy từ Nhà A</button><button class="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow" data-action="submitSX" data-payload="HUY"><i class="fas fa-trash mr-1"></i>Hủy / Dọn</button>`;
+                zone.innerHTML = `
+                    <button class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow" data-action="submitSX" data-payload="LAY_TU_A"><i class="fas fa-download mr-1"></i>Lấy từ A</button>
+                    <button class="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow" data-action="submitSX" data-payload="HUY"><i class="fas fa-trash mr-1"></i>Hủy / Dọn</button>
+                `;
             }
         };
         document.addEventListener('house-change', updateButtons);
@@ -129,20 +136,17 @@ export const UI = {
         const container = document.getElementById('view-th');
         if(!container) return;
         
-        // Danh sách Mã nấm (khớp với phần Hái)
         const mushroomCodes = ['b2','a1','a2','b1','chan','d1','a1f','a2f','b2f','ht'];
 
-        // Log Hái
         const haiLogs = harvestLogs.sort((a,b)=>b.time-a.time).slice(0,10).map(l => `
             <div class="card !p-2 flex justify-between items-center border-l-4 border-l-green-500 mb-1">
-                <div><span class="font-bold text-xs text-green-700">HÁI: ${l.area}</span><br><span class="text-[9px] text-slate-400 italic">${new Date(l.time).toLocaleDateString()} - ${l.user.split(' ').pop()}</span></div>
+                <div><span class="font-bold text-xs text-green-700">HÁI: ${l.area}</span><br><span class="text-[9px] text-slate-400 italic">${new Date(l.time).toLocaleDateString()} - ${l.note ? `"${l.note}"` : ''}</span></div>
                 <span class="text-lg font-black text-green-600">+${Number(l.total).toFixed(1)}kg</span>
             </div>`).join('');
 
-        // Log Xuất Bán (Đã ẩn Giá)
         const banLogs = shipLogs.sort((a,b)=>b.time-a.time).slice(0,10).map(l => `
             <div class="card !p-2 flex justify-between items-center border-l-4 border-l-orange-500 mb-1">
-                <div><span class="font-bold text-xs text-orange-700">KHÁCH: ${l.customer}</span><br><span class="text-[9px] text-slate-400 italic">Mã: ${l.type.toUpperCase()} | ${new Date(l.time).toLocaleDateString()}</span></div>
+                <div><span class="font-bold text-xs text-orange-700">KHÁCH: ${l.customer}</span><br><span class="text-[9px] text-slate-400 italic">Mã: ${l.type.toUpperCase()} | ${l.note ? `"${l.note}"` : ''}</span></div>
                 <div class="text-right"><span class="block text-lg font-black text-orange-600">-${Number(l.qty).toFixed(1)}kg</span></div>
             </div>`).join('');
 
@@ -163,6 +167,7 @@ export const UI = {
                             ${mushroomCodes.slice(5).map(k=>`<div><label class="block text-center text-[9px] uppercase text-slate-400 mb-1">${k}</label><input type="number" id="th-${k}" class="input-box !p-1 text-center text-xs" placeholder="0"></div>`).join('')}
                         </div>
                      </div>
+                     <div><p class="label">Ghi chú (Tùy chọn)</p><input id="th-note" class="input-box text-sm" placeholder="VD: Nấm xấu, nấm vụn..."></div>
                      <button class="btn-primary bg-green-600 shadow-lg uppercase btn-action" data-action="submitTH">Lưu Phiếu Hái</button>
                  </div>
              </div>
@@ -172,13 +177,9 @@ export const UI = {
                     <div><p class="label text-orange-600">KHÁCH HÀNG</p><input id="ship-cust" class="input-box font-bold" placeholder="Tên khách..."></div>
                     <div class="grid grid-cols-2 gap-3">
                         <div><p class="label">Số lượng (Kg)</p><input type="number" id="ship-qty" class="input-box text-center font-black text-orange-600" placeholder="0.0"></div>
-                        <div>
-                            <p class="label">Mã Loại Nấm</p>
-                            <select id="ship-type" class="input-box text-center font-bold">
-                                ${mushroomCodes.map(c => `<option value="${c}">${c.toUpperCase()}</option>`).join('')}
-                            </select>
-                        </div>
+                        <div><p class="label">Mã Loại Nấm</p><select id="ship-type" class="input-box text-center font-bold">${mushroomCodes.map(c => `<option value="${c}">${c.toUpperCase()}</option>`).join('')}</select></div>
                     </div>
+                    <div><p class="label">Ghi chú (Tùy chọn)</p><input id="ship-note" class="input-box text-sm" placeholder="VD: Khách nợ, gửi xe..."></div>
                     <button class="btn-primary bg-orange-600 shadow-lg uppercase btn-action" data-action="submitShip">Lưu Xuất Kho</button>
                  </div>
              </div>
@@ -188,19 +189,34 @@ export const UI = {
         `;
     },
 
-    // --- CÁC PHẦN CÒN LẠI GIỮ NGUYÊN ---
+    // --- FIX CHAT RENDER (Đảm bảo hiện tin nhắn) ---
+    renderChat: (messages, currentUserId) => {
+        const layer = document.getElementById('chat-layer'); 
+        if(!layer || layer.classList.contains('hidden')) return; // Chỉ vẽ khi đang mở
+        
+        if(!document.getElementById('chat-box-inner')) { 
+            layer.innerHTML = `<div class="h-[70px] bg-white border-b flex items-end px-4 pb-3 shadow-sm"><button class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mr-3 active:bg-slate-200 shadow-sm btn-action" data-action="closeChat"><i class="fas fa-arrow-left text-slate-600"></i></button><h2 class="font-black text-slate-800 text-lg uppercase italic">Thảo luận</h2></div><div id="chat-box-inner" class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#efeae2] chat-bg"></div><div class="p-3 bg-white border-t flex gap-2 pb-8"><input id="chat-input-field" class="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none border font-medium" placeholder="Nhập tin nhắn..."><button class="w-10 h-10 bg-blue-600 rounded-full text-white shadow-lg btn-action" data-action="sendChat"><i class="fas fa-paper-plane"></i></button></div>`; 
+        }
+        
+        const box = document.getElementById('chat-box-inner');
+        if(!messages || messages.length === 0) {
+            box.innerHTML = '<p class="text-center text-slate-400 text-xs mt-4">Chưa có tin nhắn nào</p>';
+            return;
+        }
+
+        box.innerHTML = messages.map(m => { 
+            const isMe = String(m.senderId) === String(currentUserId); 
+            return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}"><div class="text-[9px] text-slate-400 mb-1 px-1 uppercase font-bold">${isMe ? 'Tôi' : m.senderName}</div><div class="chat-bubble ${isMe ? 'chat-me' : 'chat-other'}">${m.text}</div></div>`; 
+        }).join('');
+        box.scrollTop = box.scrollHeight;
+    },
+
+    // CÁC HÀM KHÁC GIỮ NGUYÊN
     renderApproveList: (requests) => {
         const container = document.getElementById('approval-list'); if(!container) return;
         const pending = requests.filter(r => r.status === 'pending');
         if(pending.length === 0) { container.innerHTML = '<p class="text-center text-xs text-slate-400 italic">Không có đơn nào cần duyệt</p>'; return; }
         container.innerHTML = pending.map(r => `<div class="p-3 bg-slate-50 border rounded-lg mb-2"><div class="flex justify-between items-start mb-2"><span class="font-bold text-xs uppercase text-blue-600">${r.requester}</span><span class="text-[9px] bg-white border px-1 rounded">${new Date(r.time).toLocaleDateString()}</span></div><p class="text-xs font-bold text-slate-700 mb-2">${r.type === 'LEAVE' ? 'Xin nghỉ:' : 'Mua:'} ${r.content}</p><div class="flex gap-2"><button class="flex-1 py-1 bg-green-500 text-white rounded text-[10px] font-bold btn-action" data-action="decideRequest" data-payload="${r._id}|approved">ĐỒNG Ý</button><button class="flex-1 py-1 bg-red-500 text-white rounded text-[10px] font-bold btn-action" data-action="decideRequest" data-payload="${r._id}|rejected">TỪ CHỐI</button></div></div>`).join('');
-    },
-    renderChat: (messages, currentUserId) => {
-        const layer = document.getElementById('chat-layer'); if(!layer) return;
-        if(!document.getElementById('chat-box-inner')) { layer.innerHTML = `<div class="h-[70px] bg-white border-b flex items-end px-4 pb-3 shadow-sm"><button class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mr-3 active:bg-slate-200 shadow-sm btn-action" data-action="closeChat"><i class="fas fa-arrow-left text-slate-600"></i></button><h2 class="font-black text-slate-800 text-lg uppercase italic">Thảo luận</h2></div><div id="chat-box-inner" class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#efeae2] chat-bg"></div><div class="p-3 bg-white border-t flex gap-2 pb-8"><input id="chat-input-field" class="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none border font-medium" placeholder="Nhập tin nhắn..."><button class="w-10 h-10 bg-blue-600 rounded-full text-white shadow-lg btn-action" data-action="sendChat"><i class="fas fa-paper-plane"></i></button></div>`; }
-        const box = document.getElementById('chat-box-inner');
-        box.innerHTML = messages.map(m => { const isMe = String(m.senderId) === String(currentUserId); return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}"><div class="text-[9px] text-slate-400 mb-1 px-1 uppercase font-bold">${isMe ? 'Tôi' : m.senderName}</div><div class="chat-bubble ${isMe ? 'chat-me' : 'chat-other'}">${m.text}</div></div>`; }).join('');
-        box.scrollTop = box.scrollHeight;
     },
     renderTasks: (tasks, employees, houses, user) => {
         const container = document.getElementById('view-tasks'); if(!container) return;
