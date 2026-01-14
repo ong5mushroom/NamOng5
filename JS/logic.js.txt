@@ -1,0 +1,35 @@
+import { db, ROOT_PATH } from './config.js';
+import { collection, addDoc, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { UI } from './ui.js';
+
+export const Logic = {
+    // Xuất Excel chuẩn
+    exportToExcel: (csvContent, fileName) => {
+        const BOM = "\uFEFF"; 
+        const blob = new Blob([BOM + "sep=;\n" + csvContent], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = fileName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    },
+
+    // Xử lý điểm danh
+    checkIn: async (user, shift) => {
+        const today = new Date().toISOString().split('T')[0];
+        try {
+            await updateDoc(doc(db, `${ROOT_PATH}/employees`, user._id), { lastLogin: today });
+            await addDoc(collection(db, `${ROOT_PATH}/attendance_logs`), {
+                date: today, time: Date.now(), user: user.name, uid: user.id, shift, team: user.team
+            });
+            // Cộng điểm
+            const newScore = (Number(user.score) || 0) + 2;
+            await updateDoc(doc(db, `${ROOT_PATH}/employees`, user._id), { score: newScore });
+            
+            UI.showMsg("Điểm danh thành công!");
+        } catch (e) {
+            console.error(e);
+            UI.showMsg("Lỗi điểm danh: " + e.message);
+        }
+    },
+
+    // ... Các hàm logic khác (Submit Harvest, Create Task...)
+};
