@@ -1,4 +1,4 @@
-// MODULE GIAO DIỆN (VIEW) - V165 KHO TỔNG & LOG BÁN HÀNG
+// MODULE GIAO DIỆN (VIEW) - V166: XUẤT HÀNG THEO MÃ
 export const UI = {
     showMsg: (t) => {
         const b = document.getElementById('msg-box'); 
@@ -32,7 +32,7 @@ export const UI = {
         const online = employees.filter(e => e.lastLogin === today).length;
         const todayYield = harvest.filter(h => new Date(h.time).toDateString() === new Date().toDateString())
                                   .reduce((a,b) => a + (Number(b.total)||0), 0);
-        // Tính tổng tồn kho (Tổng nhập - Tổng xuất/hủy)
+        
         const getStock = (houseName) => {
             const logs = production.filter(p => p.house === houseName);
             const nhap = logs.filter(p => p.action === 'NHẬP').reduce((a,b)=>a+Number(b.qty),0);
@@ -46,7 +46,6 @@ export const UI = {
         const houseList = houses.map(h => {
             const stock = getStock(h.name);
             const totalHarv = harvest.filter(hv => hv.area === h.name).reduce((sum, item) => sum + (Number(item.total)||0), 0);
-            // Nhà A có màu đặc biệt để nhận diện Kho Tổng
             const isKhoA = h.name.includes('A') || h.name === 'Nhà A';
             
             return `
@@ -76,20 +75,16 @@ export const UI = {
         `;
     },
 
-    // --- 2. SẢN XUẤT (SX) - LOGIC KHO TỔNG ---
+    // --- 2. SẢN XUẤT (SX) ---
     renderSX: (houses, prodLogs) => {
         const container = document.getElementById('view-sx');
         if(!container) return;
 
-        // Nhật ký sản xuất
         const logHtml = prodLogs.sort((a,b)=>b.time-a.time).slice(0,10).map(l => `
             <div class="text-[10px] p-2 bg-white mb-1 border rounded-xl flex justify-between shadow-sm border-l-4 ${l.action==='NHẬP'?'border-l-blue-500':(l.action==='HỦY'?'border-l-red-500':'border-l-amber-700')}">
                 <div><span class="font-black ${l.action==='NHẬP'?'text-blue-600':'text-slate-600'}">${l.action} ${l.qty} TÚI - ${l.house}</span><br><span class="text-[9px] text-slate-400">${l.type} | ${l.batch}</span></div>
                 <span class="text-[9px] text-slate-400 italic">${new Date(l.date).toLocaleDateString().slice(0,5)}</span>
             </div>`).join('');
-
-        // Tự động chọn Nhà A nếu chưa chọn
-        const defaultHouse = houses.find(h => h.name === 'Nhà A')?.name || houses[0]?.name;
 
         container.innerHTML = `
             <div class="card border-2 border-indigo-50 shadow-md">
@@ -100,7 +95,6 @@ export const UI = {
                             ${houses.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}
                         </select>
                     </div>
-                    
                     <div class="grid grid-cols-1 gap-2">
                         <div><p class="label">Loại Phôi</p><input id="sx-type" list="phoi-list" class="input-box bg-white" placeholder="VD: 049..."><datalist id="phoi-list"><option value="049 Đạt"><option value="049 TD"></datalist></div>
                         <div class="grid grid-cols-2 gap-2">
@@ -109,83 +103,53 @@ export const UI = {
                         </div>
                         <div><p class="label">Ngày thực hiện</p><input type="date" id="sx-date" class="input-box bg-white text-center" value="${new Date().toISOString().split('T')[0]}"></div>
                     </div>
-
-                    <div id="sx-actions-zone" class="flex gap-2">
-                        </div>
+                    <div id="sx-actions-zone" class="flex gap-2"></div>
                 </div>
             </div>
             <p class="label px-2 mt-4">Lịch sử Kho</p>
             <div class="space-y-1 pb-20">${logHtml}</div>
         `;
 
-        // Logic thay đổi nút bấm ngay lập tức
         const updateButtons = () => {
             const h = document.getElementById('sx-house-id').value;
             const zone = document.getElementById('sx-actions-zone');
             if(!zone) return;
-
             if(h === 'Nhà A' || h.includes('A')) {
-                // KHO TỔNG: Chỉ có Nhập mới và Xuất chuyển
-                zone.innerHTML = `
-                    <button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow-lg" data-action="submitSX" data-payload="NHAP_MOI">
-                        <i class="fas fa-truck-moving mr-2"></i>Nhập Mới (Mua về)
-                    </button>
-                `;
+                zone.innerHTML = `<button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow-lg" data-action="submitSX" data-payload="NHAP_MOI"><i class="fas fa-truck-moving mr-2"></i>Nhập Mới (Mua về)</button>`;
             } else {
-                // KHO LẺ: Nhận từ A và Hủy
-                zone.innerHTML = `
-                    <button class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow" data-action="submitSX" data-payload="LAY_TU_A">
-                        <i class="fas fa-download mr-1"></i>Lấy từ Nhà A
-                    </button>
-                    <button class="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow" data-action="submitSX" data-payload="HUY">
-                        <i class="fas fa-trash mr-1"></i>Hủy / Dọn
-                    </button>
-                `;
+                zone.innerHTML = `<button class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow" data-action="submitSX" data-payload="LAY_TU_A"><i class="fas fa-download mr-1"></i>Lấy từ Nhà A</button><button class="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs uppercase btn-action shadow" data-action="submitSX" data-payload="HUY"><i class="fas fa-trash mr-1"></i>Hủy / Dọn</button>`;
             }
         };
-
-        // Kích hoạt lần đầu và lắng nghe sự kiện đổi nhà
         document.addEventListener('house-change', updateButtons);
-        // Chờ 1 chút để DOM render xong rồi chạy
         setTimeout(updateButtons, 100);
     },
 
-    // --- 3. THU HOẠCH & XUẤT HÀNG (THDG) - Tách log ---
+    // --- 3. THU HOẠCH & XUẤT HÀNG (THDG) ---
     renderTH: (houses, harvestLogs, shipLogs) => {
         const container = document.getElementById('view-th');
         if(!container) return;
+        
+        // Danh sách Mã nấm (khớp với phần Hái)
+        const mushroomCodes = ['b2','a1','a2','b1','chan','d1','a1f','a2f','b2f','ht'];
 
-        // Log Hái (Màu xanh)
+        // Log Hái
         const haiLogs = harvestLogs.sort((a,b)=>b.time-a.time).slice(0,10).map(l => `
             <div class="card !p-2 flex justify-between items-center border-l-4 border-l-green-500 mb-1">
                 <div><span class="font-bold text-xs text-green-700">HÁI: ${l.area}</span><br><span class="text-[9px] text-slate-400 italic">${new Date(l.time).toLocaleDateString()} - ${l.user.split(' ').pop()}</span></div>
                 <span class="text-lg font-black text-green-600">+${Number(l.total).toFixed(1)}kg</span>
             </div>`).join('');
 
-        // Log Xuất Bán (Màu Cam) - RIÊNG BIỆT
+        // Log Xuất Bán (Đã ẩn Giá)
         const banLogs = shipLogs.sort((a,b)=>b.time-a.time).slice(0,10).map(l => `
             <div class="card !p-2 flex justify-between items-center border-l-4 border-l-orange-500 mb-1">
-                <div><span class="font-bold text-xs text-orange-700">KHÁCH: ${l.customer}</span><br><span class="text-[9px] text-slate-400 italic">${l.type} | ${new Date(l.time).toLocaleDateString()}</span></div>
-                <div class="text-right"><span class="block text-lg font-black text-orange-600">-${Number(l.qty).toFixed(1)}kg</span><span class="text-[9px] font-bold text-slate-400">${Number(l.price).toLocaleString()}đ</span></div>
+                <div><span class="font-bold text-xs text-orange-700">KHÁCH: ${l.customer}</span><br><span class="text-[9px] text-slate-400 italic">Mã: ${l.type.toUpperCase()} | ${new Date(l.time).toLocaleDateString()}</span></div>
+                <div class="text-right"><span class="block text-lg font-black text-orange-600">-${Number(l.qty).toFixed(1)}kg</span></div>
             </div>`).join('');
 
         container.innerHTML = `
              <div class="flex gap-2 mb-3">
-                 <button id="tab-hai" class="flex-1 py-2 rounded-xl font-black text-xs bg-green-600 text-white shadow transition-all" onclick="
-                    document.getElementById('form-hai').classList.remove('hidden');
-                    document.getElementById('form-xuat').classList.add('hidden');
-                    document.getElementById('log-hai-zone').classList.remove('hidden');
-                    document.getElementById('log-xuat-zone').classList.add('hidden');
-                    this.classList.add('ring-2','ring-green-300'); document.getElementById('tab-xuat').classList.remove('ring-2','ring-orange-300');
-                 ">NHẬP HÁI</button>
-                 
-                 <button id="tab-xuat" class="flex-1 py-2 rounded-xl font-black text-xs bg-orange-500 text-white shadow transition-all" onclick="
-                    document.getElementById('form-hai').classList.add('hidden');
-                    document.getElementById('form-xuat').classList.remove('hidden');
-                    document.getElementById('log-hai-zone').classList.add('hidden');
-                    document.getElementById('log-xuat-zone').classList.remove('hidden');
-                    this.classList.add('ring-2','ring-orange-300'); document.getElementById('tab-hai').classList.remove('ring-2','ring-green-300');
-                 ">XUẤT BÁN</button>
+                 <button id="tab-hai" class="flex-1 py-2 rounded-xl font-black text-xs bg-green-600 text-white shadow transition-all" onclick="document.getElementById('form-hai').classList.remove('hidden');document.getElementById('form-xuat').classList.add('hidden');document.getElementById('log-hai-zone').classList.remove('hidden');document.getElementById('log-xuat-zone').classList.add('hidden');this.classList.add('ring-2','ring-green-300'); document.getElementById('tab-xuat').classList.remove('ring-2','ring-orange-300');">NHẬP HÁI</button>
+                 <button id="tab-xuat" class="flex-1 py-2 rounded-xl font-black text-xs bg-orange-500 text-white shadow transition-all" onclick="document.getElementById('form-hai').classList.add('hidden');document.getElementById('form-xuat').classList.remove('hidden');document.getElementById('log-hai-zone').classList.add('hidden');document.getElementById('log-xuat-zone').classList.remove('hidden');this.classList.add('ring-2','ring-orange-300'); document.getElementById('tab-hai').classList.remove('ring-2','ring-green-300');">XUẤT BÁN</button>
              </div>
 
              <div id="form-hai" class="card border-2 border-green-50 shadow-md">
@@ -193,10 +157,10 @@ export const UI = {
                      <div><p class="label text-green-600">CHỌN NHÀ HÁI</p><select id="th-area" class="input-box bg-white text-green-700 font-black">${houses.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}</select></div>
                      <div class="bg-slate-50 p-2 rounded-xl border">
                          <div class="grid grid-cols-5 gap-2 mb-2">
-                            ${['b2','a1','a2','b1','chan'].map(k=>`<div><label class="block text-center text-[9px] uppercase text-slate-400 mb-1">${k}</label><input type="number" id="th-${k}" class="input-box !p-1 text-center text-xs" placeholder="0"></div>`).join('')}
+                            ${mushroomCodes.slice(0,5).map(k=>`<div><label class="block text-center text-[9px] uppercase text-slate-400 mb-1">${k}</label><input type="number" id="th-${k}" class="input-box !p-1 text-center text-xs" placeholder="0"></div>`).join('')}
                         </div>
                          <div class="grid grid-cols-5 gap-2">
-                            ${['d1','a1f','a2f','b2f','ht'].map(k=>`<div><label class="block text-center text-[9px] uppercase text-slate-400 mb-1">${k}</label><input type="number" id="th-${k}" class="input-box !p-1 text-center text-xs" placeholder="0"></div>`).join('')}
+                            ${mushroomCodes.slice(5).map(k=>`<div><label class="block text-center text-[9px] uppercase text-slate-400 mb-1">${k}</label><input type="number" id="th-${k}" class="input-box !p-1 text-center text-xs" placeholder="0"></div>`).join('')}
                         </div>
                      </div>
                      <button class="btn-primary bg-green-600 shadow-lg uppercase btn-action" data-action="submitTH">Lưu Phiếu Hái</button>
@@ -205,29 +169,26 @@ export const UI = {
 
              <div id="form-xuat" class="card border-2 border-orange-50 shadow-md hidden">
                  <div class="space-y-3">
-                    <div><p class="label text-orange-600">KHÁCH HÀNG / NƠI NHẬN</p><input id="ship-cust" class="input-box font-bold" placeholder="VD: Chị Lan, Chợ đầu mối..."></div>
+                    <div><p class="label text-orange-600">KHÁCH HÀNG</p><input id="ship-cust" class="input-box font-bold" placeholder="Tên khách..."></div>
                     <div class="grid grid-cols-2 gap-3">
                         <div><p class="label">Số lượng (Kg)</p><input type="number" id="ship-qty" class="input-box text-center font-black text-orange-600" placeholder="0.0"></div>
-                        <div><p class="label">Giá bán (đ/kg)</p><input type="number" id="ship-price" class="input-box text-center" placeholder="0"></div>
+                        <div>
+                            <p class="label">Mã Loại Nấm</p>
+                            <select id="ship-type" class="input-box text-center font-bold">
+                                ${mushroomCodes.map(c => `<option value="${c}">${c.toUpperCase()}</option>`).join('')}
+                            </select>
+                        </div>
                     </div>
-                    <div><p class="label">Loại hàng</p><select id="ship-type" class="input-box"><option value="Nấm Tươi">Nấm Tươi</option><option value="Nấm Khô">Nấm Khô</option><option value="Chân Nấm">Chân Nấm</option></select></div>
                     <button class="btn-primary bg-orange-600 shadow-lg uppercase btn-action" data-action="submitShip">Lưu Xuất Kho</button>
                  </div>
              </div>
 
-             <div id="log-hai-zone">
-                <p class="label px-2 mt-4 text-green-600">Nhật ký Hái gần đây</p>
-                <div class="pb-20 space-y-1">${haiLogs}</div>
-             </div>
-             
-             <div id="log-xuat-zone" class="hidden">
-                <p class="label px-2 mt-4 text-orange-600">Nhật ký Bán hàng gần đây</p>
-                <div class="pb-20 space-y-1">${banLogs.length ? banLogs : '<p class="text-center text-xs text-slate-400 italic mt-4">Chưa có đơn hàng nào</p>'}</div>
-             </div>
+             <div id="log-hai-zone"><p class="label px-2 mt-4 text-green-600">Nhật ký Hái gần đây</p><div class="pb-20 space-y-1">${haiLogs}</div></div>
+             <div id="log-xuat-zone" class="hidden"><p class="label px-2 mt-4 text-orange-600">Nhật ký Bán hàng gần đây</p><div class="pb-20 space-y-1">${banLogs.length ? banLogs : '<p class="text-center text-xs text-slate-400 italic mt-4">Chưa có đơn hàng nào</p>'}</div></div>
         `;
     },
 
-    // --- CÁC PHẦN KHÁC GIỮ NGUYÊN (ADMIN, CHAT...) ---
+    // --- CÁC PHẦN CÒN LẠI GIỮ NGUYÊN ---
     renderApproveList: (requests) => {
         const container = document.getElementById('approval-list'); if(!container) return;
         const pending = requests.filter(r => r.status === 'pending');
