@@ -48,15 +48,11 @@ const App = {
                 else if(col==='attendance_logs') App.data.attendance = data;
                 else if(col==='shipping_logs') App.data.shipping = data;
                 else App.data[col] = data;
-
-                // Sync UI realtime
                 if(App.user) {
                     if(col === 'chat' && !document.getElementById('chat-layer').classList.contains('hidden')) App.ui.renderChat();
                     if(col === 'hr_requests' && document.getElementById('approval-list')) UI.renderApproveList(App.data.hr_requests);
                     App.ui.refresh();
-                } else if(col === 'employees') {
-                    UI.renderEmployeeOptions(App.data.employees);
-                }
+                } else if(col === 'employees') UI.renderEmployeeOptions(App.data.employees);
             });
         });
     },
@@ -120,41 +116,20 @@ const App = {
             await addDoc(collection(db, `${ROOT_PATH}/attendance_logs`), { date: today, time: Date.now(), user: App.user.name, uid: App.user.id, shift, team: App.user.team });
             await App.actions.modScore(`${App.user._id}|2`); UI.showMsg(`Đã điểm danh ${shift}!`);
         },
-        // --- LOGIC SX THÔNG MINH (KHO TỔNG) ---
         submitSX: async (payloadAction) => {
             const house = document.getElementById('sx-house-id').value;
             const type = document.getElementById('sx-type').value;
             const qty = Number(document.getElementById('sx-qty').value);
             const batch = document.getElementById('sx-batch').value;
             const date = document.getElementById('sx-date').value;
-            
-            if(!house || !qty) return UI.showMsg("Thiếu thông tin!");
-
-            // 1. NHẬP MỚI (Chỉ cho Nhà A)
+            if(!house || !qty) return UI.showMsg("Thiếu tin!");
             if(payloadAction === 'NHAP_MOI') {
-                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), {
-                    action: 'NHẬP', house, type, qty, batch, date, user: App.user.name, time: Date.now()
-                });
-                UI.showMsg("Đã Nhập Kho Tổng!");
-            }
-            // 2. LẤY TỪ KHO A (Các nhà khác) -> Tự động trừ A
-            else if(payloadAction === 'LAY_TU_A') {
-                // Cộng vào nhà hiện tại
-                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), {
-                    action: 'NHẬP', house, type, qty, batch: `Nhận từ A (${batch})`, date, user: App.user.name, time: Date.now()
-                });
-                // Trừ khỏi Kho A
-                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), {
-                    action: 'XUẤT', house: 'Nhà A', type, qty, batch: `Chuyển cho ${house}`, date, user: 'SYSTEM', time: Date.now()
-                });
-                UI.showMsg(`Đã chuyển ${qty} túi từ A sang ${house}!`);
-            }
-            // 3. HỦY / DỌN
-            else if(payloadAction === 'HUY') {
-                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), {
-                    action: 'HỦY', house, type, qty, batch: `Dọn vụ (${batch})`, date, user: App.user.name, time: Date.now()
-                });
-                UI.showMsg("Đã Hủy/Xuất dọn vụ!");
+                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'NHẬP', house, type, qty, batch, date, user: App.user.name, time: Date.now() }); UI.showMsg("Đã Nhập Kho Tổng!");
+            } else if(payloadAction === 'LAY_TU_A') {
+                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'NHẬP', house, type, qty, batch: `Nhận từ A (${batch})`, date, user: App.user.name, time: Date.now() });
+                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'XUẤT', house: 'Nhà A', type, qty, batch: `Chuyển cho ${house}`, date, user: 'SYSTEM', time: Date.now() }); UI.showMsg(`Đã chuyển ${qty} túi!`);
+            } else if(payloadAction === 'HUY') {
+                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'HỦY', house, type, qty, batch: `Dọn vụ (${batch})`, date, user: App.user.name, time: Date.now() }); UI.showMsg("Đã Dọn vụ!");
             }
         },
         submitTH: async () => {
@@ -165,16 +140,15 @@ const App = {
             await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details: d, total, user: App.user.name, time: Date.now() });
             ids.forEach(k => document.getElementById('th-'+k).value=''); UI.showMsg(`Đã lưu ${total}kg!`); await App.actions.modScore(`${App.user._id}|10`);
         },
+        // --- XUẤT HÀNG MỚI (Bỏ giá) ---
         submitShip: async () => {
             const cust = document.getElementById('ship-cust').value;
             const qty = document.getElementById('ship-qty').value;
-            const price = document.getElementById('ship-price').value;
             const type = document.getElementById('ship-type').value;
             if(!cust || !qty) return UI.showMsg("Thiếu tin xuất!");
-            await addDoc(collection(db, `${ROOT_PATH}/shipping_logs`), { customer: cust, qty, price, type, user: App.user.name, time: Date.now() });
+            await addDoc(collection(db, `${ROOT_PATH}/shipping_logs`), { customer: cust, qty, type, user: App.user.name, time: Date.now() });
             document.getElementById('ship-qty').value=''; UI.showMsg("Đã xuất kho!");
         },
-        // --- LOGIC CHUNG ---
         createTask: async () => {
             const title = document.getElementById('task-title').value;
             const houses = Array.from(document.querySelectorAll('input[name="h-chk"]:checked')).map(c=>c.value);
@@ -198,11 +172,7 @@ const App = {
             await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), { type, content: c, requester: App.user.name, status: 'pending', time: Date.now() });
             UI.showMsg("Đã gửi!"); UI.toggleModal(type==='LEAVE'?'modal-leave':'modal-buy', false);
         },
-        decideRequest: async (payload) => {
-            const [rid, decision] = payload.split('|');
-            await updateDoc(doc(db, `${ROOT_PATH}/hr_requests`, rid), { status: decision });
-            UI.showMsg(decision === 'approved' ? "Đã duyệt!" : "Đã từ chối!");
-        },
+        decideRequest: async (payload) => { const [rid, decision] = payload.split('|'); await updateDoc(doc(db, `${ROOT_PATH}/hr_requests`, rid), { status: decision }); UI.showMsg(decision === 'approved' ? "Đã duyệt!" : "Đã từ chối!"); },
         resetLeaderboard: async () => { if(confirm("⚠️ Xóa toàn bộ điểm?")) { App.data.employees.forEach(e => updateDoc(doc(db, `${ROOT_PATH}/employees`, e._id), { score: 0 })); UI.showMsg("Đã Reset!"); }},
         exportReport: (type) => {
              let csv = "";
@@ -212,27 +182,15 @@ const App = {
                  csv += "\n--- THU HOẠCH ---\nNGAY;NHA;KG;NV\n";
                  App.data.harvest.forEach(l => csv+=`${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.user}\n`);
                  csv += "\n--- XUẤT HÀNG ---\nNGAY;KHACH;LOAI;KG;GIA;NV\n";
-                 App.data.shipping.forEach(l => csv+=`${new Date(l.time).toLocaleDateString()};${l.customer};${l.type};${l.qty};${l.price};${l.user}\n`);
-             } else {
-                 csv += "TEN;CHUC_VU;TO;DIEM_THI_DUA\n";
-                 App.data.employees.forEach(e => csv+=`${e.name};${e.role};${e.team};${e.score}\n`);
-             }
+                 App.data.shipping.forEach(l => csv+=`${new Date(l.time).toLocaleDateString()};${l.customer};${l.type};${l.qty};${l.user}\n`);
+             } else { csv += "TEN;CHUC_VU;TO;DIEM_THI_DUA\n"; App.data.employees.forEach(e => csv+=`${e.name};${e.role};${e.team};${e.score}\n`); }
              App.helpers.downloadCSV(csv, `BaoCao_${type}.csv`);
         },
-        exportCSVByHouse: (h) => {
-            let csv = "NGAY;NHA;KG;NV\n"; App.data.harvest.filter(x=>x.area===h).forEach(l=>{ csv+=`${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.user}\n`; });
-            App.helpers.downloadCSV(csv, `NK_${h}.csv`);
-        },
-        exportAttendance: () => {
-            let csv = "NGAY;GIO;TEN;CA;TO\n"; App.data.attendance.forEach(l => csv += `${l.date};${new Date(l.time).toLocaleTimeString()};${l.user};${l.shift};${l.team}\n`);
-            App.helpers.downloadCSV(csv, 'ChamCong.csv');
-        }
+        exportCSVByHouse: (h) => { let csv = "NGAY;NHA;KG;NV\n"; App.data.harvest.filter(x=>x.area===h).forEach(l=>{ csv+=`${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.user}\n`; }); App.helpers.downloadCSV(csv, `NK_${h}.csv`); },
+        exportAttendance: () => { let csv = "NGAY;GIO;TEN;CA;TO\n"; App.data.attendance.forEach(l => csv += `${l.date};${new Date(l.time).toLocaleTimeString()};${l.user};${l.shift};${l.team}\n`); App.helpers.downloadCSV(csv, 'ChamCong.csv'); }
     },
     helpers: {
-        downloadCSV: (c, f) => {
-            const blob = new Blob(["\uFEFFsep=;\n"+c], { type: 'text/csv;charset=utf-8' });
-            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=f; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        }
+        downloadCSV: (c, f) => { const blob = new Blob(["\uFEFFsep=;\n"+c], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=f; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
     }
 };
 
