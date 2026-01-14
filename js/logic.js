@@ -11,18 +11,16 @@ const App = {
             const statusEl = document.getElementById('login-status');
             if(statusEl) statusEl.innerHTML = '<span class="text-green-500">✔ Đã kết nối</span>';
             App.sync();
-        }).catch(err => alert("Lỗi kết nối: " + err.message));
+        }).catch(err => console.error("Lỗi kết nối:", err));
         
-        // SỰ KIỆN TOÀN CỤC (QUAN TRỌNG)
+        // --- PHẦN SỬA LỖI NÚT BẤM (QUAN TRỌNG) ---
         document.body.addEventListener('click', (e) => {
-            // 1. Xử lý các nút chức năng (btn-action)
+            // 1. Xử lý nút chức năng (btn-action)
             const btn = e.target.closest('.btn-action');
             if(btn) {
                 const action = btn.dataset.action;
                 const payload = btn.dataset.payload;
-                console.log("Action:", action, payload); // Debug
                 if(App.actions[action]) App.actions[action](payload);
-                else console.warn("Chưa có hàm xử lý cho:", action);
             }
             
             // 2. Xử lý chuyển Tab (nav-btn)
@@ -32,12 +30,26 @@ const App = {
             // 3. Xử lý Login
             if(e.target.id === 'login-btn') App.auth.login();
             
-            // 4. Mở cài đặt
-            if(e.target.id === 'btn-open-settings') UI.toggleModal('settings-modal', true);
+            // 4. Mở cài đặt (SỬA LỖI: Dùng closest để bắt trúng icon)
+            if(e.target.closest('#btn-open-settings')) {
+                UI.toggleModal('settings-modal', true);
+            }
             
-            // 5. Chat
-            if(e.target.id === 'btn-open-chat') document.getElementById('chat-layer').classList.remove('hidden');
-            if(e.target.closest('#btn-close-chat')) document.getElementById('chat-layer').classList.add('hidden');
+            // 5. Chat (SỬA LỖI: Dùng closest)
+            if(e.target.closest('#btn-open-chat')) {
+                const chatLayer = document.getElementById('chat-layer');
+                if(chatLayer) {
+                    chatLayer.classList.remove('hidden');
+                    chatLayer.style.display = 'flex'; // Đảm bảo hiện flex
+                }
+            }
+            
+            // 6. Đóng Chat (SỬA LỖI: Dùng closest)
+            // Lưu ý: Nút đóng chat trong HTML cần có id="btn-close-chat" hoặc class btn-action
+            // Ở đây ta xử lý thủ công cho chắc chắn
+            if(e.target.closest('#btn-close-chat') || (e.target.closest('.fa-arrow-left') && e.target.closest('#chat-layer'))) {
+                document.getElementById('chat-layer').classList.add('hidden');
+            }
         });
     },
 
@@ -76,7 +88,6 @@ const App = {
                 document.getElementById('head-user').innerText = emp.name;
                 document.getElementById('head-role').innerText = emp.role;
                 
-                // Hiển thị công cụ Admin nếu là quản lý
                 const isGenAdmin = ['Giám đốc', 'Quản lý', 'Kế toán'].includes(emp.role);
                 const adminTools = document.getElementById('admin-tools');
                 const btnApprove = document.getElementById('btn-approve');
@@ -96,7 +107,6 @@ const App = {
     ui: {
         switchTab: (id) => {
             const u = App.user;
-            // Phân quyền cơ bản
             const isGenAdmin = ['Giám đốc', 'Quản lý', 'Kế toán'].includes(u.role);
             if (!isGenAdmin) {
                 if (id === 'th' && u.team !== 'Tổ Thu Hoạch') return UI.showMsg("Chỉ dành cho Tổ Thu Hoạch!");
@@ -112,7 +122,6 @@ const App = {
             if(view) view.classList.remove('hidden');
             if(btn) btn.classList.add('active');
             
-            // Render dữ liệu mới nhất cho tab đó
             if(id === 'home') UI.renderHome(App.data.houses, App.data.harvest, App.data.employees);
             if(id === 'tasks') UI.renderTasks(App.data.tasks, App.data.employees, App.data.houses, u);
             if(id === 'sx') UI.renderSX(App.data.houses, App.data.production);
@@ -125,24 +134,21 @@ const App = {
         }
     },
 
-    // --- DANH SÁCH CÁC HÀNH ĐỘNG (LOGIC CHÍNH) ---
     actions: {
         logout: () => { localStorage.removeItem('n5_modular_user'); location.reload(); },
         closeModal: (id) => UI.toggleModal(id, false),
         openModal: (id) => UI.toggleModal('modal-'+id, true),
         
-        // 1. ĐIỂM DANH
         checkIn: async (shift) => {
             const today = new Date().toISOString().split('T')[0];
             await updateDoc(doc(db, `${ROOT_PATH}/employees`, App.user._id), { lastLogin: today });
             await addDoc(collection(db, `${ROOT_PATH}/attendance_logs`), { 
                 date: today, time: Date.now(), user: App.user.name, uid: App.user.id, shift, team: App.user.team 
             });
-            await App.actions.modScore(`${App.user._id}|2`); // Cộng 2 điểm
+            await App.actions.modScore(`${App.user._id}|2`);
             UI.showMsg(`Đã điểm danh ${shift}!`);
         },
 
-        // 2. CÔNG VIỆC (TASKS)
         createTask: async () => {
             const title = document.getElementById('task-title').value;
             const houses = Array.from(document.querySelectorAll('input[name="h-chk"]:checked')).map(c=>c.value);
@@ -158,7 +164,7 @@ const App = {
                 }
             }
             UI.showMsg("Đã giao việc thành công!");
-            document.getElementById('task-title').value = ''; // Reset
+            document.getElementById('task-title').value = '';
         },
         
         completeTask: async (id) => {
@@ -170,7 +176,6 @@ const App = {
             if(confirm("Xóa việc này?")) await deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id));
         },
 
-        // 3. SẢN XUẤT (SX)
         submitSX: async (action) => {
             const house = document.getElementById('sx-house-id').value;
             const type = document.getElementById('sx-type').value;
@@ -186,7 +191,6 @@ const App = {
             UI.showMsg("Đã lưu dữ liệu SX!");
         },
 
-        // 4. THU HOẠCH (TH)
         submitTH: async () => {
             const area = document.getElementById('th-area').value;
             if(!area) return UI.showMsg("Chưa chọn Nhà!");
@@ -205,13 +209,11 @@ const App = {
                 area, details: d, total, user: App.user.name, time: Date.now()
             });
             
-            // Reset input
             ids.forEach(k => document.getElementById('th-'+k).value = '');
             UI.showMsg(`Đã lưu ${total}kg!`);
-            await App.actions.modScore(`${App.user._id}|10`); // Thưởng 10 điểm
+            await App.actions.modScore(`${App.user._id}|10`);
         },
 
-        // 5. NHÂN SỰ & ADMIN
         addEmployee: async () => {
             const n = document.getElementById('new-emp-name').value;
             const id = document.getElementById('new-emp-id').value;
@@ -250,7 +252,6 @@ const App = {
             UI.toggleModal(type==='LEAVE'?'modal-leave':'modal-buy', false);
         },
 
-        // 6. BÁO CÁO (EXPORT)
         exportTH: () => {
             let csv = "NGAY;NHA;TONG_KG;NV_HAI\n";
             App.data.harvest.forEach(l => csv += `${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.user}\n`);
