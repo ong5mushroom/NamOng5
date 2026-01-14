@@ -2,7 +2,7 @@ import { auth, db, ROOT_PATH, signInAnonymously, onAuthStateChanged, collection,
 import { UI } from './ui.js';
 
 const App = {
-    data: { employees: [], houses: [], harvest: [], tasks: [], production: [], attendance: [], chat: [] },
+    data: { employees: [], houses: [], harvest: [], tasks: [], production: [], attendance: [], chat: [], hr_requests: [], shipping: [] },
     user: JSON.parse(localStorage.getItem('n5_modular_user')) || null,
 
     init: () => {
@@ -13,38 +13,30 @@ const App = {
             App.sync();
         }).catch(err => console.error("Lỗi kết nối:", err));
         
-        // GLOBAL CLICK HANDLER (SỬA LỖI NÚT BÁNH XE & CHAT)
+        // --- XỬ LÝ SỰ KIỆN CLICK (TOÀN CỤC) ---
         document.body.addEventListener('click', (e) => {
-            // 1. Nút chức năng (btn-action)
             const btn = e.target.closest('.btn-action');
             if(btn) {
                 const action = btn.dataset.action;
                 const payload = btn.dataset.payload;
                 if(App.actions[action]) App.actions[action](payload);
             }
-            // 2. Chuyển Tab
             const nav = e.target.closest('.nav-btn');
             if(nav && nav.dataset.tab) App.ui.switchTab(nav.dataset.tab);
-            // 3. Login
             if(e.target.id === 'login-btn') App.auth.login();
-            
-            // 4. Mở Cài đặt (FIX LỖI: Bắt sự kiện vào cả icon)
-            if(e.target.closest('#btn-open-settings')) UI.toggleModal('settings-modal', true);
-            
-            // 5. Mở Chat
+            if(e.target.closest('#btn-open-settings')) {
+                UI.toggleModal('settings-modal', true);
+                // Load danh sách duyệt đơn khi mở settings
+                if(['Giám đốc','Quản lý'].includes(App.user?.role)) UI.renderApproveList(App.data.hr_requests);
+            }
             if(e.target.closest('#btn-open-chat')) {
                 const layer = document.getElementById('chat-layer');
-                layer.classList.remove('hidden');
-                layer.style.display = 'flex';
-                App.ui.renderChat(); // Vẽ chat ngay khi mở
+                layer.classList.remove('hidden'); layer.style.display = 'flex';
+                App.ui.renderChat();
             }
         });
-
-        // ENTER KEY CHO CHAT
         document.body.addEventListener('keyup', (e) => {
-            if(e.key === 'Enter' && e.target.id === 'chat-input-field') {
-                App.actions.sendChat();
-            }
+            if(e.key === 'Enter' && e.target.id === 'chat-input-field') App.actions.sendChat();
         });
     },
 
@@ -53,22 +45,25 @@ const App = {
         // 1. Nhân sự
         onSnapshot(collection(db, `${ROOT_PATH}/employees`), s => {
             App.data.employees = mapD(s);
-            if(!App.user) UI.renderEmployeeOptions(App.data.employees);
-            else App.ui.refresh();
+            if(!App.user) UI.renderEmployeeOptions(App.data.employees); else App.ui.refresh();
         });
-        // 2. Chat (Sync riêng để realtime)
+        // 2. Chat
         onSnapshot(collection(db, `${ROOT_PATH}/chat`), s => {
             App.data.chat = mapD(s).sort((a,b)=>a.time-b.time);
-            if(App.user && !document.getElementById('chat-layer').classList.contains('hidden')) {
-                App.ui.renderChat();
-            }
+            if(App.user && !document.getElementById('chat-layer').classList.contains('hidden')) App.ui.renderChat();
         });
-        // 3. Các dữ liệu khác
-        ['houses', 'harvest_logs', 'tasks', 'production_logs', 'attendance_logs'].forEach(col => {
+        // 3. Đơn từ (HR) - Để duyệt
+        onSnapshot(collection(db, `${ROOT_PATH}/hr_requests`), s => {
+            App.data.hr_requests = mapD(s).sort((a,b)=>b.time-a.time);
+            if(App.user && document.getElementById('approval-list')) UI.renderApproveList(App.data.hr_requests);
+        });
+        // 4. Các dữ liệu khác (bao gồm shipping)
+        ['houses', 'harvest_logs', 'tasks', 'production_logs', 'attendance_logs', 'shipping_logs'].forEach(col => {
             onSnapshot(collection(db, `${ROOT_PATH}/${col}`), s => {
                 if(col==='harvest_logs') App.data.harvest = mapD(s);
                 else if(col==='production_logs') App.data.production = mapD(s);
                 else if(col==='attendance_logs') App.data.attendance = mapD(s);
+                else if(col==='shipping_logs') App.data.shipping = mapD(s);
                 else App.data[col] = mapD(s);
                 if(App.user) App.ui.refresh();
             });
@@ -86,11 +81,8 @@ const App = {
                 document.getElementById('main-app').classList.remove('hidden');
                 document.getElementById('head-user').innerText = emp.name;
                 document.getElementById('head-role').innerText = emp.role;
-                
-                const isGenAdmin = ['Giám đốc', 'Quản lý', 'Kế toán'].includes(emp.role);
                 const adminTools = document.getElementById('admin-tools');
-                if(isGenAdmin && adminTools) adminTools.classList.remove('hidden');
-                
+                if(['Giám đốc', 'Quản lý', 'Kế toán'].includes(emp.role) && adminTools) adminTools.classList.remove('hidden');
                 App.ui.switchTab('home');
             } else UI.showMsg("Sai mã PIN!");
         }
@@ -106,26 +98,19 @@ const App = {
             }
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            
             const view = document.getElementById('view-'+id);
             const btn = document.querySelector(`.nav-btn[data-tab="${id}"]`);
             if(view) view.classList.remove('hidden');
             if(btn) btn.classList.add('active');
             
-            // Pass đủ data cho Home
             if(id === 'home') UI.renderHome(App.data.houses, App.data.harvest, App.data.production, App.data.employees);
             if(id === 'tasks') UI.renderTasks(App.data.tasks, App.data.employees, App.data.houses, u);
             if(id === 'sx') UI.renderSX(App.data.houses, App.data.production);
-            if(id === 'th') UI.renderTH(App.data.houses, App.data.harvest);
+            if(id === 'th') UI.renderTH(App.data.houses, App.data.harvest, App.data.shipping); // Pass thêm shipping
             if(id === 'team') UI.renderTeam(App.data.employees, u);
         },
-        refresh: () => {
-            const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab;
-            if(activeTab) App.ui.switchTab(activeTab);
-        },
-        renderChat: () => {
-            UI.renderChat(App.data.chat, App.user.id);
-        }
+        refresh: () => { const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab; if(activeTab) App.ui.switchTab(activeTab); },
+        renderChat: () => { UI.renderChat(App.data.chat, App.user.id); }
     },
 
     actions: {
@@ -133,90 +118,98 @@ const App = {
         closeModal: (id) => UI.toggleModal(id, false),
         openModal: (id) => UI.toggleModal('modal-'+id, true),
         closeChat: () => document.getElementById('chat-layer').classList.add('hidden'),
-        
-        // CHAT ACTION (Mới)
         sendChat: async () => {
-            const input = document.getElementById('chat-input-field');
-            const txt = input.value.trim();
-            if(!txt) return;
-            await addDoc(collection(db, `${ROOT_PATH}/chat`), { 
-                text: txt, senderId: App.user.id, senderName: App.user.name, time: Date.now() 
-            });
+            const input = document.getElementById('chat-input-field'); const txt = input.value.trim();
+            if(!txt) return; await addDoc(collection(db, `${ROOT_PATH}/chat`), { text: txt, senderId: App.user.id, senderName: App.user.name, time: Date.now() });
             input.value = '';
         },
-
         checkIn: async (shift) => {
             const today = new Date().toISOString().split('T')[0];
             await updateDoc(doc(db, `${ROOT_PATH}/employees`, App.user._id), { lastLogin: today });
             await addDoc(collection(db, `${ROOT_PATH}/attendance_logs`), { date: today, time: Date.now(), user: App.user.name, uid: App.user.id, shift, team: App.user.team });
-            await App.actions.modScore(`${App.user._id}|2`);
-            UI.showMsg(`Đã điểm danh ${shift}!`);
+            await App.actions.modScore(`${App.user._id}|2`); UI.showMsg(`Đã điểm danh ${shift}!`);
         },
         createTask: async () => {
             const title = document.getElementById('task-title').value;
             const houses = Array.from(document.querySelectorAll('input[name="h-chk"]:checked')).map(c=>c.value);
             const users = Array.from(document.querySelectorAll('input[name="u-chk"]:checked')).map(c=>c.value);
-            if(!title || !houses.length || !users.length) return UI.showMsg("Thiếu thông tin!");
+            if(!title || !houses.length || !users.length) return UI.showMsg("Thiếu tin!");
             for(let h of houses) { for(let u of users) { await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title, houseId: h, assignee: u, status: 'pending', time: Date.now(), assigner: App.user.name }); }}
             UI.showMsg("Đã giao việc!");
         },
         completeTask: async (id) => { await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'completed', finishTime: Date.now() }); UI.showMsg("Đã xong!"); },
         delTask: async (id) => { if(confirm("Xóa?")) await deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id)); },
         submitSX: async (action) => {
-            const house = document.getElementById('sx-house-id').value;
-            const type = document.getElementById('sx-type').value;
-            const qty = document.getElementById('sx-qty').value;
-            const batch = document.getElementById('sx-batch').value;
-            const date = document.getElementById('sx-date').value;
-            if(!house || !qty) return UI.showMsg("Thiếu thông tin!");
-            await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action, house, type, qty, batch, date, user: App.user.name, time: Date.now() });
-            UI.showMsg("Đã lưu!");
+            const house = document.getElementById('sx-house-id').value; const type = document.getElementById('sx-type').value; const qty = document.getElementById('sx-qty').value; const batch = document.getElementById('sx-batch').value; const date = document.getElementById('sx-date').value;
+            if(!house || !qty) return UI.showMsg("Thiếu tin!");
+            await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action, house, type, qty, batch, date, user: App.user.name, time: Date.now() }); UI.showMsg("Đã lưu!");
         },
+        // --- LOGIC MỚI CHO THU HOẠCH & XUẤT HÀNG ---
         submitTH: async () => {
             const area = document.getElementById('th-area').value;
-            if(!area) return UI.showMsg("Chưa chọn Nhà!");
-            const ids = ['b2','a1','a2','b1','chan','d1','a1f','a2f','b2f','ht'];
-            let d = {}, total = 0;
+            const ids = ['b2','a1','a2','b1','chan','d1','a1f','a2f','b2f','ht']; let d = {}, total = 0;
             ids.forEach(k => { const val = Number(document.getElementById('th-'+k).value)||0; if(val>0){d[k]=val; total+=val;} });
             if(total<=0) return UI.showMsg("Nhập số lượng!");
             await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details: d, total, user: App.user.name, time: Date.now() });
-            ids.forEach(k => document.getElementById('th-'+k).value='');
-            UI.showMsg(`Đã lưu ${total}kg!`);
-            await App.actions.modScore(`${App.user._id}|10`);
+            ids.forEach(k => document.getElementById('th-'+k).value=''); UI.showMsg(`Đã lưu ${total}kg!`); await App.actions.modScore(`${App.user._id}|10`);
         },
+        submitShip: async () => {
+            const cust = document.getElementById('ship-cust').value;
+            const qty = document.getElementById('ship-qty').value;
+            const price = document.getElementById('ship-price').value;
+            const type = document.getElementById('ship-type').value;
+            if(!cust || !qty) return UI.showMsg("Thiếu thông tin xuất!");
+            await addDoc(collection(db, `${ROOT_PATH}/shipping_logs`), { customer: cust, qty, price, type, user: App.user.name, time: Date.now() });
+            document.getElementById('ship-cust').value=''; document.getElementById('ship-qty').value='';
+            UI.showMsg("Đã xuất kho!");
+        },
+        // --- LOGIC NHÂN SỰ & ADMIN ---
         addEmployee: async () => {
-            const n = document.getElementById('new-emp-name').value;
-            const id = document.getElementById('new-emp-id').value;
-            const p = document.getElementById('new-emp-pin').value;
+            const n = document.getElementById('new-emp-name').value; const id = document.getElementById('new-emp-id').value; const p = document.getElementById('new-emp-pin').value;
             if(!n || !id || !p) return UI.showMsg("Thiếu tin!");
             await addDoc(collection(db, `${ROOT_PATH}/employees`), { id, name: n, pin: p, role: document.getElementById('new-emp-role').value, team: document.getElementById('new-emp-team').value, score: 0 });
             UI.toggleModal('modal-addStaff', false); UI.showMsg("Đã thêm!");
         },
-        modScore: async (payload) => {
-            const [uid, val] = payload.split('|');
-            const e = App.data.employees.find(x => x._id === uid);
-            if(e) await updateDoc(doc(db, `${ROOT_PATH}/employees`, uid), { score: (Number(e.score)||0) + Number(val) });
-        },
+        modScore: async (payload) => { const [uid, val] = payload.split('|'); const e = App.data.employees.find(x => x._id === uid); if(e) await updateDoc(doc(db, `${ROOT_PATH}/employees`, uid), { score: (Number(e.score)||0) + Number(val) }); },
         delEmp: async (uid) => { if(confirm("Xóa?")) await deleteDoc(doc(db, `${ROOT_PATH}/employees`, uid)); },
         submitHR: async (type) => {
             const c = type==='LEAVE'?(document.getElementById('leave-date').value+'-'+document.getElementById('leave-reason').value):document.getElementById('pur-item').value;
             await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), { type, content: c, requester: App.user.name, status: 'pending', time: Date.now() });
             UI.showMsg("Đã gửi!"); UI.toggleModal(type==='LEAVE'?'modal-leave':'modal-buy', false);
         },
-        exportTH: () => {
-            let csv = "NGAY;NHA;TONG_KG;NV\n"; App.data.harvest.forEach(l => csv += `${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.user}\n`);
-            App.helpers.downloadCSV(csv, 'TongHop.csv');
+        decideRequest: async (payload) => {
+            const [rid, decision] = payload.split('|');
+            await updateDoc(doc(db, `${ROOT_PATH}/hr_requests`, rid), { status: decision });
+            UI.showMsg(decision === 'approved' ? "Đã duyệt!" : "Đã từ chối!");
         },
-        exportAttendance: () => {
-            let csv = "NGAY;GIO;TEN;CA;TO\n"; App.data.attendance.forEach(l => csv += `${l.date};${new Date(l.time).toLocaleTimeString()};${l.user};${l.shift};${l.team}\n`);
-            App.helpers.downloadCSV(csv, 'ChamCong.csv');
+        resetLeaderboard: async () => {
+             if(confirm("⚠️ Xóa toàn bộ điểm thi đua?")) { App.data.employees.forEach(e => updateDoc(doc(db, `${ROOT_PATH}/employees`, e._id), { score: 0 })); UI.showMsg("Đã Reset!"); }
+        },
+        // --- XUẤT BÁO CÁO ---
+        exportReport: (type) => {
+             let csv = "";
+             if(type === 'ALL') {
+                 // Báo cáo tổng hợp SX + Hái + Xuất
+                 csv += "--- SẢN XUẤT ---\nNGAY;NHA;LOAI;SL;LO\n";
+                 App.data.production.forEach(l => csv+=`${l.date};${l.house};${l.type};${l.qty};${l.batch}\n`);
+                 csv += "\n--- THU HOẠCH ---\nNGAY;NHA;KG;NV\n";
+                 App.data.harvest.forEach(l => csv+=`${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.user}\n`);
+                 csv += "\n--- XUẤT HÀNG ---\nNGAY;KHACH;LOAI;KG;GIA;NV\n";
+                 App.data.shipping.forEach(l => csv+=`${new Date(l.time).toLocaleDateString()};${l.customer};${l.type};${l.qty};${l.price};${l.user}\n`);
+             } else {
+                 // Báo cáo theo Tổ (Lấy nhân viên + điểm)
+                 csv += "TEN;CHUC_VU;TO;DIEM_THI_DUA\n";
+                 App.data.employees.forEach(e => csv+=`${e.name};${e.role};${e.team};${e.score}\n`);
+             }
+             App.helpers.downloadCSV(csv, `BaoCao_${type}_${new Date().toISOString().slice(0,10)}.csv`);
         },
         exportCSVByHouse: (h) => {
             let csv = "NGAY;NHA;KG;NV\n"; App.data.harvest.filter(x=>x.area===h).forEach(l=>{ csv+=`${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.user}\n`; });
             App.helpers.downloadCSV(csv, `NK_${h}.csv`);
         },
-        resetLeaderboard: async () => {
-             if(confirm("Reset thi đua?")) { App.data.employees.forEach(e => updateDoc(doc(db, `${ROOT_PATH}/employees`, e._id), { score: 0 })); UI.showMsg("Đã Reset!"); }
+        exportAttendance: () => {
+            let csv = "NGAY;GIO;TEN;CA;TO\n"; App.data.attendance.forEach(l => csv += `${l.date};${new Date(l.time).toLocaleTimeString()};${l.user};${l.shift};${l.team}\n`);
+            App.helpers.downloadCSV(csv, 'ChamCong.csv');
         }
     },
     helpers: {
