@@ -1,12 +1,11 @@
-// MODULE GIAO DIỆN (VIEW) - V167: SECURE & NOTIFICATION
+// MODULE GIAO DIỆN (VIEW) - V168: CHAT FIX
 export const UI = {
     showMsg: (t, type = 'info') => {
         const b = document.getElementById('msg-box'); 
         if(b) { 
             b.innerText = t; 
             b.style.display = 'block'; 
-            b.style.background = type === 'notify' ? 'rgba(37, 99, 235, 0.95)' : 'rgba(0,0,0,0.8)'; // Xanh nếu là thông báo
-            // Rung điện thoại nếu hỗ trợ
+            b.style.background = type === 'notify' ? 'rgba(37, 99, 235, 0.95)' : 'rgba(0,0,0,0.8)';
             if(type === 'notify' && navigator.vibrate) navigator.vibrate(200);
             setTimeout(() => b.style.display = 'none', 3000); 
         }
@@ -94,29 +93,59 @@ export const UI = {
     // --- CHAT RENDER (Đã Fix màu chữ và hiển thị) ---
     renderChat: (messages, currentUserId) => {
         const layer = document.getElementById('chat-layer'); 
-        if(!layer || layer.classList.contains('hidden')) return;
+        if(!layer) return;
         
+        // 1. Vẽ khung xương nếu chưa có
         if(!document.getElementById('chat-box-inner')) { 
-            layer.innerHTML = `<div class="h-[70px] bg-white border-b flex items-end px-4 pb-3 shadow-sm"><button class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mr-3 active:bg-slate-200 shadow-sm btn-action" data-action="closeChat"><i class="fas fa-arrow-left text-slate-600"></i></button><h2 class="font-black text-slate-800 text-lg uppercase italic">Thảo luận</h2></div><div id="chat-box-inner" class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#efeae2] chat-bg"></div><div class="p-3 bg-white border-t flex gap-2 pb-8"><input id="chat-input-field" class="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none border font-medium" placeholder="Nhập tin nhắn..."><button class="w-10 h-10 bg-blue-600 rounded-full text-white shadow-lg btn-action" data-action="sendChat"><i class="fas fa-paper-plane"></i></button></div>`; 
+            layer.innerHTML = `
+                <div class="h-[70px] bg-white border-b flex items-end px-4 pb-3 shadow-sm z-50 fixed top-0 left-0 right-0">
+                     <button class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mr-3 active:bg-slate-200 shadow-sm btn-action" data-action="closeChat"><i class="fas fa-arrow-left text-slate-600"></i></button>
+                     <h2 class="font-black text-slate-800 text-lg uppercase italic">Thảo luận</h2>
+                </div>
+                <div id="chat-box-inner" class="absolute top-[70px] bottom-[70px] left-0 right-0 overflow-y-auto p-4 space-y-3 bg-[#efeae2] chat-bg">
+                    <p class="text-center text-slate-400 text-xs mt-10">Đang tải tin nhắn...</p>
+                </div>
+                <div class="fixed bottom-0 left-0 right-0 p-3 bg-white border-t flex gap-2 pb-8 z-50">
+                    <input id="chat-input-field" class="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none border font-medium" placeholder="Nhập tin nhắn...">
+                    <button class="w-10 h-10 bg-blue-600 rounded-full text-white shadow-lg btn-action" data-action="sendChat"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            `;
         }
         
         const box = document.getElementById('chat-box-inner');
         if(!messages || messages.length === 0) {
-            box.innerHTML = '<p class="text-center text-slate-400 text-xs mt-4">Chưa có tin nhắn nào</p>'; return;
+            box.innerHTML = '<p class="text-center text-slate-400 text-xs mt-10">Chưa có tin nhắn nào</p>'; 
+            return;
         }
 
+        // 2. Vẽ tin nhắn (Đảm bảo màu chữ đen/đậm để dễ đọc)
         box.innerHTML = messages.map(m => { 
             const isMe = String(m.senderId) === String(currentUserId); 
-            // Thêm style trực tiếp (inline style) để đảm bảo không bị lỗi CSS ẩn chữ
+            const time = new Date(m.time).toLocaleTimeString().slice(0,5);
             return `
                 <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-2">
-                    <div class="text-[9px] text-slate-500 mb-1 px-1 uppercase font-bold">${isMe ? 'Tôi' : m.senderName}</div>
-                    <div class="chat-bubble" style="background: ${isMe ? '#dcf8c6' : '#ffffff'}; color: #1e293b; padding: 10px 14px; border-radius: 18px; max-width: 80%; box-shadow: 0 1px 1px rgba(0,0,0,0.1); font-size: 14px;">
+                    <div class="text-[9px] text-slate-500 mb-1 px-1 uppercase font-bold flex gap-2">
+                        <span>${isMe ? 'Tôi' : m.senderName}</span>
+                        <span class="font-normal opacity-50">${time}</span>
+                    </div>
+                    <div style="
+                        background: ${isMe ? '#dcf8c6' : '#ffffff'}; 
+                        color: #000000; 
+                        padding: 8px 12px; 
+                        border-radius: 12px; 
+                        max-width: 80%; 
+                        box-shadow: 0 1px 1px rgba(0,0,0,0.1); 
+                        font-size: 14px; 
+                        line-height: 1.4;
+                        ${isMe ? 'border-bottom-right-radius: 2px;' : 'border-bottom-left-radius: 2px;'}
+                    ">
                         ${m.text}
                     </div>
                 </div>`; 
         }).join('');
-        box.scrollTop = box.scrollHeight;
+        
+        // 3. Cuộn xuống cuối
+        setTimeout(() => { box.scrollTop = box.scrollHeight; }, 100);
     },
     
     // ... Các phần khác giữ nguyên
