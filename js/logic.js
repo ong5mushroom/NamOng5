@@ -30,6 +30,7 @@ const App = {
             if(e.target.closest('#btn-open-chat')) {
                 const layer = document.getElementById('chat-layer');
                 layer.classList.remove('hidden'); layer.style.display = 'flex';
+                // Trigger render ngay lập tức khi mở
                 App.ui.renderChat();
             }
         });
@@ -40,7 +41,17 @@ const App = {
 
     sync: () => {
         const mapD = s => s.docs.map(d => ({...d.data(), _id: d.id}));
-        ['employees', 'chat', 'hr_requests', 'houses', 'harvest_logs', 'tasks', 'production_logs', 'attendance_logs', 'shipping_logs'].forEach(col => {
+        
+        // 1. TẢI NHÂN VIÊN TRƯỚC (Để đăng nhập nhanh)
+        onSnapshot(collection(db, `${ROOT_PATH}/employees`), s => {
+            App.data.employees = mapD(s);
+            // Render ngay lập tức khi có data nhân viên, không đợi các cái khác
+            if(!App.user) UI.renderEmployeeOptions(App.data.employees); 
+            else App.ui.refresh();
+        });
+
+        // 2. Tải các phần nặng sau
+        ['chat', 'hr_requests', 'houses', 'harvest_logs', 'tasks', 'production_logs', 'attendance_logs', 'shipping_logs'].forEach(col => {
             onSnapshot(collection(db, `${ROOT_PATH}/${col}`), s => {
                 const data = mapD(s);
                 if(col==='harvest_logs') App.data.harvest = data;
@@ -48,11 +59,13 @@ const App = {
                 else if(col==='attendance_logs') App.data.attendance = data;
                 else if(col==='shipping_logs') App.data.shipping = data;
                 else App.data[col] = data;
+
                 if(App.user) {
+                    // Fix lỗi chat không hiện tin nhắn mới nếu đang mở
                     if(col === 'chat' && !document.getElementById('chat-layer').classList.contains('hidden')) App.ui.renderChat();
                     if(col === 'hr_requests' && document.getElementById('approval-list')) UI.renderApproveList(App.data.hr_requests);
                     App.ui.refresh();
-                } else if(col === 'employees') UI.renderEmployeeOptions(App.data.employees);
+                }
             });
         });
     },
@@ -129,25 +142,32 @@ const App = {
                 await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'NHẬP', house, type, qty, batch: `Nhận từ A (${batch})`, date, user: App.user.name, time: Date.now() });
                 await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'XUẤT', house: 'Nhà A', type, qty, batch: `Chuyển cho ${house}`, date, user: 'SYSTEM', time: Date.now() }); UI.showMsg(`Đã chuyển ${qty} túi!`);
             } else if(payloadAction === 'HUY') {
-                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'HỦY', house, type, qty, batch: `Dọn vụ (${batch})`, date, user: App.user.name, time: Date.now() }); UI.showMsg("Đã Dọn vụ!");
+                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'HỦY', house, type, qty, batch: `Dọn/Hủy (${batch})`, date, user: App.user.name, time: Date.now() }); UI.showMsg("Đã Dọn vụ/Hủy!");
             }
         },
         submitTH: async () => {
             const area = document.getElementById('th-area').value;
+            const note = document.getElementById('th-note').value; // Lấy ghi chú
             const ids = ['b2','a1','a2','b1','chan','d1','a1f','a2f','b2f','ht']; let d = {}, total = 0;
             ids.forEach(k => { const val = Number(document.getElementById('th-'+k).value)||0; if(val>0){d[k]=val; total+=val;} });
             if(total<=0) return UI.showMsg("Nhập số lượng!");
-            await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details: d, total, user: App.user.name, time: Date.now() });
-            ids.forEach(k => document.getElementById('th-'+k).value=''); UI.showMsg(`Đã lưu ${total}kg!`); await App.actions.modScore(`${App.user._id}|10`);
+            // Lưu thêm note
+            await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details: d, total, note, user: App.user.name, time: Date.now() });
+            ids.forEach(k => document.getElementById('th-'+k).value=''); 
+            document.getElementById('th-note').value='';
+            UI.showMsg(`Đã lưu ${total}kg!`); await App.actions.modScore(`${App.user._id}|10`);
         },
-        // --- XUẤT HÀNG MỚI (Bỏ giá) ---
         submitShip: async () => {
             const cust = document.getElementById('ship-cust').value;
             const qty = document.getElementById('ship-qty').value;
             const type = document.getElementById('ship-type').value;
+            const note = document.getElementById('ship-note').value; // Lấy ghi chú
             if(!cust || !qty) return UI.showMsg("Thiếu tin xuất!");
-            await addDoc(collection(db, `${ROOT_PATH}/shipping_logs`), { customer: cust, qty, type, user: App.user.name, time: Date.now() });
-            document.getElementById('ship-qty').value=''; UI.showMsg("Đã xuất kho!");
+            // Lưu thêm note
+            await addDoc(collection(db, `${ROOT_PATH}/shipping_logs`), { customer: cust, qty, type, note, user: App.user.name, time: Date.now() });
+            document.getElementById('ship-qty').value=''; 
+            document.getElementById('ship-note').value='';
+            UI.showMsg("Đã xuất kho!");
         },
         createTask: async () => {
             const title = document.getElementById('task-title').value;
@@ -179,14 +199,14 @@ const App = {
              if(type === 'ALL') {
                  csv += "--- SẢN XUẤT ---\nNGAY;NHA;LOAI;SL;LO;HANH_DONG\n";
                  App.data.production.forEach(l => csv+=`${l.date};${l.house};${l.type};${l.qty};${l.batch};${l.action}\n`);
-                 csv += "\n--- THU HOẠCH ---\nNGAY;NHA;KG;NV\n";
-                 App.data.harvest.forEach(l => csv+=`${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.user}\n`);
-                 csv += "\n--- XUẤT HÀNG ---\nNGAY;KHACH;LOAI;KG;GIA;NV\n";
-                 App.data.shipping.forEach(l => csv+=`${new Date(l.time).toLocaleDateString()};${l.customer};${l.type};${l.qty};${l.user}\n`);
+                 csv += "\n--- THU HOẠCH ---\nNGAY;NHA;KG;GHI_CHU;NV\n";
+                 App.data.harvest.forEach(l => csv+=`${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.note||''};${l.user}\n`);
+                 csv += "\n--- XUẤT HÀNG ---\nNGAY;KHACH;LOAI;KG;GHI_CHU;NV\n";
+                 App.data.shipping.forEach(l => csv+=`${new Date(l.time).toLocaleDateString()};${l.customer};${l.type};${l.qty};${l.note||''};${l.user}\n`);
              } else { csv += "TEN;CHUC_VU;TO;DIEM_THI_DUA\n"; App.data.employees.forEach(e => csv+=`${e.name};${e.role};${e.team};${e.score}\n`); }
              App.helpers.downloadCSV(csv, `BaoCao_${type}.csv`);
         },
-        exportCSVByHouse: (h) => { let csv = "NGAY;NHA;KG;NV\n"; App.data.harvest.filter(x=>x.area===h).forEach(l=>{ csv+=`${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.user}\n`; }); App.helpers.downloadCSV(csv, `NK_${h}.csv`); },
+        exportCSVByHouse: (h) => { let csv = "NGAY;NHA;KG;GHI_CHU;NV\n"; App.data.harvest.filter(x=>x.area===h).forEach(l=>{ csv+=`${new Date(l.time).toLocaleDateString()};${l.area};${l.total};${l.note||''};${l.user}\n`; }); App.helpers.downloadCSV(csv, `NK_${h}.csv`); },
         exportAttendance: () => { let csv = "NGAY;GIO;TEN;CA;TO\n"; App.data.attendance.forEach(l => csv += `${l.date};${new Date(l.time).toLocaleTimeString()};${l.user};${l.shift};${l.team}\n`); App.helpers.downloadCSV(csv, 'ChamCong.csv'); }
     },
     helpers: {
