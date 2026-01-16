@@ -7,6 +7,7 @@ const App = {
 
     init: () => {
         UI.initModals();
+        // Bảo mật: Che kín màn hình khi chưa đăng nhập
         const overlay = document.getElementById('login-overlay');
         if(overlay) overlay.style.zIndex = '9999';
 
@@ -14,8 +15,10 @@ const App = {
             const statusEl = document.getElementById('login-status');
             if(statusEl) statusEl.innerHTML = '<span class="text-green-500">✔ Đã kết nối</span>';
             
+            // 1. Tải nhân viên trước (nhẹ)
             App.syncEmployees();
 
+            // 2. Nếu đã có phiên đăng nhập cũ -> Tải dữ liệu chính
             if(App.user) {
                 App.syncData();
                 App.ui.switchTab('home');
@@ -28,6 +31,7 @@ const App = {
             }
         }).catch(err => console.error("Lỗi kết nối:", err));
         
+        // --- SỰ KIỆN CLICK TOÀN CỤC ---
         document.body.addEventListener('click', (e) => {
             const btn = e.target.closest('.btn-action');
             if(btn) {
@@ -37,17 +41,22 @@ const App = {
             }
             const nav = e.target.closest('.nav-btn');
             if(nav && nav.dataset.tab) App.ui.switchTab(nav.dataset.tab);
+            
             if(e.target.id === 'login-btn') App.auth.login();
+            
             if(e.target.closest('#btn-open-settings')) {
                 UI.toggleModal('settings-modal', true);
                 if(['Giám đốc','Quản lý'].includes(App.user?.role)) UI.renderApproveList(App.data.hr_requests);
             }
+            
             if(e.target.closest('#btn-open-chat')) {
                 const layer = document.getElementById('chat-layer');
                 layer.classList.remove('hidden'); layer.style.display = 'flex';
                 App.ui.renderChat();
             }
         });
+
+        // Phím Enter gửi chat
         document.body.addEventListener('keyup', (e) => {
             if(e.key === 'Enter' && e.target.id === 'chat-input-field') App.actions.sendChat();
         });
@@ -68,31 +77,32 @@ const App = {
             onSnapshot(collection(db, `${ROOT_PATH}/${col}`), s => {
                 const data = mapD(s);
                 
-                // 1. THÔNG BÁO
+                // 1. HỆ THỐNG THÔNG BÁO (NOTIFICATION)
                 s.docChanges().forEach((change) => {
                     if (change.type === "added" && App.user) {
                         const newItem = change.doc.data();
                         const isRecent = (Date.now() - (newItem.time || 0)) < 600000; // 10 phút
+                        
                         if(isRecent) {
-                            if(col === 'chat' && String(newItem.senderId) !== String(App.user.id)) {
+                            // Tin nhắn từ người khác (Không phải System)
+                            if(col === 'chat' && String(newItem.senderId) !== String(App.user.id) && newItem.senderId !== 'SYSTEM') {
                                 UI.showMsg(`💬 ${newItem.senderName}: ${newItem.text}`, 'notify');
                                 if(!document.getElementById('chat-layer').classList.contains('hidden')) App.ui.renderChat();
                             }
+                            // Nhiệm vụ mới
                             if(col === 'tasks' && String(newItem.assignee) === String(App.user.id)) {
-                                UI.showMsg(`📋 Việc mới: ${newItem.title}`, 'notify');
+                                UI.showMsg(`📋 NHẬN VIỆC: ${newItem.title}`, 'notify');
                             }
+                            // Đơn từ (Cho Admin)
                             if(col === 'hr_requests' && ['Giám đốc','Quản lý'].includes(App.user.role)) {
-                                UI.showMsg(`🔔 Đơn mới: ${newItem.requester}`, 'notify');
+                                UI.showMsg(`🔔 ĐƠN MỚI: ${newItem.requester}`, 'notify');
                             }
                         }
                     }
                 });
 
-                // 2. GÁN DỮ LIỆU (QUAN TRỌNG: SẮP XẾP CHAT)
-                if(col === 'chat') {
-                    // Sắp xếp chat từ cũ đến mới (time tăng dần) để tin mới nhất nằm dưới cùng
-                    App.data.chat = data.sort((a,b) => (a.time || 0) - (b.time || 0));
-                }
+                // 2. GÁN DỮ LIỆU
+                if(col === 'chat') App.data.chat = data.sort((a,b) => (a.time || 0) - (b.time || 0)); // Sắp xếp chat
                 else if(col==='harvest_logs') App.data.harvest = data;
                 else if(col==='production_logs') App.data.production = data;
                 else if(col==='attendance_logs') App.data.attendance = data;
@@ -122,6 +132,8 @@ const App = {
                 document.getElementById('head-role').innerText = emp.role;
                 const adminTools = document.getElementById('admin-tools');
                 if(['Giám đốc', 'Quản lý', 'Kế toán'].includes(emp.role) && adminTools) adminTools.classList.remove('hidden');
+                
+                // Tải dữ liệu sau khi login
                 App.syncData();
                 App.ui.switchTab('home');
             } else UI.showMsg("Sai mã PIN!");
@@ -160,31 +172,57 @@ const App = {
         closeChat: () => document.getElementById('chat-layer').classList.add('hidden'),
         
         sendChat: async () => {
-            const input = document.getElementById('chat-input-field'); 
-            const txt = input.value.trim();
+            const input = document.getElementById('chat-input-field'); const txt = input.value.trim();
             if(!txt) return; 
-            // Thêm try-catch để bắt lỗi nếu mạng yếu
-            try {
-                await addDoc(collection(db, `${ROOT_PATH}/chat`), { 
-                    text: txt, 
-                    senderId: App.user.id, 
-                    senderName: App.user.name || 'Nhân viên', // Fallback nếu mất tên
-                    time: Date.now() 
-                });
-                input.value = '';
-                // Không cần tự vẽ lại ở đây, hàm syncData sẽ tự bắt sự kiện và vẽ lại
-            } catch (e) {
-                console.error(e);
-                UI.showMsg("Lỗi gửi tin: " + e.message);
-            }
+            try { await addDoc(collection(db, `${ROOT_PATH}/chat`), { text: txt, senderId: App.user.id, senderName: App.user.name, time: Date.now() }); input.value = ''; }
+            catch(e) { UI.showMsg("Lỗi gửi tin!"); }
         },
-        
+
+        // --- HÀM GỬI TIN HỆ THỐNG (SYSTEM LOG) ---
+        sendSystemMsg: async (text) => {
+            await addDoc(collection(db, `${ROOT_PATH}/chat`), { 
+                text: text, senderId: 'SYSTEM', senderName: 'HỆ THỐNG', time: Date.now() 
+            });
+        },
+
         checkIn: async (shift) => {
             const today = new Date().toISOString().split('T')[0];
             await updateDoc(doc(db, `${ROOT_PATH}/employees`, App.user._id), { lastLogin: today });
             await addDoc(collection(db, `${ROOT_PATH}/attendance_logs`), { date: today, time: Date.now(), user: App.user.name, uid: App.user.id, shift, team: App.user.team });
-            await App.actions.modScore(`${App.user._id}|2`); UI.showMsg(`Đã điểm danh ${shift}!`);
+            await App.actions.modScore(`${App.user._id}|2`); 
+            
+            // LOG HỆ THỐNG
+            await App.actions.sendSystemMsg(`📢 ${App.user.name} đã ĐIỂM DANH (${shift})`);
+            UI.showMsg(`Đã điểm danh ${shift}!`);
         },
+
+        createTask: async () => {
+            const title = document.getElementById('task-title').value;
+            const houses = Array.from(document.querySelectorAll('input[name="h-chk"]:checked')).map(c=>c.value);
+            const users = Array.from(document.querySelectorAll('input[name="u-chk"]:checked')).map(c=>c.value);
+            if(!title || !houses.length || !users.length) return UI.showMsg("Thiếu thông tin!");
+            
+            for(let h of houses) { 
+                for(let u of users) { 
+                    await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title, houseId: h, assignee: u, status: 'pending', time: Date.now(), assigner: App.user.name }); 
+                    
+                    // LOG HỆ THỐNG
+                    const emp = App.data.employees.find(e => String(e.id) === String(u));
+                    const empName = emp ? emp.name : u;
+                    await App.actions.sendSystemMsg(`📋 GIAO VIỆC: ${App.user.name} giao cho ${empName}: "${title}" tại ${h}`);
+                }
+            }
+            UI.showMsg("Đã giao việc!");
+        },
+
+        completeTask: async (id) => { 
+            await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'completed', finishTime: Date.now() }); 
+            // LOG HỆ THỐNG
+            const task = App.data.tasks.find(t => t._id === id);
+            await App.actions.sendSystemMsg(`✅ HOÀN THÀNH: ${App.user.name} đã làm xong "${task ? task.title : 'công việc'}"`);
+            UI.showMsg("Đã xong!"); 
+        },
+
         submitSX: async (payloadAction) => {
             const house = document.getElementById('sx-house-id').value;
             const type = document.getElementById('sx-type').value;
@@ -192,15 +230,20 @@ const App = {
             const batch = document.getElementById('sx-batch').value;
             const date = document.getElementById('sx-date').value;
             if(!house || !qty) return UI.showMsg("Thiếu tin!");
+
             if(payloadAction === 'NHAP_MOI') {
-                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'NHẬP', house, type, qty, batch, date, user: App.user.name, time: Date.now() }); UI.showMsg("Đã Nhập Kho Tổng!");
+                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'NHẬP', house, type, qty, batch, date, user: App.user.name, time: Date.now() });
+                UI.showMsg("Đã Nhập Kho Tổng!");
             } else if(payloadAction === 'LAY_TU_A') {
                 await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'NHẬP', house, type, qty, batch: `Nhận từ A (${batch})`, date, user: App.user.name, time: Date.now() });
-                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'XUẤT', house: 'Nhà A', type, qty, batch: `Chuyển cho ${house}`, date, user: 'SYSTEM', time: Date.now() }); UI.showMsg(`Đã chuyển ${qty} túi!`);
+                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'XUẤT', house: 'Nhà A', type, qty, batch: `Chuyển cho ${house}`, date, user: 'SYSTEM', time: Date.now() });
+                UI.showMsg(`Đã chuyển ${qty} túi!`);
             } else if(payloadAction === 'HUY') {
-                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'HỦY', house, type, qty, batch: `Dọn/Hủy (${batch})`, date, user: App.user.name, time: Date.now() }); UI.showMsg("Đã Dọn vụ/Hủy!");
+                await addDoc(collection(db, `${ROOT_PATH}/production_logs`), { action: 'HỦY', house, type, qty, batch: `Dọn/Hủy (${batch})`, date, user: App.user.name, time: Date.now() });
+                UI.showMsg("Đã Dọn vụ/Hủy!");
             }
         },
+
         submitTH: async () => {
             const area = document.getElementById('th-area').value;
             const note = document.getElementById('th-note').value;
@@ -209,27 +252,35 @@ const App = {
             if(total<=0) return UI.showMsg("Nhập số lượng!");
             await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details: d, total, note, user: App.user.name, time: Date.now() });
             ids.forEach(k => document.getElementById('th-'+k).value=''); document.getElementById('th-note').value='';
+            
+            // LOG HỆ THỐNG
+            await App.actions.sendSystemMsg(`🍄 HÁI NẤM: ${App.user.name} đã hái ${total}kg tại ${area}`);
+            
             UI.showMsg(`Đã lưu ${total}kg!`); await App.actions.modScore(`${App.user._id}|10`);
         },
+
         submitShip: async () => {
-            const cust = document.getElementById('ship-cust').value;
-            const qty = document.getElementById('ship-qty').value;
-            const type = document.getElementById('ship-type').value;
-            const note = document.getElementById('ship-note').value;
+            const cust = document.getElementById('ship-cust').value; const qty = document.getElementById('ship-qty').value; const type = document.getElementById('ship-type').value; const note = document.getElementById('ship-note').value;
             if(!cust || !qty) return UI.showMsg("Thiếu tin xuất!");
             await addDoc(collection(db, `${ROOT_PATH}/shipping_logs`), { customer: cust, qty, type, note, user: App.user.name, time: Date.now() });
             document.getElementById('ship-qty').value=''; document.getElementById('ship-note').value='';
+            
+            // LOG HỆ THỐNG
+            await App.actions.sendSystemMsg(`🚚 XUẤT HÀNG: ${App.user.name} đã xuất ${qty}kg cho ${cust}`);
+            
             UI.showMsg("Đã xuất kho!");
         },
-        createTask: async () => {
-            const title = document.getElementById('task-title').value;
-            const houses = Array.from(document.querySelectorAll('input[name="h-chk"]:checked')).map(c=>c.value);
-            const users = Array.from(document.querySelectorAll('input[name="u-chk"]:checked')).map(c=>c.value);
-            if(!title || !houses.length || !users.length) return UI.showMsg("Thiếu tin!");
-            for(let h of houses) { for(let u of users) { await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title, houseId: h, assignee: u, status: 'pending', time: Date.now(), assigner: App.user.name }); }}
-            UI.showMsg("Đã giao việc!");
+
+        submitHR: async (type) => {
+            const c = type==='LEAVE'?(document.getElementById('leave-date').value+'-'+document.getElementById('leave-reason').value):document.getElementById('pur-item').value;
+            await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), { type, content: c, requester: App.user.name, status: 'pending', time: Date.now() });
+            
+            // LOG HỆ THỐNG
+            await App.actions.sendSystemMsg(`📝 ĐƠN TỪ: ${App.user.name} gửi yêu cầu ${type==='LEAVE'?'nghỉ phép':'mua hàng'}`);
+            
+            UI.showMsg("Đã gửi!"); UI.toggleModal(type==='LEAVE'?'modal-leave':'modal-buy', false);
         },
-        completeTask: async (id) => { await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'completed', finishTime: Date.now() }); UI.showMsg("Đã xong!"); },
+
         delTask: async (id) => { if(confirm("Xóa?")) await deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id)); },
         addEmployee: async () => {
             const n = document.getElementById('new-emp-name').value; const id = document.getElementById('new-emp-id').value; const p = document.getElementById('new-emp-pin').value;
@@ -239,11 +290,6 @@ const App = {
         },
         modScore: async (payload) => { const [uid, val] = payload.split('|'); const e = App.data.employees.find(x => x._id === uid); if(e) await updateDoc(doc(db, `${ROOT_PATH}/employees`, uid), { score: (Number(e.score)||0) + Number(val) }); },
         delEmp: async (uid) => { if(confirm("Xóa?")) await deleteDoc(doc(db, `${ROOT_PATH}/employees`, uid)); },
-        submitHR: async (type) => {
-            const c = type==='LEAVE'?(document.getElementById('leave-date').value+'-'+document.getElementById('leave-reason').value):document.getElementById('pur-item').value;
-            await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), { type, content: c, requester: App.user.name, status: 'pending', time: Date.now() });
-            UI.showMsg("Đã gửi!"); UI.toggleModal(type==='LEAVE'?'modal-leave':'modal-buy', false);
-        },
         decideRequest: async (payload) => { const [rid, decision] = payload.split('|'); await updateDoc(doc(db, `${ROOT_PATH}/hr_requests`, rid), { status: decision }); UI.showMsg(decision === 'approved' ? "Đã duyệt!" : "Đã từ chối!"); },
         resetLeaderboard: async () => { if(confirm("⚠️ Xóa toàn bộ điểm?")) { App.data.employees.forEach(e => updateDoc(doc(db, `${ROOT_PATH}/employees`, e._id), { score: 0 })); UI.showMsg("Đã Reset!"); }},
         exportReport: (type) => {
