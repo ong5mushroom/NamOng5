@@ -4,7 +4,7 @@ import { UI } from './ui.js';
 const ROOT_PATH = "artifacts/namong5_production/public/data"; 
 const COMPANY_INFO = { 
     name: "CÔNG TY TNHH NẤM ÔNG 5", 
-    address: "Thôn Đa Ra Hoa, xã Đạ Nhim, huyện Lạc Dương, Tỉnh Lâm Đồng", 
+    address: "Thôn Đa Ra Hoa, xã Lạc Dương, Tỉnh Lâm Đồng", 
     mst: "5801474272", 
     contact: "0983.59.0808 - Hotline: 0899.49.0808" 
 };
@@ -209,3 +209,4 @@ const App = {
 
 window.App = App;
 window.onload = App.init;
+
