@@ -1,7 +1,6 @@
 import { auth, db, signInAnonymously, onAuthStateChanged, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from './config.js';
 import { UI } from './ui.js';
 
-// ĐƯỜNG DẪN CỐ ĐỊNH CHÍNH XÁC V222
 const ROOT_PATH = "artifacts/namong5_production/public/data"; 
 const COMPANY_INFO = { 
     name: "CÔNG TY TNHH NẤM ÔNG 5", 
@@ -25,6 +24,7 @@ const App = {
     init: () => {
         UI.initModals();
         
+        // --- SỰ KIỆN TOÀN CỤC ---
         document.addEventListener('click', (e) => {
             if(e.target.closest('#btn-open-chat')) {
                 UI.toggleModal('chat-layer', true);
@@ -32,7 +32,7 @@ const App = {
             }
             if(e.target.closest('#btn-open-settings')) {
                 const role = App.user?.role;
-                if(['Quản lý', 'Admin', 'Giám đốc'].includes(role)) {
+                if(['Quản lý', 'Admin', 'Giám đốc', 'Tổ trưởng'].includes(role)) {
                     UI.renderSettingsModal(App.data.employees);
                     UI.toggleModal('modal-settings', true);
                 } else {
@@ -42,7 +42,7 @@ const App = {
         });
 
         signInAnonymously(auth).then(() => {
-            document.getElementById('login-status').innerHTML = '<span class="text-green-500">✔ Đã kết nối V222</span>';
+            document.getElementById('login-status').innerHTML = '<span class="text-green-500">✔ Đã kết nối V223</span>';
             App.syncData();
             if(App.user) {
                 document.getElementById('login-overlay').classList.add('hidden');
@@ -81,7 +81,7 @@ const App = {
                 }
                 
                 if(c === 'employees') {
-                    if(snapshot.empty) { // Auto-seed Giám đốc
+                    if(snapshot.empty) {
                         addDoc(collection(db, `${ROOT_PATH}/employees`), { id: 9999, name: "Giám Đốc", pin: "9999", role: "Giám đốc", score: 100 });
                         UI.showMsg("Đã tạo user Giám đốc (PIN 9999)", "remind");
                     }
@@ -100,7 +100,8 @@ const App = {
             if(tab === 'sx') UI.renderSX(App.data.houses);
             if(tab === 'th') UI.renderTH(App.data.houses, App.data.harvest, App.data.shipping);
             if(tab === 'stock') UI.renderStock({}, App.data.supplies, App.data.distributions);
-            if(tab === 'tasks') UI.renderTasksAndShip(App.data.tasks, App.user, App.data.houses);
+            // SỬA LỖI: Truyền danh sách nhân viên vào renderTasksAndShip để không bị trống dropdown
+            if(tab === 'tasks') UI.renderTasksAndShip(App.data.tasks, App.user, App.data.houses, App.data.employees);
             const allReqs = [...(App.data.hr_requests||[]), ...(App.data.buy_requests||[])];
             if(tab === 'team') UI.renderTeam(App.user, allReqs);
         },
@@ -154,7 +155,7 @@ const App = {
             const d = new Date(dStr);
             const bc = `${s.toUpperCase()}-${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getFullYear()).slice(-2)}`;
             await updateDoc(doc(db, `${ROOT_PATH}/houses`, h), { currentBatch: bc, currentSpawn: q, status: 'ACTIVE', startDate: Date.now() });
-            App.helpers.notifyAndRedirect(`🏭 <b>${App.user.name}</b> vào lô: ${bc} (${q} bịch) tại ${h}`);
+            App.helpers.notifyAndRedirect(`🏭 <b>${App.user.name}</b> đã vào lô mới: ${bc} (${q} bịch) tại ${h}`);
         },
 
         submitTH: async () => {
@@ -165,10 +166,13 @@ const App = {
             let details = {}, total = 0;
             types.forEach(code => { const val = Number(document.getElementById(`th-${code}`).value)||0; if (val>0) { details[code]=val; total+=val; } });
             if (total<=0) return UI.showMsg("Chưa nhập số!", "error");
-            await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, batchCode: houseObj?.currentBatch||'N/A', details, total, note: document.getElementById('th-note').value, user: App.user.name, time: Date.now() });
+            await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { 
+                area, batchCode: houseObj?.currentBatch||'N/A', details, total, 
+                note: document.getElementById('th-note').value, user: App.user.name, time: Date.now() 
+            });
             types.forEach(code => document.getElementById(`th-${code}`).value='');
             document.getElementById('th-note').value=''; document.getElementById('th-display-total').innerText='0.0';
-            App.helpers.notifyAndRedirect(`🍄 <b>${App.user.name}</b> nhập <b>${total}kg</b> tại ${area}.`);
+            App.helpers.notifyAndRedirect(`🍄 <b>${App.user.name}</b> nhập <b>${total}kg</b> nấm tại ${area}.`);
         },
 
         submitShip: async () => {
@@ -194,14 +198,7 @@ const App = {
         remindAttendance: async () => App.helpers.notifyAndRedirect(`📢 QUẢN LÝ NHẮC NHỞ: Yêu cầu mọi người báo cáo!`, 'remind'),
         submitLeave: async () => { const d = document.getElementById('leave-date').value; const r = document.getElementById('leave-reason').value; if(!d) return UI.showMsg("Chọn ngày!","error"); await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), { user: App.user.name, type: 'LEAVE', date: d, reason: r, status: 'pending', time: Date.now() }); UI.showMsg("✅ Đã gửi đơn!"); UI.toggleModal('modal-leave', false); },
         submitBuyRequest: async () => { const n = document.getElementById('buy-name').value; const u = document.getElementById('buy-unit').value; const q = document.getElementById('buy-qty').value; const note = document.getElementById('buy-note').value; if(!n) return UI.showMsg("Thiếu tên!","error"); await addDoc(collection(db, `${ROOT_PATH}/buy_requests`), { user: App.user.name, item: n, unit: u, qty: q, note, status: 'pending', time: Date.now() }); UI.showMsg("✅ Đã gửi đề xuất!"); UI.toggleModal('modal-buy-req', false); },
-        
-        submitDistribute: async () => {
-            const selectEl = document.getElementById('dist-item'); const itemId = selectEl.value; const itemName = selectEl.options[selectEl.selectedIndex].getAttribute('data-name'); const currentStock = Number(selectEl.options[selectEl.selectedIndex].getAttribute('data-stock')); const toHouse = document.getElementById('dist-to').value; const qty = Number(document.getElementById('dist-qty').value);
-            if(!itemId || !qty) return UI.showMsg("Thiếu tin!", "error"); if(qty > currentStock) return UI.showMsg(`Kho không đủ!`, "error");
-            await updateDoc(doc(db, `${ROOT_PATH}/supplies`, itemId), { stock: currentStock - qty, lastUpdated: Date.now() });
-            await addDoc(collection(db, `${ROOT_PATH}/distributions`), { itemId, itemName, toHouse, qty, user: App.user.name, time: Date.now() });
-            UI.toggleModal('modal-distribute', false); App.helpers.notifyAndRedirect(`🚚 <b>${App.user.name}</b> cấp ${qty} ${itemName} cho ${toHouse}.`);
-        },
+        submitDistribute: async () => { const selectEl = document.getElementById('dist-item'); const itemId = selectEl.value; const itemName = selectEl.options[selectEl.selectedIndex].getAttribute('data-name'); const currentStock = Number(selectEl.options[selectEl.selectedIndex].getAttribute('data-stock')); const toHouse = document.getElementById('dist-to').value; const qty = Number(document.getElementById('dist-qty').value); if(!itemId || !qty) return UI.showMsg("Thiếu tin!", "error"); if(qty > currentStock) return UI.showMsg(`Kho không đủ!`, "error"); await updateDoc(doc(db, `${ROOT_PATH}/supplies`, itemId), { stock: currentStock - qty, lastUpdated: Date.now() }); await addDoc(collection(db, `${ROOT_PATH}/distributions`), { itemId, itemName, toHouse, qty, user: App.user.name, time: Date.now() }); UI.toggleModal('modal-distribute', false); App.helpers.notifyAndRedirect(`🚚 <b>${App.user.name}</b> cấp ${qty} ${itemName} cho ${toHouse}.`); },
         submitStockCheck: async () => { const act = Number(document.getElementById('stock-actual-mushroom').value); const note = document.getElementById('stock-note-mushroom').value; if(!act && act!==0) return UI.showMsg("Nhập số thực!", "error"); await addDoc(collection(db, `${ROOT_PATH}/stock_checks`), { type: 'MUSHROOM', actual: act, note, user: App.user.name, time: Date.now() }); App.helpers.notifyAndRedirect(`📦 <b>${App.user.name}</b> chốt kho nấm: ${act}kg.`); },
         openSupplyImport: () => { const n = prompt("Tên vật tư:"); const u = prompt("Đơn vị:"); const q = Number(prompt("Số lượng:")); if(n && q) { addDoc(collection(db, `${ROOT_PATH}/supplies`), { name: n, unit: u, stock: q }); UI.showMsg("✅ Đã nhập!", "success"); } }
     }
