@@ -1,5 +1,5 @@
 export const UI = {
-    // 1. ÂM THANH
+    // --- 1. UTILS ---
     playSound: (type) => { 
         try { 
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -12,41 +12,26 @@ export const UI = {
                 gain.gain.setValueAtTime(0.1, ctx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
                 osc.start(); osc.stop(ctx.currentTime + 0.5);
-            } else if (type === 'msg') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(800, ctx.currentTime);
-                gain.gain.setValueAtTime(0.05, ctx.currentTime);
-                osc.start(); osc.stop(ctx.currentTime + 0.1);
             }
         } catch(e){} 
     },
 
-    // 2. KHỞI TẠO MODAL (HÀM ĐANG BỊ LỖI CỦA BẠN - ĐÃ FIX)
+    // HÀM KHỞI TẠO MODAL (ĐÃ FIX)
     initModals: () => {
         document.body.addEventListener('click', (e) => {
-            // Đóng modal khi bấm nút X hoặc nền đen
-            if (e.target.closest('.modal-close-btn') || e.target.classList.contains('fixed')) {
-                // Không đóng chat layer ở đây, chat có nút riêng
-                const target = e.target.closest('.modal-close-btn');
-                const id = target ? target.dataset.payload : e.target.id;
-                
-                // Chỉ đóng nếu đó là modal (có id bắt đầu bằng modal-)
-                if (id && id.startsWith('modal-')) {
-                    document.getElementById(id)?.classList.add('hidden');
-                }
-                
-                // Nếu bấm ra ngoài vùng trắng của modal
-                if (e.target.classList.contains('fixed') && !e.target.id.includes('chat') && e.target.id !== 'login-overlay') {
-                    e.target.classList.add('hidden');
-                }
+            // Đóng modal
+            if (e.target.closest('.modal-close-btn') || (e.target.classList.contains('fixed') && e.target.id !== 'login-overlay' && !e.target.id.includes('chat'))) {
+                const id = e.target.closest('.modal-close-btn')?.dataset.payload || e.target.id;
+                const el = document.getElementById(id);
+                if(el) el.classList.add('hidden');
             }
-            // Đóng chat riêng
+            // Đóng chat
             if (e.target.closest('[data-action="closeChat"]')) {
-                document.getElementById('chat-layer').classList.add('hidden');
+                document.getElementById('chat-layer')?.classList.add('hidden');
             }
         });
     },
 
-    // 3. CÁC HÀM TIỆN ÍCH KHÁC
     toggleModal: (id) => {
         const el = document.getElementById(id);
         if(el) el.classList.remove('hidden');
@@ -66,15 +51,8 @@ export const UI = {
         document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
         document.getElementById(`view-${tabName}`)?.classList.remove('hidden');
         document.querySelectorAll('.nav-btn').forEach(btn => {
-            const active = btn.dataset.tab === tabName;
-            // Reset class cũ
-            btn.className = 'nav-btn flex flex-col items-center justify-center group cursor-pointer'; 
-            if (active) {
-                btn.classList.add('text-blue-600');
-                if(btn.querySelector('div')) btn.querySelector('div').classList.add('ring-2', 'ring-blue-300');
-            } else {
-                btn.classList.add('text-slate-400');
-            }
+            const isActive = btn.dataset.tab === tabName;
+            btn.className = `nav-btn flex flex-col items-center justify-center group ${isActive ? 'text-blue-600' : 'text-slate-400'}`;
         });
         localStorage.setItem('n5_current_tab', tabName);
     },
@@ -84,8 +62,7 @@ export const UI = {
         if(sel) sel.innerHTML = '<option value="">-- Chọn tên --</option>' + employees.sort((a,b)=>a.name.localeCompare(b.name)).map(e => `<option value="${e.id}">${e.name}</option>`).join('');
     },
 
-    // --- CÁC MÀN HÌNH ---
-    
+    // --- HOME ---
     renderHome: (houses, harvestLogs, employees) => {
         const container = document.getElementById('view-home');
         const houseOrder = ['A', 'A+', 'B1', 'B2', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'D1', 'D2', 'D3', 'D4', 'E1', 'E2', 'E3', 'E4', 'E5', 'F'];
@@ -137,7 +114,7 @@ export const UI = {
                     <textarea id="task-desc" class="input-box text-sm" placeholder="Mô tả..."></textarea>
                 </div>
              </div>` : ''}
-             <div class="space-y-3"><h3 class="font-bold text-slate-700 text-sm uppercase pl-2 border-l-4 border-orange-500">Việc Cần Làm</h3>${myTasks.map(t => `<div class="card p-4 border-l-4 ${t.status==='received'?'border-blue-500':'border-red-500'} shadow-sm"><div class="flex justify-between items-start mb-2"><h4 class="font-bold text-slate-800">${t.title}</h4><span class="text-[9px] font-black px-2 py-1 rounded ${t.status==='received'?'bg-blue-100 text-blue-600':'bg-red-100 text-red-600'}">${t.status==='received'?'ĐANG LÀM':'MỚI'}</span></div><div class="text-xs text-slate-500 mb-3 bg-slate-50 p-2 rounded">${t.house||'Chung'} • ${t.desc||'-'}</div>${t.status === 'pending' ? `<button class="w-full bg-red-50 text-red-600 py-3 rounded-lg text-xs font-black btn-action border border-red-100" data-action="receiveTask" data-payload="${t._id}">NHẬN VIỆC</button>` : `<button class="w-full bg-blue-600 text-white py-3 rounded-lg text-xs font-black btn-action shadow-md" data-action="submitTask" data-payload="${t._id}">BÁO CÁO XONG</button>`}</div>`).join('')}</div>
+             <div class="space-y-3"><h3 class="font-bold text-slate-700 text-sm uppercase pl-2 border-l-4 border-orange-500">Việc Cần Làm</h3>${myTasks.length ? myTasks.map(t => `<div class="card p-4 border-l-4 ${t.status==='received'?'border-blue-500':'border-red-500'} shadow-sm"><div class="flex justify-between items-start mb-2"><h4 class="font-bold text-slate-800">${t.title}</h4><span class="text-[9px] font-black px-2 py-1 rounded ${t.status==='received'?'bg-blue-100 text-blue-600':'bg-red-100 text-red-600'}">${t.status==='received'?'ĐANG LÀM':'MỚI'}</span></div><div class="text-xs text-slate-500 mb-3 bg-slate-50 p-2 rounded">${t.house||'Chung'} • ${t.desc||'-'}</div>${t.status === 'pending' ? `<button class="w-full bg-red-50 text-red-600 py-3 rounded-lg text-xs font-black btn-action border border-red-100" data-action="receiveTask" data-payload="${t._id}">NHẬN VIỆC</button>` : `<button class="w-full bg-blue-600 text-white py-3 rounded-lg text-xs font-black btn-action shadow-md" data-action="submitTask" data-payload="${t._id}">BÁO CÁO XONG</button>`}</div>`).join('') : '<div class="text-center p-6 text-slate-400 text-xs italic bg-slate-50 rounded-xl">Bạn đang rảnh rỗi!</div>'}</div>
              <div class="space-y-2 opacity-75"><h3 class="font-bold text-slate-400 text-xs mt-6">Nhật ký chung</h3>${otherTasks.slice(0, 5).map(t => `<div class="bg-white p-3 rounded-lg border border-slate-100 flex justify-between items-center"><div><div class="font-bold text-slate-600 text-xs">${t.title}</div><div class="text-[10px] text-slate-400">${t.assignee} • ${t.house||''}</div></div><span class="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded">XONG</span></div>`).join('')}</div>
         </div>`;
     },
@@ -224,4 +201,38 @@ export const UI = {
                 <button class="card p-4 flex flex-col items-center gap-2 btn-action active:bg-green-50 transition" data-action="submitAttendance"><div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-xl"><i class="fas fa-fingerprint"></i></div><span class="text-xs font-black text-slate-700">ĐIỂM DANH</span></button>
                 <button class="card p-4 flex flex-col items-center gap-2 btn-action active:bg-orange-50 transition" data-action="toggleModal" data-payload="modal-leave"><div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 text-xl"><i class="fas fa-file-signature"></i></div><span class="text-xs font-black text-slate-700">XIN NGHỈ</span></button>
                 <button class="card p-4 flex flex-col items-center gap-2 btn-action active:bg-purple-50 transition" data-action="toggleModal" data-payload="modal-buy-req"><div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-xl"><i class="fas fa-shopping-basket"></i></div><span class="text-xs font-black text-slate-700">MUA HÀNG</span></button>
-                <button class="card p-4 flex flex-col items-center gap-2
+                <button class="card p-4 flex flex-col items-center gap-2 btn-action active:bg-slate-100 transition" data-action="logout"><div class="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center text-slate-600 text-xl"><i class="fas fa-power-off"></i></div><span class="text-xs font-black text-slate-700">THOÁT</span></button>
+            </div>
+            ${(isManager || user.role === 'Tổ trưởng' || user.role === 'Kế toán') ? `<div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 mb-4"><h3 class="font-black text-yellow-800 text-xs mb-3 uppercase flex items-center"><i class="fas fa-bell mr-2"></i>Duyệt Đơn (${pendings.length})</h3>${pendings.length ? pendings.map(r=>`<div class="bg-white p-3 mb-2 rounded-lg flex justify-between items-center shadow-sm"><div><b class="text-xs text-slate-800">${r.user}</b><div class="text-[10px] text-slate-500">${r.type}: ${r.item||r.reason}</div></div><div class="flex gap-2"><button class="bg-green-500 text-white text-[10px] px-3 py-1.5 rounded-lg font-bold btn-action shadow" data-action="approveRequest" data-payload="${r._id}">DUYỆT</button><button class="bg-red-500 text-white text-[10px] px-3 py-1.5 rounded-lg font-bold btn-action shadow" data-action="rejectRequest" data-payload="${r._id}">HỦY</button></div></div>`).join('') : '<span class="text-xs italic text-slate-400 block text-center">Không có yêu cầu nào.</span>'}</div>` : ''}
+            ${empList}
+            <div id="modal-leave" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"><div class="card w-full max-w-sm p-6 space-y-4 shadow-2xl"><h3 class="font-black text-center text-slate-800 text-lg uppercase">Xin Nghỉ Phép</h3><input id="leave-date" type="date" class="input-box"><select id="leave-reason" class="input-box"><option>Việc riêng</option><option>Ốm / Sức khỏe</option><option>Khác</option></select><div class="flex gap-3"><button class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500 btn-action" data-action="toggleModal" data-payload="modal-leave">Hủy</button><button class="flex-1 py-3 bg-orange-600 text-white rounded-xl font-bold btn-action shadow-lg" data-action="submitLeave">Gửi Đơn</button></div></div></div>
+            <div id="modal-buy-req" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"><div class="card w-full max-w-sm p-6 space-y-4 shadow-2xl"><h3 class="font-black text-center text-slate-800 text-lg uppercase">Đề Xuất Mua</h3><input id="buy-name" class="input-box" placeholder="Tên hàng hóa"><div class="flex gap-3"><input id="buy-unit" class="input-box w-1/3" placeholder="ĐVT"><input id="buy-qty" type="number" class="input-box w-2/3" placeholder="Số lượng"></div><textarea id="buy-note" class="input-box text-sm" placeholder="Ghi chú (nếu có)"></textarea><div class="flex gap-3"><button class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500 btn-action" data-action="toggleModal" data-payload="modal-buy-req">Hủy</button><button class="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold btn-action shadow-lg" data-action="submitBuyRequest">Gửi</button></div></div></div>
+        </div>`;
+    },
+
+    renderChat: (msgs, uid) => {
+        const layer = document.getElementById('chat-layer');
+        layer.classList.remove('hidden'); layer.style.display = 'flex';
+        layer.innerHTML = `
+        <div class="h-16 bg-white border-b flex items-center justify-between px-4 shadow-sm z-10"><h3 class="font-black text-slate-800 flex items-center"><i class="fas fa-comments text-blue-600 mr-2"></i>NHÓM CHUNG</h3><button class="w-10 h-10 bg-slate-100 rounded-full btn-action flex items-center justify-center text-slate-500" data-action="closeChat"><i class="fas fa-times"></i></button></div>
+        <div id="chat-msgs" class="flex-1 overflow-y-auto p-4 space-y-3 chat-bg"></div>
+        <div class="p-3 bg-white border-t flex gap-2"><input id="chat-input" class="flex-1 bg-slate-100 rounded-full px-5 outline-none text-sm font-bold text-slate-800" placeholder="Nhập tin nhắn..."><button class="w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg btn-action active:scale-90 transition" data-action="sendChat"><i class="fas fa-paper-plane"></i></button></div>`;
+        const box = document.getElementById('chat-msgs');
+        box.innerHTML = msgs.map(m => {
+            if(m.type==='system') return `<div class="text-center text-[10px] text-slate-500 font-bold bg-white/80 rounded-full py-1 px-3 mx-auto w-fit my-2 shadow-sm backdrop-blur-sm border border-white"><span>${m.text}</span></div>`;
+            const isMe = String(m.senderId) === String(uid);
+            return `<div class="flex flex-col ${isMe?'items-end':'items-start'} animate-fade"><span class="text-[9px] text-slate-500 px-1 mb-0.5 font-bold">${m.senderName}</span><div class="${isMe?'bg-green-100 text-slate-900 border border-green-200 rounded-br-none':'bg-white text-slate-900 border border-slate-200 rounded-bl-none'} px-4 py-2 rounded-2xl shadow-sm text-sm max-w-[85%] leading-relaxed">${m.text}</div></div>`;
+        }).join('');
+        box.scrollTop = box.scrollHeight;
+    },
+    
+    renderSX: (houses) => { 
+        const container = document.getElementById('view-sx');
+        const sorted = [...houses].sort((a,b)=>a.name.localeCompare(b.name, 'vi', {numeric:true}));
+        container.innerHTML = `<div class="p-4"><div class="card p-4 border border-blue-100 space-y-3"><h3 class="font-black text-blue-700 uppercase border-b pb-2">Nhập Phôi (Kho A)</h3><select id="sx-house-select" class="input-box text-blue-800 font-bold">${sorted.map(h=>`<option value="${h._id}">${h.name}</option>`).join('')}</select><div class="grid grid-cols-2 gap-3"><input id="sx-strain" class="input-box" placeholder="Mã giống"><input id="sx-date" type="date" class="input-box"></div><input id="sx-spawn-qty" type="number" class="input-box text-lg font-bold text-blue-600" placeholder="Số lượng"><button class="btn-primary w-full bg-blue-600 py-3 rounded-lg font-bold shadow-md btn-action" data-action="setupHouseBatch">KÍCH HOẠT LÔ</button></div></div>`;
+    },
+    renderSettingsModal: (employees) => {
+        const m = document.getElementById('modal-settings'); m.classList.remove('hidden');
+        m.innerHTML = `<div class="card w-full max-w-md p-5 h-[80vh] flex flex-col"><div class="flex justify-between border-b pb-3 mb-3"><h3 class="font-black text-xl text-slate-700 uppercase">Quản Trị</h3><button class="text-2xl text-slate-400 modal-close-btn" data-payload="modal-settings">&times;</button></div><div class="flex-1 overflow-y-auto space-y-6"><div><h4 class="font-bold text-green-700 uppercase text-sm mb-2">Xuất Báo Cáo</h4><div class="grid grid-cols-1 gap-2"><button class="py-2 bg-green-100 text-green-700 font-bold rounded btn-action" data-action="adminExport" data-payload="harvest">📥 Báo cáo Thu Hoạch</button><button class="py-2 bg-blue-100 text-blue-700 font-bold rounded btn-action" data-action="adminExport" data-payload="tasks">📥 Báo cáo Công Việc</button><button class="py-2 bg-orange-100 text-orange-700 font-bold rounded btn-action" data-action="adminExport" data-payload="attendance">📥 Báo cáo Chấm Công</button></div></div></div></div>`;
+    }
+};
