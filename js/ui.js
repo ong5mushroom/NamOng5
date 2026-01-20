@@ -25,7 +25,6 @@ export const UI = {
                 document.getElementById(id)?.classList.add('hidden');
             });
         });
-        // Nút đóng chat
         document.querySelector('[data-action="closeChat"]')?.addEventListener('click', () => {
             document.getElementById('chat-layer')?.classList.add('hidden');
         });
@@ -58,23 +57,30 @@ export const UI = {
     renderEmployeeOptions: (employees) => {
         const sel = document.getElementById('login-user');
         const taskSel = document.getElementById('task-assignee');
-        const html = '<option value="">-- Chọn tên --</option>' + employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+        
+        let html = '';
+        if (!employees || employees.length === 0) {
+            html = '<option value="">(Đang tải dữ liệu...)</option>';
+        } else {
+            // Sắp xếp tên A-Z cho dễ tìm
+            const sortedEmp = [...employees].sort((a,b) => a.name.localeCompare(b.name));
+            html = '<option value="">-- Chọn danh tính --</option>' + 
+                   sortedEmp.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+        }
+
         if(sel) sel.innerHTML = html;
         if(taskSel) taskSel.innerHTML = html;
     },
 
-    // --- TAB HOME: SẮP XẾP NHÀ CHUẨN ---
+    // --- TAB HOME ---
     renderHome: (houses, harvestLogs) => {
         const container = document.getElementById('view-home');
-        // Danh sách chuẩn
+        // Danh sách chuẩn theo yêu cầu
         const houseOrder = ['A', 'A+', 'B1', 'B2', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'D1', 'D2', 'D3', 'D4', 'E1', 'E2', 'E3', 'E4', 'E5', 'F'];
         
         const sortedHouses = [...houses].sort((a, b) => {
-            let idxA = houseOrder.indexOf(a.name);
-            let idxB = houseOrder.indexOf(b.name);
-            // Nếu nhà mới không có trong list chuẩn, cho xuống cuối
-            if (idxA === -1) idxA = 999;
-            if (idxB === -1) idxB = 999;
+            let idxA = houseOrder.indexOf(a.name); let idxB = houseOrder.indexOf(b.name);
+            if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999;
             return idxA - idxB;
         });
 
@@ -107,13 +113,12 @@ export const UI = {
         </div>`;
     },
 
-    // --- TAB SẢN XUẤT ---
+    // --- TAB SX ---
     renderSX: (houses) => {
         const container = document.getElementById('view-sx');
         const houseOrder = ['A', 'A+', 'B1', 'B2', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'D1', 'D2', 'D3', 'D4', 'E1', 'E2', 'E3', 'E4', 'E5', 'F'];
         const sortedHouses = [...houses].sort((a, b) => {
-             let idxA = houseOrder.indexOf(a.name);
-             let idxB = houseOrder.indexOf(b.name);
+             let idxA = houseOrder.indexOf(a.name); let idxB = houseOrder.indexOf(b.name);
              if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999;
              return idxA - idxB;
         });
@@ -150,13 +155,14 @@ export const UI = {
         const container = document.getElementById('view-th');
         const houseOrder = ['A', 'A+', 'B1', 'B2', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'D1', 'D2', 'D3', 'D4', 'E1', 'E2', 'E3', 'E4', 'E5', 'F'];
         const sortedHouses = [...houses].sort((a, b) => {
-             let idxA = houseOrder.indexOf(a.name);
-             let idxB = houseOrder.indexOf(b.name);
+             let idxA = houseOrder.indexOf(a.name); let idxB = houseOrder.indexOf(b.name);
              if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999;
              return idxA - idxB;
         });
         
+        // Nhóm chuẩn (không chú thích)
         const groupStd = [ {c:'b2',l:'B2'}, {c:'a1',l:'A1'}, {c:'a2',l:'A2'}, {c:'b1',l:'B1'}, {c:'ht',l:'Hầu Thủ'} ];
+        // Nhóm hạn chế
         const groupLimit = [ {c:'a1f',l:'A1F'}, {c:'a2f',l:'A2F'}, {c:'b2f',l:'B2F'}, {c:'d1',l:'D1'}, {c:'cn',l:'Chân'}, {c:'hc',l:'Hủy chân'}, {c:'hh',l:'Hủy hỏng'} ];
         
         container.innerHTML = `
@@ -228,7 +234,7 @@ export const UI = {
         }, 200);
     },
 
-    // --- TAB KHO (3 PHẦN RIÊNG BIỆT) ---
+    // --- TAB KHO ---
     renderStock: (inv, supplies, distributionLogs) => { 
         const container = document.getElementById('view-stock');
         const recentDist = distributionLogs ? distributionLogs.slice(0, 5) : [];
@@ -288,15 +294,15 @@ export const UI = {
         </div>`;
     },
 
-    // --- TAB VIỆC (GIAO DIỆN CHUẨN ZIP) ---
+    // --- TAB VIỆC ---
     renderTasksAndShip: (tasks, currentUser) => {
         const container = document.getElementById('view-tasks');
+        
+        // --- QUYỀN GIAO VIỆC: THÊM GIÁM ĐỐC ---
         const canAssign = ['Quản lý', 'Tổ trưởng', 'Admin', 'Giám đốc'].includes(currentUser.role);
         
-        // Phân loại: Chưa nhận (Pending), Đã nhận (Received/InProgress), Đã xong (Done)
-        const newTasks = tasks.filter(t => t.status === 'pending');
-        const inProgress = tasks.filter(t => t.status === 'received');
-        const doneTasks = tasks.filter(t => t.status === 'done');
+        const myTasks = tasks.filter(t => t.assignee === currentUser.name && t.status !== 'done');
+        const otherTasks = tasks.filter(t => (t.assignee !== currentUser.name && t.status !== 'done') || t.status === 'done');
 
         container.innerHTML = `
         <div class="p-2 space-y-4">
@@ -312,48 +318,29 @@ export const UI = {
                 <button class="btn-primary w-full bg-blue-600 btn-action shadow-md" data-action="addTask">GIAO VIỆC</button>
              </div>` : ''}
 
+             <h3 class="font-bold text-slate-700 uppercase border-b border-slate-300 pb-1">Việc Của Tôi (${myTasks.length})</h3>
              <div class="space-y-3">
-                 <h3 class="font-bold text-slate-700 uppercase border-b border-slate-300 pb-1">Mới Giao (${newTasks.length})</h3>
-                 ${newTasks.map(t => `
-                    <div class="card p-3 border-l-4 border-red-500 shadow-sm bg-white flex justify-between items-center">
-                        <div>
-                            <div class="font-bold text-slate-800">${t.title}</div>
-                            <div class="text-xs text-slate-500">Giao cho: <b>${t.assignee}</b></div>
-                        </div>
-                        ${t.assignee === currentUser.name ? 
-                        `<button class="bg-red-100 text-red-600 px-3 py-1 rounded font-bold text-xs btn-action" data-action="receiveTask" data-payload="${t._id}">NHẬN</button>` : 
-                        '<span class="text-xs text-red-400 italic">Chưa nhận</span>'}
-                    </div>`).join('')}
-
-                 <h3 class="font-bold text-blue-700 uppercase border-b border-blue-300 pb-1 mt-4">Đang Thực Hiện (${inProgress.length})</h3>
-                 ${inProgress.map(t => `
-                    <div class="card p-3 border-l-4 border-blue-500 shadow-sm bg-blue-50">
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="font-bold text-slate-800">${t.title}</div>
-                            <span class="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">ĐANG LÀM</span>
-                        </div>
-                        <div class="text-xs text-slate-600 mb-2">${t.desc || ''}</div>
-                        ${t.assignee === currentUser.name ? 
-                        `<button class="w-full bg-blue-600 text-white py-2 rounded font-bold text-sm btn-action shadow" data-action="submitTask" data-payload="${t._id}">BÁO CÁO XONG</button>` : 
-                        `<div class="text-xs text-slate-400 italic">NV: ${t.assignee} đang làm...</div>`}
-                    </div>`).join('')}
-
-                 <h3 class="font-bold text-green-700 uppercase border-b border-green-300 pb-1 mt-4">Đã Hoàn Thành</h3>
-                 <div class="opacity-75">
-                    ${doneTasks.slice(0,5).map(t => `
-                        <div class="card p-2 border-l-4 border-green-500 bg-slate-50 mb-2 flex justify-between items-center">
-                            <div>
-                                <div class="font-bold text-slate-600 text-sm strike-through">${t.title}</div>
-                                <div class="text-[10px] text-slate-400">${t.assignee} - KQ: ${t.actualQty || 'Ok'}</div>
-                            </div>
-                            <i class="fas fa-check-circle text-green-500"></i>
-                        </div>`).join('')}
-                 </div>
+                 ${myTasks.length === 0 ? '<p class="text-xs text-slate-400 italic">Không có việc được giao.</p>' : ''}
+                 ${myTasks.map(t => {
+                    let actionBtn = t.status === 'pending' 
+                        ? `<button class="w-full mt-3 bg-yellow-100 text-yellow-700 py-2 rounded font-bold text-sm btn-action hover:bg-yellow-200" data-action="receiveTask" data-payload="${t._id}"><i class="fas fa-hand-paper"></i> NHẬN VIỆC</button>`
+                        : `<button class="w-full mt-3 bg-blue-100 text-blue-700 py-2 rounded font-bold text-sm btn-action hover:bg-blue-200" data-action="submitTask" data-payload="${t._id}"><i class="fas fa-check"></i> BÁO CÁO</button>`;
+                    return `
+                    <div class="card p-4 border-l-4 ${t.status==='received'?'border-blue-500':'border-red-500'} shadow-md bg-white">
+                        <div class="flex justify-between items-start"><h4 class="font-bold text-slate-800 text-lg">${t.title}</h4><span class="text-[10px] ${t.status==='received'?'bg-blue-100 text-blue-600':'bg-red-100 text-red-600'} px-2 py-1 rounded font-bold">${t.status==='received' ? 'ĐANG LÀM' : 'CHƯA NHẬN'}</span></div>
+                        <p class="text-sm text-slate-600 mt-1">${t.desc || ''}</p>
+                        <div class="text-xs text-slate-400 mt-2"><i class="fas fa-user-tag"></i> Giao bởi: ${t.createdBy || 'QL'}</div>
+                        ${actionBtn}
+                    </div>`
+                 }).join('')}
              </div>
+             
+             <h3 class="font-bold text-slate-500 uppercase border-b border-slate-300 pb-1 mt-6 text-sm">Việc Khác</h3>
+             <div class="space-y-2 opacity-75">${otherTasks.slice(0, 5).map(t => `<div class="card p-3 border-l-4 ${t.status==='done'?'border-green-500 bg-slate-50':'border-slate-300'}"><div class="flex justify-between"><h4 class="font-bold text-slate-700 text-sm">${t.title} <span class="text-xs font-normal text-slate-500">(${t.assignee})</span></h4>${t.status==='done'?'<span class=\"text-green-600 font-bold text-xs\">XONG</span>': (t.status==='received' ? '<span class=\"text-blue-500 text-xs\">Đang làm</span>' : '<span class=\"text-red-400 text-xs\">Chưa nhận</span>')}</div></div>`).join('')}</div>
         </div>`;
     },
 
-    // --- CHAT: HIỂN THỊ ---
+    // --- CHAT RENDER ---
     renderChat: (messages, currentUserId) => {
         const layer = document.getElementById('chat-layer');
         if(!layer.querySelector('#chat-msgs')) {
@@ -371,7 +358,6 @@ export const UI = {
                     </div>
                 </div>`;
         }
-        
         const box = document.getElementById('chat-msgs');
         box.innerHTML = messages.map(m => {
             const isMe = String(m.senderId) === String(currentUserId);
