@@ -1,17 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
-    getFirestore, 
-    collection, 
-    onSnapshot, 
-    addDoc, 
-    updateDoc, 
-    doc, 
-    deleteDoc, 
-    getDoc, 
-    query, 
-    where, 
-    orderBy 
+    getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, getDoc 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const fbConfig = { 
@@ -26,21 +16,8 @@ const fbConfig = {
 const appInstance = initializeApp(fbConfig);
 export const auth = getAuth(appInstance);
 export const db = getFirestore(appInstance);
-// ĐƯỜNG DẪN GỐC CHUẨN TỪ FILE ZIP CỦA BẠN
+// ĐƯỜNG DẪN GỐC CHUẨN XÁC
 export const ROOT_PATH = "artifacts/namong5_production/public/data"; 
 
-// Xuất khẩu đầy đủ các hàm để logic.js sử dụng
-export { 
-    signInAnonymously, 
-    onAuthStateChanged, 
-    collection, 
-    onSnapshot, 
-    addDoc, 
-    updateDoc, 
-    doc, 
-    deleteDoc, 
-    getDoc,
-    query,
-    where,
-    orderBy
-};
+// Xuất khẩu đầy đủ
+export { signInAnonymously, onAuthStateChanged, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, getDoc };
