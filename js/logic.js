@@ -16,6 +16,8 @@ const App = {
 
     init: () => {
         UI.initModals();
+        
+        // Sự kiện click toàn cục
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('.btn-action');
             if(btn) {
@@ -26,19 +28,30 @@ const App = {
             if(e.target.closest('#btn-open-chat')) UI.renderChat(App.data.chat, App.user?.id);
         });
 
+        // Kết nối Firebase
         signInAnonymously(auth).then(() => {
-            document.getElementById('login-status').innerText = '✔ V333 PRO Connected';
+            const statusEl = document.getElementById('login-status');
+            if(statusEl) statusEl.innerText = '✔ V334 Connected';
+            
             App.syncData();
+            
             if(App.user) {
                 document.getElementById('login-overlay').classList.add('hidden');
                 document.getElementById('head-user').innerText = App.user.name;
                 document.getElementById('head-role').innerText = App.user.role;
                 App.ui.switchTab('home');
             }
+        }).catch(err => {
+            alert("Lỗi kết nối: " + err.message);
+            console.error(err);
         });
         
+        // Tab Nav
         document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => App.ui.switchTab(btn.dataset.tab)));
-        document.getElementById('login-btn')?.addEventListener('click', App.actions.login);
+        
+        // Login Button
+        const loginBtn = document.getElementById('login-btn');
+        if(loginBtn) loginBtn.addEventListener('click', App.actions.login);
     },
 
     syncData: () => {
@@ -56,7 +69,9 @@ const App = {
                 }
 
                 if(c==='employees') {
-                    if(snap.empty) addDoc(collection(db, `${ROOT_PATH}/employees`), { id: 9999, name: "Giám Đốc", pin: "9999", role: "Giám đốc", score: 100 });
+                    if(snap.empty) {
+                        addDoc(collection(db, `${ROOT_PATH}/employees`), { id: 9999, name: "Giám Đốc", pin: "9999", role: "Giám đốc", score: 100 });
+                    }
                     UI.renderEmployeeOptions(App.data.employees);
                 }
                 
@@ -72,7 +87,6 @@ const App = {
             if(tab==='sx') UI.renderSX(App.data.houses);
             if(tab==='th') UI.renderTH(App.data.houses, App.data.harvest, App.data.shipping);
             if(tab==='tasks') UI.renderTasksAndShip(App.data.tasks, App.user, App.data.houses, App.data.employees);
-            // Team render thêm employees để Manager quản lý
             if(tab==='team') UI.renderTeam(App.user, [...(App.data.hr_requests||[]), ...(App.data.buy_requests||[])], App.data.employees);
         }
     },
@@ -103,25 +117,21 @@ const App = {
         },
         receiveTask: async (id) => { await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), {status:'received', receivedAt:Date.now()}); UI.showMsg("Đã nhận việc"); },
         submitTask: async (id) => { 
-            // TÍNH ĐIỂM: 10đ / tổng số task hôm nay của user
             const todayTasks = App.data.tasks.filter(t => t.assignee === App.user.name && new Date(t.time).getDate() === new Date().getDate());
             const points = todayTasks.length > 0 ? (10 / todayTasks.length) : 10;
-            
-            // Cộng điểm cho User
             const empRef = App.data.employees.find(e => e.id === App.user.id);
             if(empRef) {
                 const newScore = (empRef.score || 0) + points;
                 await updateDoc(doc(db, `${ROOT_PATH}/employees`, empRef._id), { score: Math.round(newScore * 10) / 10 });
             }
-
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), {status:'done', completedBy:App.user.name, completedAt:Date.now()});
-            App.helpers.notify(`✅ ${App.user.name} hoàn thành việc (+${points.toFixed(1)}đ)`);
+            App.helpers.notify(`✅ ${App.user.name} xong việc (+${points.toFixed(1)}đ)`);
         },
         
-        // --- ADMIN & PENALTY ---
+        // --- ADMIN ---
         punishEmp: async (payload) => {
             const [id, points] = payload.split('|');
-            const reason = prompt("Lý do phạt (Đi trễ, Quên báo cáo...):");
+            const reason = prompt("Lý do phạt:");
             if(reason) {
                 const emp = App.data.employees.find(e => e._id === id);
                 const newScore = (emp.score || 0) - Number(points);
@@ -135,7 +145,7 @@ const App = {
         },
         adminDelEmp: async (id) => { if(confirm("Xóa?")) await deleteDoc(doc(db, `${ROOT_PATH}/employees`, id)); },
 
-        // --- OTHER ---
+        // --- DATA ---
         submitTH: async () => {
             const area = document.getElementById('th-area').value;
             if(!area) return alert("Chọn nơi thu hoạch!");
@@ -146,14 +156,12 @@ const App = {
             await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details:d, total, note:document.getElementById('th-note').value, user:App.user.name, time:Date.now() });
             App.helpers.notify(`🍄 Nhập kho ${total}kg/gói từ ${area}`);
         },
-        
         submitAttendance: async () => {
-            if(confirm("Xác nhận chấm công?")) {
+            if(confirm("Chấm công?")) {
                 await addDoc(collection(db, `${ROOT_PATH}/attendance`), { user:App.user.name, type:'CHECK_IN', time:Date.now() });
                 App.helpers.notify(`🕒 ${App.user.name} đã điểm danh`);
             }
         },
-        
         submitLeave: async () => { await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), { user:App.user.name, type:'LEAVE', date:document.getElementById('leave-date').value, reason:document.getElementById('leave-reason').value, status:'pending', time:Date.now() }); UI.toggleModal('modal-leave'); },
         submitBuyRequest: async () => { await addDoc(collection(db, `${ROOT_PATH}/buy_requests`), { user:App.user.name, item:document.getElementById('buy-name').value, unit:document.getElementById('buy-unit').value, qty:document.getElementById('buy-qty').value, status:'pending', time:Date.now() }); UI.toggleModal('modal-buy-req'); },
         approveRequest: async (id) => { let isHR=App.data.hr_requests.find(r=>r._id===id); await updateDoc(doc(db,`${ROOT_PATH}/${isHR?'hr_requests':'buy_requests'}`,id),{status:'approved'}); UI.showMsg("Đã duyệt"); },
