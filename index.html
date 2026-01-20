@@ -3,36 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nấm Ông 5 - V300 FINAL</title>
+    <title>Nấm Ông 5 - V333 PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- ÉP MÀU GIAO DIỆN (FIX LỖI CHỮ TRẮNG) --- */
-        body { background-color: #f1f5f9 !important; color: #0f172a !important; font-family: sans-serif; }
-        
-        /* Các thẻ Card, Box phải có nền trắng, chữ đen */
+        /* CORE STYLES */
+        body { background-color: #f8fafc !important; color: #0f172a !important; font-family: sans-serif; }
         .card, .bg-white, .modal-content { background-color: #ffffff !important; color: #0f172a !important; }
-        
-        /* Input phải có viền và chữ đen */
         input, select, textarea {
             background-color: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
             color: #000000 !important;
             font-weight: 600;
         }
-        
-        /* Chữ trên nền màu (Nút bấm) thì màu trắng */
-        .btn-primary, .bg-blue-600, .bg-green-600, .bg-orange-600, .bg-red-600, .bg-slate-800 {
-            color: #ffffff !important;
-        }
-
-        /* Tinh chỉnh thanh cuộn */
+        .btn-primary, .bg-blue-600, .bg-green-600, .bg-orange-600, .bg-red-600, .bg-slate-800 { color: #ffffff !important; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
-        
-        /* Hiệu ứng */
         .animate-fade { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* HOA VĂN KHUNG CHAT */
+        #chat-msgs {
+            background-color: #e5ddd5;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%239C92AC' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -45,10 +39,9 @@
                 <div id="head-role" class="text-[10px] font-bold text-slate-500">Đang tải...</div>
             </div>
         </div>
-        <button id="btn-open-settings" class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center"><i class="fas fa-cog"></i></button>
-    </header>
+        </header>
 
-    <main id="main-app" class="flex-1 mt-16 overflow-y-auto pb-24 px-2 pt-2">
+    <main id="main-app" class="flex-1 mt-16 overflow-y-auto pb-24 px-2 pt-2 scroll-smooth">
         <div id="view-home" class="view-section animate-fade"></div>
         <div id="view-tasks" class="view-section hidden animate-fade"></div>
         <div id="view-sx" class="view-section hidden animate-fade"></div>
@@ -56,34 +49,30 @@
         <div id="view-team" class="view-section hidden animate-fade"></div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t h-[60px] z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t h-[65px] z-30 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         <div class="grid grid-cols-5 h-full">
             <button class="nav-btn active flex flex-col items-center justify-center text-blue-600" data-tab="home">
-                <i class="fas fa-home text-lg"></i><span class="text-[9px] font-bold mt-1">HOME</span>
+                <i class="fas fa-home text-xl mb-0.5"></i><span class="text-[9px] font-bold">HOME</span>
             </button>
-            
             <button class="nav-btn flex flex-col items-center justify-center text-slate-400" data-tab="tasks">
-                <i class="fas fa-clipboard-list text-lg"></i><span class="text-[9px] font-bold mt-1">VIỆC</span>
+                <i class="fas fa-clipboard-check text-xl mb-0.5"></i><span class="text-[9px] font-bold">VIỆC</span>
             </button>
-            
             <button class="nav-btn flex flex-col items-center justify-center text-slate-400" data-tab="sx">
-                <div class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full border border-blue-200">
+                <div class="w-12 h-12 -mt-6 bg-blue-600 rounded-full flex items-center justify-center border-4 border-slate-50 shadow-xl text-white">
                     <span class="text-xs font-black">SX</span>
                 </div>
             </button>
-            
             <button class="nav-btn flex flex-col items-center justify-center text-slate-400" data-tab="th">
-                <i class="fas fa-warehouse text-lg"></i><span class="text-[9px] font-bold mt-1">THDG</span>
+                <i class="fas fa-warehouse text-xl mb-0.5"></i><span class="text-[9px] font-bold">THDG</span>
             </button>
-            
             <button class="nav-btn flex flex-col items-center justify-center text-slate-400" data-tab="team">
-                <i class="fas fa-users text-lg"></i><span class="text-[9px] font-bold mt-1">TEAM</span>
+                <i class="fas fa-users text-xl mb-0.5"></i><span class="text-[9px] font-bold">TEAM</span>
             </button>
         </div>
     </nav>
 
-    <button id="btn-open-chat" class="fixed bottom-20 right-4 w-12 h-12 bg-blue-600 text-white rounded-full shadow-xl z-40 flex items-center justify-center active:scale-90 transition">
-        <i class="fas fa-comment-dots"></i>
+    <button id="btn-open-chat" class="fixed bottom-20 right-4 w-12 h-12 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl z-40 flex items-center justify-center active:scale-90 transition border-2 border-white">
+        <i class="fas fa-comment-dots text-xl"></i>
     </button>
 
     <div id="login-overlay" class="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center p-6">
@@ -92,18 +81,18 @@
         </div>
         <h2 class="text-2xl font-black text-white uppercase mb-8">NẤM ÔNG 5</h2>
         <div class="w-full max-w-xs space-y-4">
-            <select id="login-user" class="w-full p-3 rounded text-black font-bold text-center">
+            <select id="login-user" class="w-full p-3 rounded-xl text-black font-bold text-center">
                 <option value="">Đang tải...</option>
             </select>
-            <input type="password" id="login-pin" class="w-full p-3 rounded text-black text-center text-2xl font-bold" placeholder="PIN" maxlength="4">
-            <button id="login-btn" class="w-full bg-amber-600 text-white py-3 rounded font-bold shadow-lg uppercase">Đăng Nhập</button>
+            <input type="password" id="login-pin" class="w-full p-3 rounded-xl text-black text-center text-2xl font-bold" placeholder="PIN" maxlength="4">
+            <button id="login-btn" class="w-full bg-amber-600 text-white py-3 rounded-xl font-bold shadow-lg uppercase">Đăng Nhập</button>
         </div>
-        <div id="login-status" class="mt-4 text-slate-400 text-xs">Connecting...</div>
+        <div id="login-status" class="mt-4 text-slate-400 text-xs">Connecting V333...</div>
     </div>
 
     <div id="chat-layer" class="hidden fixed inset-0 z-50 bg-white flex flex-col"></div>
     <div id="modal-settings" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"></div>
-    <div id="msg-box" class="hidden fixed top-5 right-5 px-4 py-3 rounded shadow-lg text-white font-bold z-[100]"></div>
+    <div id="msg-box" class="hidden fixed top-5 right-5 px-4 py-3 rounded-xl shadow-2xl text-white font-bold z-[100] text-sm"></div>
 
     <script type="module" src="js/logic.js"></script>
 </body>
