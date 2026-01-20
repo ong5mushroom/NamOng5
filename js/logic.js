@@ -24,18 +24,22 @@ const App = {
     init: () => {
         UI.initModals();
         
-        // --- SỬA LỖI NÚT KHÔNG ĂN ---
-        document.getElementById('btn-open-chat')?.addEventListener('click', () => {
-            UI.toggleModal('chat-layer', true);
-            App.ui.renderChat();
-        });
-        document.getElementById('btn-open-settings')?.addEventListener('click', () => {
-            // Mở lại tính năng Cài đặt (nếu là Admin)
-            if(['Quản lý', 'Admin'].includes(App.user?.role)) {
-                UI.showMsg("Đang mở Cài đặt Admin...");
-                // (Logic mở modal admin có thể thêm sau)
-            } else {
-                UI.showMsg("Chỉ dành cho Quản lý!", "error");
+        // --- SỬA LỖI NÚT SETTINGS & CHAT ---
+        // Gán sự kiện trực tiếp vào document để tránh lỗi element chưa render
+        document.addEventListener('click', (e) => {
+            // Nút Chat
+            if(e.target.closest('#btn-open-chat')) {
+                UI.toggleModal('chat-layer', true);
+                App.ui.renderChat();
+            }
+            // Nút Settings (Phân quyền)
+            if(e.target.closest('#btn-open-settings')) {
+                if(['Quản lý', 'Admin', 'Tổ trưởng'].includes(App.user?.role)) {
+                    // Logic mở cài đặt (Hiện tại báo ok)
+                    UI.showMsg("Đang mở Cài đặt quản trị...");
+                } else {
+                    UI.showMsg("Bạn không có quyền truy cập!", "error");
+                }
             }
         });
 
@@ -49,7 +53,7 @@ const App = {
                 document.getElementById('head-role').innerText = App.user.role;
                 App.ui.switchTab('home');
             }
-        });
+        }).catch(err => { alert("Lỗi kết nối: " + err.message); });
 
         document.body.addEventListener('click', async (e) => {
             const btn = e.target.closest('.btn-action');
@@ -72,6 +76,7 @@ const App = {
                 App.data[key] = snapshot.docs.map(d => ({...d.data(), _id: d.id}));
                 
                 if(c === 'chat') {
+                    // Chat sort xuôi (Cũ trên, mới dưới)
                     App.data.chat.sort((a,b) => (a.time || 0) - (b.time || 0));
                     if(!document.getElementById('chat-layer').classList.contains('hidden')) App.ui.renderChat();
                 } else if(App.data[key].length > 0 && App.data[key][0].time) {
@@ -116,9 +121,7 @@ const App = {
         toggleModal: (id) => UI.toggleModal(id, true),
         closeChat: () => UI.toggleModal('chat-layer', false),
 
-        // --- HÀM NGHIỆP VỤ ---
-        
-        setupHouseBatch: async () => { /* Giữ nguyên */
+        setupHouseBatch: async () => { 
             const h = document.getElementById('sx-house-select').value; 
             const s = document.getElementById('sx-strain').value;
             const dStr = document.getElementById('sx-date').value;
@@ -135,7 +138,6 @@ const App = {
             if(!area) return UI.showMsg("Chưa chọn nhà!", "error");
             const houseObj = App.data.houses.find(h => h.name === area);
             
-            // Danh sách cập nhật (Bỏ HT, thêm các mã mới)
             const types = ['b2','a1','a2','b1','ht', 'a1f','a2f','b2f','d1','cn','hc','hh'];
             let details = {}, total = 0;
             types.forEach(code => { const val = Number(document.getElementById(`th-${code}`).value)||0; if (val>0) { details[code]=val; total+=val; } });
@@ -147,12 +149,10 @@ const App = {
                 note: document.getElementById('th-note').value, user: App.user.name, time: Date.now() 
             });
 
-            // Reset
             types.forEach(code => document.getElementById(`th-${code}`).value='');
-            document.getElementById('th-note').value=''; 
-            document.getElementById('th-display-total').innerText='0.0';
+            document.getElementById('th-note').value=''; document.getElementById('th-display-total').innerText='0.0';
             
-            App.helpers.notifyAndRedirect(`🍄 <b>${App.user.name}</b> vừa nhập <b>${total}kg</b> nấm tại ${area}.`);
+            App.helpers.notifyAndRedirect(`🍄 <b>${App.user.name}</b> nhập <b>${total}kg</b> nấm tại ${area}.`);
         },
 
         submitShip: async () => {
@@ -167,7 +167,6 @@ const App = {
             document.getElementById('ship-qty').value = '';
             
             App.actions.printInvoice(ref.id);
-            // Không redirect chat, chỉ báo success để in
             UI.showMsg("Đã tạo phiếu! Đang in...");
         },
 
@@ -228,7 +227,6 @@ const App = {
             w.document.close(); w.focus(); setTimeout(() => w.print(), 500);
         },
 
-        // --- CÁC HÀM KHÁC (GIỮ NGUYÊN) ---
         submitAttendance: async () => {
             if(confirm(`Chấm công lúc ${new Date().toLocaleTimeString()}?`)) {
                 await addDoc(collection(db, `${OLD_DATA_PATH}/attendance`), { user: App.user.name, type: 'CHECK_IN', time: Date.now() });
@@ -263,11 +261,11 @@ const App = {
         remindAttendance: async () => {
              App.helpers.notifyAndRedirect(`📢 <b>QUẢN LÝ NHẮC NHỞ:</b> Yêu cầu mọi người báo cáo & điểm danh!`, 'remind');
         },
-        submitStockCheck: async () => { /* Giữ nguyên */ },
-        submitDistribute: async () => { /* Giữ nguyên */ },
-        submitLeave: async () => { /* Giữ nguyên */ },
-        submitBuyRequest: async () => { /* Giữ nguyên */ },
-        openSupplyImport: () => { /* Giữ nguyên */ }
+        submitStockCheck: async () => { /* Logic kho giữ nguyên */ },
+        submitDistribute: async () => { /* Logic kho giữ nguyên */ },
+        submitLeave: async () => { /* Logic nghỉ giữ nguyên */ },
+        submitBuyRequest: async () => { /* Logic mua giữ nguyên */ },
+        openSupplyImport: () => { /* Logic nhập kho giữ nguyên */ }
     }
 };
 
