@@ -1,5 +1,56 @@
 export const UI = {
-    // --- 1. HỆ THỐNG ÂM THANH & MODAL ---
+    // --- 1. TỰ ĐỘNG VÁ LỖI GIAO DIỆN (V226: FIX MẠNH MẼ) ---
+    autoPatchDOM: () => {
+        const mainApp = document.getElementById('main-app');
+        
+        // A. Vá Tab Team (Container)
+        if (mainApp && !document.getElementById('view-team')) {
+            const teamDiv = document.createElement('div');
+            teamDiv.id = 'view-team';
+            teamDiv.className = 'view-section hidden pb-24'; // Padding bottom để không bị che bởi nav
+            mainApp.appendChild(teamDiv);
+        }
+
+        // B. Vá Nút Team ở Menu (Bottom Bar)
+        const navBarGrid = document.querySelector('.fixed.bottom-0 .grid');
+        if (navBarGrid && !document.querySelector('[data-tab="team"]')) {
+            // Ép buộc chia thành 5 cột bằng CSS trực tiếp (ghi đè class cũ)
+            navBarGrid.style.gridTemplateColumns = 'repeat(5, minmax(0, 1fr))';
+            
+            const btn = document.createElement('button');
+            btn.className = 'nav-btn flex flex-col items-center justify-center py-2 text-slate-400 hover:text-blue-600';
+            btn.dataset.tab = 'team';
+            btn.innerHTML = `<i class="fas fa-users text-xl mb-1"></i><span class="text-[10px] font-bold">Team</span>`;
+            
+            // Chèn nút Team vào vị trí thứ 3 (giữa) hoặc cuối cùng
+            navBarGrid.appendChild(btn);
+            
+            // Gắn lại sự kiện click cho nút mới này
+            btn.addEventListener('click', () => {
+                UI.switchTab('team');
+                // Gọi render lại nếu cần thiết
+                if(window.App && window.App.user) window.App.ui.refresh('team');
+            });
+        }
+
+        // C. Vá Khung Chat (Layer)
+        if (!document.getElementById('chat-layer')) {
+            const chatDiv = document.createElement('div');
+            chatDiv.id = 'chat-layer';
+            chatDiv.className = 'hidden fixed inset-0 z-50'; // Z-index cao nhất
+            document.body.appendChild(chatDiv);
+        }
+
+        // D. Vá Modal Cài đặt
+        if (!document.getElementById('modal-settings')) {
+            const setDiv = document.createElement('div');
+            setDiv.id = 'modal-settings';
+            setDiv.className = 'hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4';
+            document.body.appendChild(setDiv);
+        }
+    },
+
+    // --- TIỆN ÍCH ---
     playSound: (type) => {
         try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -13,18 +64,21 @@ export const UI = {
                 gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
                 osc.start(); osc.stop(ctx.currentTime + 0.5);
             }
-        } catch (e) {}
+        } catch(e){}
     },
 
     initModals: () => {
-        // Xử lý đóng modal bằng event delegation (an toàn nhất)
+        // Xử lý đóng modal/chat
         document.body.addEventListener('click', (e) => {
-            // Đóng Modal chung
+            // Đóng bằng nút X hoặc nền đen
             if (e.target.closest('.modal-close-btn') || e.target.classList.contains('fixed')) {
-                const modal = e.target.closest('.fixed') || document.getElementById(e.target.dataset.payload);
-                if (modal && modal.id !== 'login-overlay') modal.classList.add('hidden');
+                // Trừ phi là login overlay thì không đóng
+                if(e.target.id !== 'login-overlay' && !e.target.closest('#chat-layer')) {
+                    const modal = e.target.closest('.fixed');
+                    if(modal) modal.classList.add('hidden');
+                }
             }
-            // Đóng Chat
+            // Đóng chat
             if (e.target.closest('[data-action="closeChat"]')) {
                 document.getElementById('chat-layer')?.classList.add('hidden');
             }
@@ -33,7 +87,7 @@ export const UI = {
 
     toggleModal: (id, show) => {
         const el = document.getElementById(id);
-        if (el) show ? el.classList.remove('hidden') : el.classList.add('hidden');
+        if(el) show ? el.classList.remove('hidden') : el.classList.add('hidden');
     },
 
     showMsg: (t, type = 'info') => {
@@ -47,42 +101,40 @@ export const UI = {
     },
 
     switchTab: (tabName) => {
-        // Ẩn tất cả view
         document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-        // Hiện view được chọn
         const target = document.getElementById(`view-${tabName}`);
         if (target) target.classList.remove('hidden');
         
-        // Active nút nav
         document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tab === tabName);
-            if(btn.dataset.tab === tabName) btn.classList.add('text-blue-600');
-            else btn.classList.remove('text-blue-600');
+            if(btn.dataset.tab === tabName) {
+                btn.classList.add('text-blue-600');
+                btn.classList.remove('text-slate-400');
+            } else {
+                btn.classList.remove('text-blue-600');
+                btn.classList.add('text-slate-400');
+            }
         });
         localStorage.setItem('n5_current_tab', tabName);
     },
 
     renderEmployeeOptions: (employees) => {
         const sel = document.getElementById('login-user');
-        if(sel) {
-            sel.innerHTML = '<option value="">-- Chọn danh tính --</option>' + 
-                employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-        }
+        if(sel) sel.innerHTML = '<option value="">-- Chọn danh tính --</option>' + employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
     },
 
-    // --- 2. TAB HOME ---
+    // --- TAB HOME ---
     renderHome: (houses, harvestLogs) => {
         const container = document.getElementById('view-home');
         const houseOrder = ['A', 'A+', 'B1', 'B2', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'D1', 'D2', 'D3', 'D4', 'E1', 'E2', 'E3', 'E4', 'E5', 'F'];
         const sortedHouses = [...houses].sort((a, b) => {
-            let iA = houseOrder.indexOf(a.name); let iB = houseOrder.indexOf(b.name);
-            if (iA === -1) iA = 999; if (iB === -1) iB = 999;
-            return iA - iB;
+            let idxA = houseOrder.indexOf(a.name); let idxB = houseOrder.indexOf(b.name);
+            if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999;
+            return idxA - idxB;
         });
         const getRealYield = (houseName) => harvestLogs.filter(h => h.area === houseName).reduce((sum, h) => sum + (Number(h.total) || 0), 0);
 
         container.innerHTML = `
-        <div class="p-2 pb-20">
+        <div class="p-2 pb-24">
             <h2 class="text-lg font-black text-slate-700 mb-3 uppercase border-b-2 border-blue-500 inline-block">Trạng Thái Trại</h2>
             <div class="grid grid-cols-2 gap-3">
             ${sortedHouses.map(h => `
@@ -97,7 +149,7 @@ export const UI = {
         </div>`;
     },
 
-    // --- 3. TAB SẢN XUẤT ---
+    // --- TAB SẢN XUẤT ---
     renderSX: (houses) => {
         const container = document.getElementById('view-sx');
         const houseOrder = ['A', 'A+', 'B1', 'B2', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'D1', 'D2', 'D3', 'D4', 'E1', 'E2', 'E3', 'E4', 'E5', 'F'];
@@ -115,14 +167,9 @@ export const UI = {
                 </div>
             </div>
         </div>`;
-        setTimeout(() => {
-            const s = document.getElementById('sx-strain'), d = document.getElementById('sx-date'), p = document.getElementById('sx-preview-batch');
-            const up = () => { if(s?.value && d?.value) { const dt = new Date(d.value); p.innerText = `Mã: ${s.value.toUpperCase()}-${String(dt.getDate()).padStart(2,'0')}${String(dt.getMonth()+1).padStart(2,'0')}${String(dt.getFullYear()).slice(-2)}`; }};
-            s?.addEventListener('input', up); d?.addEventListener('change', up);
-        }, 500);
     },
 
-    // --- 4. TAB THU HOẠCH ---
+    // --- TAB THU HOẠCH ---
     renderTH: (houses, harvestLogs, shippingLogs) => {
         const container = document.getElementById('view-th');
         const houseOrder = ['A', 'A+', 'B1', 'B2', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'D1', 'D2', 'D3', 'D4', 'E1', 'E2', 'E3', 'E4', 'E5', 'F'];
@@ -153,11 +200,12 @@ export const UI = {
             <div id="zone-ship" class="hidden">
                  <div class="card p-4 bg-orange-50 border-2 border-orange-200 mb-4 shadow-lg">
                     <h4 class="font-bold text-orange-800 mb-3 uppercase flex items-center"><i class="fas fa-truck mr-2"></i>Xuất Kho Nấm Tươi</h4>
-                    <input id="ship-cust" class="input-box mb-3 font-bold" placeholder="Tên Khách hàng / Đối tác">
+                    <input id="ship-cust" class="input-box mb-3 font-bold" placeholder="Tên Khách hàng">
                     <div class="flex gap-2 mb-3"><select id="ship-type" class="input-box font-bold"><option>Nấm Tươi</option><option>Nấm Khô</option><option>Nấm Dược Liệu</option></select><input id="ship-qty" type="number" class="input-box font-black text-orange-600 text-center" placeholder="Kg"></div>
                     <textarea id="ship-note" class="input-box text-sm mb-3" placeholder="Ghi chú..."></textarea>
                     <button class="btn-primary w-full bg-orange-600 btn-action shadow-lg" data-action="submitShip"><i class="fas fa-print mr-2"></i>LƯU & IN PHIẾU</button>
                 </div>
+                <div class="space-y-2"><h4 class="text-xs font-bold text-slate-400 uppercase ml-2">Đơn vừa xuất</h4>${shippingLogs.slice(0,5).map(s => `<div class="card p-3 flex justify-between items-center mb-2 border-l-4 border-orange-400"><div><div class="font-bold text-blue-700 text-sm">${s.customer}</div><div class="text-xs text-slate-500">${s.type} - ${s.qty}kg</div></div><button class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm btn-action hover:bg-slate-200" data-action="printInvoice" data-payload="${s._id}"><i class="fas fa-print"></i> IN</button></div>`).join('')}</div>
             </div>
         </div>`;
         setTimeout(() => {
@@ -174,8 +222,8 @@ export const UI = {
         container.innerHTML = `
         <div class="p-2 space-y-4">
             <div class="card border-2 border-purple-500 shadow-md"><div class="bg-purple-600 text-white p-2 font-bold uppercase rounded-t flex justify-between"><span><i class="fas fa-warehouse mr-2"></i>Kho A (Phôi)</span></div><div class="p-3 text-center"><p class="text-xs text-slate-500">Quản lý nhập xuất Phôi tại Tab <b>SX</b></p></div></div>
-            <div class="card border-2 border-orange-500 shadow-lg"><div class="bg-orange-600 text-white p-2 font-bold uppercase rounded-t flex justify-between"><span><i class="fas fa-box-open mr-2"></i>Kho THDG (Nấm Tươi/Khô)</span></div><div class="p-3"><div class="bg-slate-100 p-2 rounded mb-3 border border-slate-200"><div class="flex justify-between text-sm"><span>Tồn Máy Tính:</span> <span class="font-bold">-- kg</span></div></div><div class="flex items-center gap-2 mb-3"><label class="text-sm font-bold text-slate-700">ĐẾM THỰC TẾ:</label><input id="stock-actual-mushroom" type="number" class="input-box flex-1 font-black text-orange-700 text-lg" placeholder="Kg"></div><textarea id="stock-note-mushroom" class="input-box text-sm hidden" placeholder="Nhập lý do chênh lệch..."></textarea><button class="btn-primary bg-orange-600 w-full mt-2 btn-action" data-action="submitStockCheck">CHỐT KHO NẤM</button></div></div>
-            <div class="card border border-slate-300 shadow"><div class="bg-slate-800 text-white p-2 font-bold uppercase rounded-t flex justify-between items-center"><span><i class="fas fa-tools mr-2"></i>Kho Vật Tư (Khác)</span><button class="text-xs bg-blue-500 hover:bg-blue-400 text-white px-2 py-1 rounded shadow btn-action" data-action="toggleModal" data-payload="modal-distribute"><i class="fas fa-dolly"></i> CẤP PHÁT</button></div><div class="p-3"><div class="space-y-2 max-h-60 overflow-y-auto">${supplies.length === 0 ? '<p class="text-xs text-center text-slate-400">Kho trống</p>' : supplies.map(s => `<div class="flex justify-between items-center border-b border-slate-100 pb-1"><span class="text-sm font-bold text-slate-700">${s.name}</span><span class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">Tồn: <b class="text-blue-700 text-sm">${s.stock}</b> ${s.unit}</span></div>`).join('')}</div><div class="mt-4 pt-2 border-t border-slate-200"><h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Vừa cấp phát</h4>${recentDist.map(d => `<div class="text-xs flex justify-between items-center mb-1 text-slate-600"><span><i class="fas fa-arrow-right text-slate-400"></i> ${d.toHouse}: ${d.itemName}</span><span class="font-bold">-${d.qty}</span></div>`).join('')}</div></div></div>
+            <div class="card border-2 border-orange-500 shadow-lg"><div class="bg-orange-600 text-white p-2 font-bold uppercase rounded-t flex justify-between"><span><i class="fas fa-box-open mr-2"></i>Kho THDG (Nấm)</span></div><div class="p-3"><div class="bg-slate-100 p-2 rounded mb-3 border border-slate-200"><div class="flex justify-between text-sm"><span>Tồn Máy Tính:</span> <span class="font-bold">-- kg</span></div></div><div class="flex items-center gap-2 mb-3"><label class="text-sm font-bold text-slate-700">ĐẾM THỰC TẾ:</label><input id="stock-actual-mushroom" type="number" class="input-box flex-1 font-black text-orange-700 text-lg" placeholder="Kg"></div><textarea id="stock-note-mushroom" class="input-box text-sm hidden" placeholder="Nhập lý do chênh lệch..."></textarea><button class="btn-primary bg-orange-600 w-full mt-2 btn-action" data-action="submitStockCheck">CHỐT KHO NẤM</button></div></div>
+            <div class="card border border-slate-300 shadow"><div class="bg-slate-800 text-white p-2 font-bold uppercase rounded-t flex justify-between items-center"><span><i class="fas fa-tools mr-2"></i>Kho Vật Tư</span><button class="text-xs bg-blue-500 hover:bg-blue-400 text-white px-2 py-1 rounded shadow btn-action" data-action="toggleModal" data-payload="modal-distribute"><i class="fas fa-dolly"></i> CẤP PHÁT</button></div><div class="p-3"><div class="space-y-2 max-h-60 overflow-y-auto">${supplies.length === 0 ? '<p class="text-xs text-center text-slate-400">Kho trống</p>' : supplies.map(s => `<div class="flex justify-between items-center border-b border-slate-100 pb-1"><span class="text-sm font-bold text-slate-700">${s.name}</span><span class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">Tồn: <b class="text-blue-700 text-sm">${s.stock}</b> ${s.unit}</span></div>`).join('')}</div><div class="mt-4 pt-2 border-t border-slate-200"><h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Vừa cấp phát</h4>${recentDist.map(d => `<div class="text-xs flex justify-between items-center mb-1 text-slate-600"><span><i class="fas fa-arrow-right text-slate-400"></i> ${d.toHouse}: ${d.itemName}</span><span class="font-bold">-${d.qty}</span></div>`).join('')}</div></div></div>
             <div id="modal-distribute" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><div class="bg-white w-full max-w-sm rounded-xl p-5 shadow-2xl"><h3 class="font-bold text-lg text-slate-700 mb-4 uppercase text-center border-b pb-2">Cấp Phát Vật Tư</h3><div class="space-y-3"><div><label class="text-xs font-bold text-slate-500">Vật tư</label><select id="dist-item" class="input-box font-bold">${supplies.map(s => `<option value="${s._id}" data-name="${s.name}" data-stock="${s.stock}">${s.name} (Tồn: ${s.stock} ${s.unit})</option>`).join('')}</select></div><div><label class="text-xs font-bold text-slate-500">Nơi nhận</label><select id="dist-to" class="input-box"><option value="B1">Nhà B1</option><option value="B2">Nhà B2</option><option value="A1">Nhà A1</option><option value="A2">Nhà A2</option><option value="XuongSX">Xưởng SX</option><option value="VanPhong">Văn Phòng</option></select></div><div><label class="text-xs font-bold text-slate-500">Số lượng cấp</label><input id="dist-qty" type="number" class="input-box font-bold text-lg text-blue-600"></div><div class="flex gap-2 pt-2"><button class="flex-1 py-3 bg-slate-100 font-bold rounded-lg text-slate-500 btn-action" data-action="toggleModal" data-payload="modal-distribute">Đóng</button><button class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-lg shadow btn-action" data-action="submitDistribute">Xác Nhận</button></div></div></div></div>
         </div>`;
         setTimeout(() => {
@@ -184,16 +232,16 @@ export const UI = {
         }, 500);
     },
 
-    // --- 6. TAB VIỆC (GIAO DIỆN CHUẨN ZIP - FIX LỖI KHÔNG TẢI NV) ---
+    // --- 6. TAB VIỆC (GIAO DIỆN CHUẨN ZIP) ---
     renderTasksAndShip: (tasks, currentUser, houses, employees) => {
         const container = document.getElementById('view-tasks');
         const canAssign = ['Quản lý', 'Tổ trưởng', 'Admin', 'Giám đốc'].includes(currentUser.role);
+        
         const myTasks = tasks.filter(t => t.assignee === currentUser.name && t.status !== 'done');
         const otherTasks = tasks.filter(t => (t.assignee !== currentUser.name && t.status !== 'done') || t.status === 'done');
 
-        // Tạo Dropdown Nhân viên (Sắp xếp A-Z)
-        const sortedEmp = [...(employees || [])].sort((a,b) => a.name.localeCompare(b.name));
-        const empOpts = sortedEmp.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+        // Dropdown NV
+        const empOpts = employees && employees.length ? employees.map(e => `<option value="${e.name}">${e.name}</option>`).join('') : '<option value="">(Trống)</option>';
 
         container.innerHTML = `
         <div class="p-2 space-y-4">
@@ -205,8 +253,8 @@ export const UI = {
                 </div>
                 <input id="task-title" class="input-box mb-2 font-bold" placeholder="Tên công việc">
                 <div class="grid grid-cols-2 gap-2 mb-2">
-                    <select id="task-house" class="input-box w-full text-sm"><option value="">-- Nhà/Khu --</option>${houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('')}</select>
-                    <select id="task-assignee" class="input-box w-full text-sm font-bold"><option value="">-- Người làm --</option>${empOpts}</select>
+                    <select id="task-house" class="input-box w-full text-sm"><option value="">-- Nhà --</option>${houses.map(h => `<option value="${h.name}">${h.name}</option>`).join('')}</select>
+                    <select id="task-assignee" class="input-box w-full text-sm"><option value="">-- Nhân viên --</option>${empOpts}</select>
                 </div>
                 <div class="flex gap-2 mb-2"><input id="task-deadline" type="date" class="input-box w-full"></div>
                 <textarea id="task-desc" class="input-box text-sm mb-2" placeholder="Mô tả..."></textarea>
@@ -234,20 +282,16 @@ export const UI = {
         </div>`;
     },
 
-    // --- 7. TAB TEAM (ĐẢM BẢO HIỆN) ---
+    // --- 7. TAB TEAM ---
     renderTeam: (user, reqs) => {
         const container = document.getElementById('view-team');
-        // Phân quyền cho Quản lý duyệt đơn
         const isManager = ['Quản lý', 'Admin', 'Giám đốc'].includes(user.role);
         const pendingReqs = reqs ? reqs.filter(r => r.status === 'pending') : [];
 
         container.innerHTML = `
         <div class="p-2 space-y-4">
             <div class="card p-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
-                <div class="flex items-center gap-4">
-                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-black">${user.name.charAt(0)}</div>
-                    <div><h2 class="text-xl font-bold uppercase">${user.name}</h2><div class="text-sm opacity-80">${user.role}</div></div>
-                </div>
+                <div class="flex items-center gap-4"><div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-black">${user.name.charAt(0)}</div><div><h2 class="text-xl font-bold uppercase">${user.name}</h2><div class="text-sm opacity-80">${user.role}</div></div></div>
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <button class="card p-4 flex flex-col items-center justify-center gap-2 hover:bg-green-50 btn-action" data-action="submitAttendance"><div class="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xl"><i class="fas fa-clock"></i></div><span class="font-bold text-slate-700 text-sm">CHẤM CÔNG</span></button>
@@ -256,7 +300,6 @@ export const UI = {
                 <button class="card p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 btn-action" data-action="logout"><div class="w-12 h-12 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-xl"><i class="fas fa-sign-out-alt"></i></div><span class="font-bold text-slate-700 text-sm">ĐĂNG XUẤT</span></button>
             </div>
             ${isManager ? `<div class="mt-6"><h3 class="font-bold text-slate-700 uppercase border-b border-slate-300 pb-1 mb-2">Phê Duyệt (${pendingReqs.length})</h3><div class="space-y-2">${pendingReqs.length === 0 ? '<p class="text-xs text-slate-400 italic">Không có yêu cầu mới.</p>' : pendingReqs.map(r => `<div class="card p-3 bg-white border-l-4 border-yellow-400 shadow-sm"><div class="flex justify-between items-start"><div><div class="font-bold text-sm text-slate-800">${r.user}</div><div class="text-xs text-slate-500">${r.type === 'LEAVE' ? `Xin nghỉ: ${r.date} (${r.reason})` : `Mua: ${r.item} - ${r.qty}${r.unit}`}</div></div><div class="flex gap-1"><button class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold btn-action" data-action="approveRequest" data-payload="${r._id}">Duyệt</button><button class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold btn-action" data-action="rejectRequest" data-payload="${r._id}">Hủy</button></div></div></div>`).join('')}</div></div>` : ''}
-            
             <div id="modal-leave" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><div class="bg-white w-full max-w-sm rounded-xl p-5 shadow-2xl"><h3 class="font-bold text-lg text-slate-700 mb-4 uppercase text-center border-b pb-2">Đơn Xin Nghỉ Phép</h3><div class="space-y-3"><div><label class="text-xs font-bold text-slate-500">Ngày nghỉ</label><input id="leave-date" type="date" class="input-box"></div><div><label class="text-xs font-bold text-slate-500">Lý do</label><select id="leave-reason" class="input-box"><option>Ốm / Sức khỏe</option><option>Việc gia đình</option><option>Khác</option></select></div><div class="flex gap-2 pt-2"><button class="flex-1 py-3 bg-slate-100 font-bold rounded-lg text-slate-500 btn-action" data-action="toggleModal" data-payload="modal-leave">Hủy</button><button class="flex-1 py-3 bg-orange-600 text-white font-bold rounded-lg shadow btn-action" data-action="submitLeave">Gửi Đơn</button></div></div></div></div>
             <div id="modal-buy-req" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><div class="bg-white w-full max-w-sm rounded-xl p-5 shadow-2xl"><h3 class="font-bold text-lg text-slate-700 mb-4 uppercase text-center border-b pb-2">Đề Xuất Mua Vật Tư</h3><div class="space-y-3"><div><label class="text-xs font-bold text-slate-500">Tên vật tư</label><input id="buy-name" class="input-box" placeholder="VD: Cồn 90 độ, Găng tay..."></div><div class="flex gap-2"><div class="w-1/3"><label class="text-xs font-bold text-slate-500">ĐVT</label><input id="buy-unit" class="input-box" placeholder="Lít/Cái"></div><div class="flex-1"><label class="text-xs font-bold text-slate-500">Số lượng</label><input id="buy-qty" type="number" class="input-box"></div></div><div><label class="text-xs font-bold text-slate-500">Ghi chú</label><textarea id="buy-note" class="input-box text-sm"></textarea></div><div class="flex gap-2 pt-2"><button class="flex-1 py-3 bg-slate-100 font-bold rounded-lg text-slate-500 btn-action" data-action="toggleModal" data-payload="modal-buy-req">Hủy</button><button class="flex-1 py-3 bg-purple-600 text-white font-bold rounded-lg shadow btn-action" data-action="submitBuyRequest">Gửi Đề Xuất</button></div></div></div></div>
         </div>`;
@@ -271,55 +314,14 @@ export const UI = {
             modal.className = 'hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4';
             document.body.appendChild(modal);
         }
-        modal.innerHTML = `
-            <div class="bg-white w-full max-w-md rounded-xl p-5 shadow-2xl h-[80vh] flex flex-col">
-                <div class="flex justify-between items-center border-b pb-3 mb-3">
-                    <h3 class="font-black text-xl text-slate-700 uppercase">Quản Trị Hệ Thống</h3>
-                    <button class="text-2xl text-slate-400" onclick="document.getElementById('modal-settings').classList.add('hidden')">&times;</button>
-                </div>
-                <div class="flex-1 overflow-y-auto space-y-6">
-                    <div>
-                        <h4 class="font-bold text-blue-700 uppercase text-sm mb-2">Danh sách nhân viên (${employees.length})</h4>
-                        <div class="bg-slate-50 rounded border p-2 max-h-40 overflow-y-auto">
-                            ${employees.map(e => `<div class="flex justify-between items-center border-b border-slate-200 py-1 last:border-0"><div class="text-sm"><b>${e.name}</b> (${e.role}) - PIN: ${e.pin}</div><button class="text-red-500 text-xs font-bold btn-action" data-action="adminDelEmp" data-payload="${e._id}">XÓA</button></div>`).join('')}
-                        </div>
-                        <div class="mt-2 grid grid-cols-2 gap-2">
-                            <input id="new-emp-name" class="input-box text-xs" placeholder="Tên NV">
-                            <input id="new-emp-pin" class="input-box text-xs" placeholder="PIN (4 số)">
-                            <select id="new-emp-role" class="input-box text-xs"><option>Nhân viên</option><option>Tổ trưởng</option><option>Quản lý</option></select>
-                            <button class="bg-blue-600 text-white rounded text-xs font-bold btn-action" data-action="adminAddEmp">THÊM</button>
-                        </div>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-green-700 uppercase text-sm mb-2">Xuất Báo Cáo</h4>
-                        <div class="grid grid-cols-1 gap-2">
-                            <button class="py-2 bg-green-100 text-green-700 font-bold rounded btn-action" data-action="adminExport" data-payload="harvest">📥 Báo cáo Thu Hoạch</button>
-                            <button class="py-2 bg-blue-100 text-blue-700 font-bold rounded btn-action" data-action="adminExport" data-payload="tasks">📥 Báo cáo Công Việc</button>
-                            <button class="py-2 bg-orange-100 text-orange-700 font-bold rounded btn-action" data-action="adminExport" data-payload="attendance">📥 Báo cáo Chấm Công</button>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
+        modal.innerHTML = `<div class="bg-white w-full max-w-md rounded-xl p-5 shadow-2xl h-[80vh] flex flex-col"><div class="flex justify-between items-center border-b pb-3 mb-3"><h3 class="font-black text-xl text-slate-700 uppercase">Quản Trị Hệ Thống</h3><button class="modal-close-btn text-2xl text-slate-400" data-payload="modal-settings">&times;</button></div><div class="flex-1 overflow-y-auto space-y-6"><div><h4 class="font-bold text-blue-700 uppercase text-sm mb-2">Danh sách nhân viên</h4><div class="bg-slate-50 rounded border p-2 max-h-40 overflow-y-auto">${employees.map(e => `<div class="flex justify-between items-center border-b border-slate-200 py-1 last:border-0"><div class="text-sm"><b>${e.name}</b> (${e.role}) - PIN: ${e.pin}</div><button class="text-red-500 text-xs font-bold btn-action" data-action="adminDelEmp" data-payload="${e._id}">XÓA</button></div>`).join('')}</div><div class="mt-2 grid grid-cols-2 gap-2"><input id="new-emp-name" class="input-box text-xs" placeholder="Tên NV"><input id="new-emp-pin" class="input-box text-xs" placeholder="PIN (4 số)"><select id="new-emp-role" class="input-box text-xs"><option>Nhân viên</option><option>Tổ trưởng</option><option>Quản lý</option></select><button class="bg-blue-600 text-white rounded text-xs font-bold btn-action" data-action="adminAddEmp">THÊM</button></div></div><div><h4 class="font-bold text-green-700 uppercase text-sm mb-2">Xuất Báo Cáo</h4><div class="grid grid-cols-1 gap-2"><button class="py-2 bg-green-100 text-green-700 font-bold rounded btn-action" data-action="adminExport" data-payload="harvest">📥 Báo cáo Thu Hoạch</button><button class="py-2 bg-blue-100 text-blue-700 font-bold rounded btn-action" data-action="adminExport" data-payload="tasks">📥 Báo cáo Công Việc</button><button class="py-2 bg-orange-100 text-orange-700 font-bold rounded btn-action" data-action="adminExport" data-payload="attendance">📥 Báo cáo Chấm Công</button></div></div></div></div>`;
     },
 
     renderChat: (messages, currentUserId) => {
         const layer = document.getElementById('chat-layer');
         if(!layer.querySelector('#chat-msgs')) {
-             layer.innerHTML = `
-                <div class="absolute inset-0 bg-black/50 backdrop-blur-sm z-0 btn-action" data-action="closeChat"></div>
-                <div class="absolute bottom-0 left-0 right-0 h-[85vh] bg-[#f0f2f5] rounded-t-3xl z-10 flex flex-col shadow-2xl animate-slide-up">
-                    <div class="h-14 bg-white border-b flex items-center justify-between px-4 rounded-t-3xl shadow-sm">
-                        <h3 class="font-black text-slate-700 text-lg"><i class="fas fa-comments text-blue-600"></i> NHÓM CHUNG</h3>
-                        <button class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center btn-action" data-action="closeChat"><i class="fas fa-times text-slate-500"></i></button>
-                    </div>
-                    <div id="chat-msgs" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
-                    <div class="p-3 bg-white border-t flex gap-2">
-                        <input id="chat-input-field" class="flex-1 bg-slate-100 rounded-full px-4 py-3 font-medium outline-none" placeholder="Nhập tin nhắn...">
-                        <button class="w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg btn-action" data-action="sendChat"><i class="fas fa-paper-plane"></i></button>
-                    </div>
-                </div>`;
+             layer.innerHTML = `<div class="absolute inset-0 bg-black/50 backdrop-blur-sm z-0 btn-action" data-action="closeChat"></div><div class="absolute bottom-0 left-0 right-0 h-[85vh] bg-[#f0f2f5] rounded-t-3xl z-10 flex flex-col shadow-2xl animate-slide-up"><div class="h-14 bg-white border-b flex items-center justify-between px-4 rounded-t-3xl shadow-sm"><h3 class="font-black text-slate-700 text-lg"><i class="fas fa-comments text-blue-600"></i> NHÓM CHUNG</h3><button class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center btn-action" data-action="closeChat"><i class="fas fa-times text-slate-500"></i></button></div><div id="chat-msgs" class="flex-1 overflow-y-auto p-4 space-y-3"></div><div class="p-3 bg-white border-t flex gap-2"><input id="chat-input-field" class="flex-1 bg-slate-100 rounded-full px-4 py-3 font-medium outline-none" placeholder="Nhập tin nhắn..."><button class="w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg btn-action" data-action="sendChat"><i class="fas fa-paper-plane"></i></button></div></div>`;
         }
-        
         const box = document.getElementById('chat-msgs');
         box.innerHTML = messages.map(m => {
             const isMe = String(m.senderId) === String(currentUserId);
