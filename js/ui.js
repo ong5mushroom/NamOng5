@@ -230,4 +230,120 @@ export const UI = {
                     <input id="ship-cust" class="input-box mb-3 font-bold" placeholder="Khách hàng">
                     <div class="flex gap-2 mb-3"><select id="ship-type" class="input-box font-bold"><option>Nấm Tươi</option><option>Nấm Khô</option><option>Phôi</option></select><input id="ship-qty" type="number" class="input-box font-black text-orange-600 text-center" placeholder="Kg"></div>
                     <textarea id="ship-note" class="input-box text-sm mb-3" placeholder="Ghi chú..."></textarea>
-                    <button class="btn-primary w-full bg-orange-600 btn-action shadow-lg" data-
+                    <button class="btn-primary w-full bg-orange-600 btn-action shadow-lg" data-action="submitShip"><i class="fas fa-print mr-2"></i>LƯU & IN</button>
+                </div>
+                <div class="space-y-2"><h4 class="text-xs font-bold text-slate-400 uppercase ml-2">Đơn vừa xuất</h4>${shippingLogs.slice(0,5).map(s => `<div class="card p-3 flex justify-between items-center mb-2 border-l-4 border-orange-400"><div><div class="font-bold text-blue-700 text-sm">${s.customer}</div><div class="text-xs text-slate-500">${s.type} - ${s.qty}kg</div></div><button class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm btn-action hover:bg-slate-200" data-action="printInvoice" data-payload="${s._id}"><i class="fas fa-print"></i> IN</button></div>`).join('')}</div>
+            </div>
+        </div>`;
+        setTimeout(() => {
+            const sel = document.getElementById('th-area'), info = document.getElementById('th-batch-info'), inps = document.querySelectorAll('.input-harvest'), tot = document.getElementById('th-display-total');
+            if(sel) sel.addEventListener('change', (e) => { inps.forEach(i=>i.value=''); tot.innerText='0.0'; const o = e.target.options[e.target.selectedIndex]; info.innerText = o.value ? `Đang hái Lô: ${o.getAttribute('data-batch')} (${o.getAttribute('data-spawn')} phôi)` : ''; });
+            if(inps) inps.forEach(i => i.addEventListener('input', () => { let s=0; inps.forEach(k => s+=Number(k.value)||0); tot.innerText = s.toFixed(1); }));
+        }, 200);
+    },
+
+    // --- TAB KHO (GIỮ NGUYÊN) ---
+    renderStock: (inv, supplies, distributionLogs) => { 
+        const container = document.getElementById('view-stock');
+        const recentDist = distributionLogs ? distributionLogs.slice(0, 5) : [];
+        container.innerHTML = `
+        <div class="p-2 space-y-4">
+            <div class="card border-2 border-orange-500 shadow-lg">
+                 <div class="bg-orange-600 text-white p-2 font-bold uppercase rounded-t flex justify-between"><span><i class="fas fa-box-open mr-2"></i>Kho Nấm</span></div>
+                 <div class="p-3">
+                    <div class="bg-slate-100 p-2 rounded mb-3 border border-slate-200"><div class="flex justify-between text-sm"><span>Tồn Máy Tính (Gợi ý):</span> <span class="font-bold">50.0 kg</span></div></div>
+                    <div class="flex items-center gap-2 mb-3"><label class="text-sm font-bold text-slate-700">THỰC TẾ:</label><input id="stock-actual-mushroom" type="number" class="input-box flex-1 font-black text-orange-700 text-lg" placeholder="Kg"></div>
+                    <div id="stock-variance-alert" class="hidden p-2 bg-red-100 text-red-700 text-xs font-bold rounded mb-2 border border-red-200">⚠️ LỆCH: <span id="val-variance"></span> kg. Yêu cầu nhập lý do!</div>
+                    <textarea id="stock-note-mushroom" class="input-box text-sm hidden" placeholder="Nhập lý do chênh lệch..."></textarea>
+                    <button class="btn-primary bg-orange-600 w-full mt-2 btn-action" data-action="submitStockCheck">CHỐT KHO NẤM</button>
+                 </div>
+            </div>
+            <div class="card border border-slate-300 shadow">
+                <div class="bg-slate-800 text-white p-2 font-bold uppercase rounded-t flex justify-between items-center"><span><i class="fas fa-warehouse mr-2"></i>Kho Vật Tư (Kho A)</span><button class="text-xs bg-blue-500 hover:bg-blue-400 text-white px-2 py-1 rounded shadow btn-action" data-action="toggleModal" data-payload="modal-distribute"><i class="fas fa-dolly"></i> CẤP PHÁT</button></div>
+                <div class="p-3">
+                    <div class="space-y-2 max-h-60 overflow-y-auto">${supplies.length === 0 ? '<p class="text-xs text-center text-slate-400">Kho trống</p>' : supplies.map(s => `<div class="flex justify-between items-center border-b border-slate-100 pb-1"><span class="text-sm font-bold text-slate-700">${s.name}</span><span class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">Tồn A: <b class="text-blue-700 text-sm">${s.stock}</b> ${s.unit}</span></div>`).join('')}</div>
+                    <div class="mt-4 pt-2 border-t border-slate-200"><h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Vừa cấp phát đi các nhà</h4>${recentDist.map(d => `<div class="text-xs flex justify-between items-center mb-1 text-slate-600"><span><i class="fas fa-arrow-right text-slate-400"></i> ${d.toHouse}: ${d.itemName}</span><span class="font-bold">-${d.qty}</span></div>`).join('')}</div>
+                </div>
+            </div>
+            <div id="modal-distribute" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><div class="bg-white w-full max-w-sm rounded-xl p-5 shadow-2xl"><h3 class="font-bold text-lg text-slate-700 mb-4 uppercase text-center border-b pb-2">Cấp Phát Vật Tư</h3><div class="space-y-3"><div><label class="text-xs font-bold text-slate-500">Vật tư (Từ Kho A)</label><select id="dist-item" class="input-box font-bold">${supplies.map(s => `<option value="${s._id}" data-name="${s.name}" data-stock="${s.stock}">${s.name} (Tồn: ${s.stock} ${s.unit})</option>`).join('')}</select></div><div><label class="text-xs font-bold text-slate-500">Đến Nhà / Khu vực</label><select id="dist-to" class="input-box"><option value="B1">Nhà B1</option><option value="B2">Nhà B2</option><option value="A1">Nhà A1</option><option value="A2">Nhà A2</option><option value="XuongSX">Xưởng Sản Xuất</option><option value="VanPhong">Văn Phòng</option></select></div><div><label class="text-xs font-bold text-slate-500">Số lượng cấp</label><input id="dist-qty" type="number" class="input-box font-bold text-lg text-blue-600"></div><div class="flex gap-2 pt-2"><button class="flex-1 py-3 bg-slate-100 font-bold rounded-lg text-slate-500 btn-action" data-action="toggleModal" data-payload="modal-distribute">Đóng</button><button class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-lg shadow btn-action" data-action="submitDistribute">Xác Nhận</button></div></div></div></div>
+        </div>`;
+        setTimeout(() => {
+            const inp = document.getElementById('stock-actual-mushroom'), al = document.getElementById('stock-variance-alert'), no = document.getElementById('stock-note-mushroom');
+            if(inp) inp.addEventListener('input', () => { const diff = Number(inp.value) - 50.0; if(Math.abs(diff)>0.5){ al.classList.remove('hidden'); no.classList.remove('hidden'); document.getElementById('val-variance').innerText = diff.toFixed(1); } else { al.classList.add('hidden'); no.classList.add('hidden'); } });
+        }, 500);
+    },
+
+    // --- TAB TEAM ---
+    renderTeam: (user) => {
+        const container = document.getElementById('view-team');
+        container.innerHTML = `
+        <div class="p-2 space-y-4">
+            <div class="card p-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+                <div class="flex items-center gap-4"><div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-black">${user.name.charAt(0)}</div><div><h2 class="text-xl font-bold uppercase">${user.name}</h2><div class="text-sm opacity-80">${user.role}</div></div></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button class="card p-4 flex flex-col items-center justify-center gap-2 hover:bg-green-50 btn-action" data-action="submitAttendance"><div class="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xl"><i class="fas fa-clock"></i></div><span class="font-bold text-slate-700 text-sm">CHẤM CÔNG</span></button>
+                <button class="card p-4 flex flex-col items-center justify-center gap-2 hover:bg-orange-50 btn-action" data-action="toggleModal" data-payload="modal-leave"><div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xl"><i class="fas fa-file-contract"></i></div><span class="font-bold text-slate-700 text-sm">XIN NGHỈ</span></button>
+                <button class="card p-4 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 btn-action" data-action="toggleModal" data-payload="modal-buy-req"><div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xl"><i class="fas fa-shopping-cart"></i></div><span class="font-bold text-slate-700 text-sm">ĐỀ XUẤT MUA</span></button>
+                <button class="card p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 btn-action" data-action="logout"><div class="w-12 h-12 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-xl"><i class="fas fa-sign-out-alt"></i></div><span class="font-bold text-slate-700 text-sm">ĐĂNG XUẤT</span></button>
+            </div>
+            <div id="modal-leave" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><div class="bg-white w-full max-w-sm rounded-xl p-5 shadow-2xl"><h3 class="font-bold text-lg text-slate-700 mb-4 uppercase text-center border-b pb-2">Đơn Xin Nghỉ Phép</h3><div class="space-y-3"><div><label class="text-xs font-bold text-slate-500">Ngày nghỉ</label><input id="leave-date" type="date" class="input-box"></div><div><label class="text-xs font-bold text-slate-500">Lý do</label><select id="leave-reason" class="input-box"><option>Ốm / Sức khỏe</option><option>Việc gia đình</option><option>Khác</option></select></div><div class="flex gap-2 pt-2"><button class="flex-1 py-3 bg-slate-100 font-bold rounded-lg text-slate-500 btn-action" data-action="toggleModal" data-payload="modal-leave">Hủy</button><button class="flex-1 py-3 bg-orange-600 text-white font-bold rounded-lg shadow btn-action" data-action="submitLeave">Gửi Đơn</button></div></div></div></div>
+            <div id="modal-buy-req" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><div class="bg-white w-full max-w-sm rounded-xl p-5 shadow-2xl"><h3 class="font-bold text-lg text-slate-700 mb-4 uppercase text-center border-b pb-2">Đề Xuất Mua Vật Tư</h3><div class="space-y-3"><div><label class="text-xs font-bold text-slate-500">Tên vật tư</label><input id="buy-name" class="input-box" placeholder="VD: Cồn 90 độ, Găng tay..."></div><div class="flex gap-2"><div class="w-1/3"><label class="text-xs font-bold text-slate-500">ĐVT</label><input id="buy-unit" class="input-box" placeholder="Lít/Cái"></div><div class="flex-1"><label class="text-xs font-bold text-slate-500">Số lượng</label><input id="buy-qty" type="number" class="input-box"></div></div><div><label class="text-xs font-bold text-slate-500">Ghi chú</label><textarea id="buy-note" class="input-box text-sm"></textarea></div><div class="flex gap-2 pt-2"><button class="flex-1 py-3 bg-slate-100 font-bold rounded-lg text-slate-500 btn-action" data-action="toggleModal" data-payload="modal-buy-req">Hủy</button><button class="flex-1 py-3 bg-purple-600 text-white font-bold rounded-lg shadow btn-action" data-action="submitBuyRequest">Gửi Đề Xuất</button></div></div></div></div>
+        </div>`;
+    },
+
+    // --- TAB VIỆC (CẬP NHẬT: 3 TRẠNG THÁI + NÚT NHẮC NHỞ) ---
+    renderTasksAndShip: (tasks, currentUser) => {
+        const container = document.getElementById('view-tasks');
+        const canAssign = currentUser.role === 'Quản lý' || currentUser.role === 'Tổ trưởng' || currentUser.role === 'Admin';
+        
+        // Phân loại việc
+        const myTasks = tasks.filter(t => t.assignee === currentUser.name && t.status !== 'done');
+        const otherTasks = tasks.filter(t => (t.assignee !== currentUser.name && t.status !== 'done') || t.status === 'done');
+
+        container.innerHTML = `
+        <div class="p-2 space-y-4">
+             ${canAssign ? `
+             <div class="card p-3 border-2 border-blue-400 bg-blue-50 mb-4 shadow">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="font-bold text-blue-800 uppercase text-sm"><i class="fas fa-plus-circle"></i> Giao Việc Mới</h4>
+                    <button class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded font-bold btn-action" data-action="remindAttendance"><i class="fas fa-bullhorn"></i> Nhắc nhở</button>
+                </div>
+                <input id="task-title" class="input-box mb-2 font-bold" placeholder="Tên công việc">
+                <div class="flex gap-2 mb-2"><select id="task-assignee" class="input-box flex-1"><option>Đang tải...</option></select><input id="task-deadline" type="date" class="input-box w-1/3"></div>
+                <textarea id="task-desc" class="input-box text-sm mb-2" placeholder="Mô tả..."></textarea>
+                <button class="btn-primary w-full bg-blue-600 btn-action shadow-md" data-action="addTask">GIAO VIỆC</button>
+             </div>` : ''}
+
+             <h3 class="font-bold text-slate-700 uppercase border-b border-slate-300 pb-1">Việc Của Tôi (${myTasks.length})</h3>
+             <div class="space-y-3">
+                 ${myTasks.length === 0 ? '<p class="text-xs text-slate-400 italic">Không có việc được giao.</p>' : ''}
+                 ${myTasks.map(t => {
+                    // Logic hiển thị nút bấm theo trạng thái
+                    let actionBtn = '';
+                    if (t.status === 'pending') {
+                        actionBtn = `<button class="w-full mt-3 bg-yellow-100 text-yellow-700 py-2 rounded font-bold text-sm btn-action hover:bg-yellow-200" data-action="receiveTask" data-payload="${t._id}"><i class="fas fa-hand-paper"></i> BẤM ĐỂ NHẬN VIỆC</button>`;
+                    } else if (t.status === 'received') {
+                         actionBtn = `<button class="w-full mt-3 bg-blue-100 text-blue-700 py-2 rounded font-bold text-sm btn-action hover:bg-blue-200" data-action="submitTask" data-payload="${t._id}"><i class="fas fa-check"></i> BÁO CÁO HOÀN THÀNH</button>`;
+                    }
+
+                    return `
+                    <div class="card p-4 border-l-4 ${t.status==='received'?'border-blue-500':'border-red-500'} shadow-md bg-white">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-bold text-slate-800 text-lg">${t.title}</h4>
+                            <span class="text-[10px] ${t.status==='received'?'bg-blue-100 text-blue-600':'bg-red-100 text-red-600'} px-2 py-1 rounded font-bold">
+                                ${t.status==='received' ? 'ĐANG LÀM' : 'CHƯA NHẬN'}
+                            </span>
+                        </div>
+                        <p class="text-sm text-slate-600 mt-1">${t.desc || ''}</p>
+                        <div class="text-xs text-slate-400 mt-2"><i class="fas fa-user-tag"></i> Giao bởi: ${t.createdBy || 'QL'}</div>
+                        ${actionBtn}
+                    </div>`
+                 }).join('')}
+             </div>
+
+             <h3 class="font-bold text-slate-500 uppercase border-b border-slate-300 pb-1 mt-6 text-sm">Trạng thái chung</h3>
+             <div class="space-y-2 opacity-75">${otherTasks.slice(0, 5).map(t => `<div class="card p-3 border-l-4 ${t.status==='done'?'border-green-500 bg-slate-50':'border-slate-300'}"><div class="flex justify-between"><h4 class="font-bold text-slate-700 text-sm">${t.title} <span class="text-xs font-normal text-slate-500">(${t.assignee})</span></h4>${t.status==='done'?'<span class=\"text-green-600 font-bold text-xs\">XONG</span>': (t.status==='received' ? '<span class=\"text-blue-500 text-xs\">Đang làm</span>' : '<span class=\"text-red-400 text-xs\">Chưa nhận</span>')}</div></div>`).join('')}</div>
+        </div>`;
+    }
+};
