@@ -1,6 +1,18 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { 
+    getFirestore, 
+    collection, 
+    onSnapshot, 
+    addDoc, 
+    updateDoc, 
+    doc, 
+    deleteDoc, 
+    getDoc, 
+    query, 
+    where, 
+    orderBy 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const fbConfig = { 
     apiKey: "AIzaSyBQDQfYuhf0AWOtmcdufVGeXlzwnSJ33Vw", 
@@ -14,7 +26,21 @@ const fbConfig = {
 const appInstance = initializeApp(fbConfig);
 export const auth = getAuth(appInstance);
 export const db = getFirestore(appInstance);
-export const ROOT_PATH = "artifacts/namong5_production/public/data";
+// ĐƯỜNG DẪN GỐC CHUẨN TỪ FILE ZIP CỦA BẠN
+export const ROOT_PATH = "artifacts/namong5_production/public/data"; 
 
-// QUAN TRỌNG: Phải có dòng này thì logic.js mới chạy được
-export { signInAnonymously, onAuthStateChanged, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc };
+// Xuất khẩu đầy đủ các hàm để logic.js sử dụng
+export { 
+    signInAnonymously, 
+    onAuthStateChanged, 
+    collection, 
+    onSnapshot, 
+    addDoc, 
+    updateDoc, 
+    doc, 
+    deleteDoc, 
+    getDoc,
+    query,
+    where,
+    orderBy
+};
