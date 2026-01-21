@@ -1,24 +1,22 @@
 export const UI = {
     playSound: (type) => { try { const a=new AudioContext(); const o=a.createOscillator(); const g=a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value=type==='success'?600:300; g.gain.value=0.1; o.start(); o.stop(a.currentTime+0.2); } catch(e){} },
 
-    // FIX CƠ CHẾ MODAL
     initModals: () => {
-        // Chỉ xử lý đóng modal ở đây
         document.body.addEventListener('click', (e) => {
             if (e.target.closest('.modal-close-btn') || e.target.classList.contains('fixed')) {
-                // Trừ login và chat ra
-                if(e.target.id !== 'login-overlay' && !e.target.closest('#chat-layer') && !e.target.id.includes('chat')) {
-                    const modals = document.querySelectorAll('.fixed.inset-0.z-50.flex');
-                    modals.forEach(m => m.classList.add('hidden'));
+                const target = e.target.closest('.modal-close-btn');
+                const id = target ? target.dataset.payload : e.target.id;
+                // Chỉ đóng modal overlay (ko phải login/chat)
+                if (id !== 'login-overlay' && !e.target.closest('#chat-layer') && !e.target.id.includes('chat')) {
+                    const el = document.getElementById(id) || e.target;
+                    if(el && el.classList.contains('fixed')) el.classList.add('hidden');
                 }
             }
+            if (e.target.closest('[data-action="closeChat"]')) document.getElementById('chat-layer').classList.add('hidden');
         });
     },
 
-    toggleModal: (id) => {
-        const el = document.getElementById(id);
-        if(el) el.classList.remove('hidden');
-    },
+    toggleModal: (id) => document.getElementById(id)?.classList.remove('hidden'),
 
     showMsg: (t, type = 'info') => {
         const b = document.getElementById('msg-box'); 
@@ -43,9 +41,9 @@ export const UI = {
     renderEmployeeOptions: (employees) => {
         const sel = document.getElementById('login-user');
         const taskSel = document.getElementById('task-assignee');
-        const html = '<option value="">-- Chọn --</option>' + employees.sort((a,b)=>a.name.localeCompare(b.name)).map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+        const html = '<option value="">-- Chọn tên --</option>' + employees.sort((a,b)=>a.name.localeCompare(b.name)).map(e => `<option value="${e.name}">${e.name}</option>`).join('');
         if(sel) sel.innerHTML = html;
-        if(taskSel) taskSel.innerHTML = html; // Đổ dữ liệu vào ô chọn người làm
+        if(taskSel) taskSel.innerHTML = html;
     },
 
     // 1. HOME
@@ -62,35 +60,37 @@ export const UI = {
         container.innerHTML = `
         <div class="space-y-6">
             <div class="bg-gradient-to-b from-white to-amber-50 p-4 rounded-2xl shadow-md border border-amber-100">
-                <h3 class="font-black text-amber-700 text-xs mb-3 text-center uppercase tracking-widest"><i class="fas fa-crown text-yellow-500 mr-2"></i>Bảng Phong Thần</h3>
+                <h3 class="font-black text-amber-700 uppercase text-xs mb-4 flex items-center justify-center tracking-widest"><i class="fas fa-crown mr-2 text-yellow-500"></i>Bảng Phong Thần</h3>
                 <div class="flex justify-center items-end gap-4">
-                    ${top3.map((e,i) => `<div class="flex flex-col items-center ${i===0?'-mt-4':''}"><div class="w-${i===0?'14':'10'} h-${i===0?'14':'10'} rounded-full ${i===0?'bg-yellow-400 border-4 border-white':'bg-slate-200'} flex items-center justify-center font-black ${i===0?'text-white text-xl':'text-slate-600'} shadow">${i+1}</div><span class="text-[10px] font-bold mt-1">${e.name}</span><span class="text-[10px] text-amber-600 font-bold">${e.score||0}đ</span></div>`).join('')}
+                    ${top3[1] ? `<div class="flex flex-col items-center"><div class="w-10 h-10 rounded-full bg-slate-300 border-2 border-white shadow flex items-center justify-center text-white font-black">2</div><span class="text-[10px] font-bold mt-1 text-slate-600 truncate w-16 text-center">${top3[1].name}</span><span class="text-[10px] font-black text-amber-600">${top3[1].score||0}đ</span></div>` : ''}
+                    ${top3[0] ? `<div class="flex flex-col items-center -mt-4"><div class="w-14 h-14 rounded-full bg-yellow-400 border-4 border-white shadow-lg flex items-center justify-center text-white text-xl font-black"><i class="fas fa-trophy"></i></div><span class="text-xs font-bold mt-2 text-slate-800 truncate w-20 text-center">${top3[0].name}</span><span class="text-xs font-black text-amber-600">${top3[0].score||0}đ</span></div>` : ''}
+                    ${top3[2] ? `<div class="flex flex-col items-center"><div class="w-10 h-10 rounded-full bg-amber-700 border-2 border-white shadow flex items-center justify-center text-white font-black">3</div><span class="text-[10px] font-bold mt-1 text-slate-600 truncate w-16 text-center">${top3[2].name}</span><span class="text-[10px] font-black text-amber-600">${top3[2].score||0}đ</span></div>` : ''}
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
             ${sorted.map(h => `
-                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                <div class="card p-3 border border-slate-100 relative overflow-hidden">
                     <div class="flex justify-between items-start mb-2">
-                        <div><h3 class="font-black text-lg text-slate-800">${h.name}</h3><div class="text-[10px] text-slate-400 font-bold">${h.currentBatch || '-'}</div></div>
+                        <div><h3 class="font-black text-lg text-slate-800">${h.name}</h3><div class="text-[10px] text-slate-400 font-bold uppercase">${h.currentBatch || '-'}</div></div>
                         <span class="text-[9px] ${h.status==='ACTIVE'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'} px-2 py-1 rounded font-bold">${h.status==='ACTIVE'?'SX':'CHỜ'}</span>
                     </div>
-                    <div class="text-right border-t pt-1 border-slate-100"><span class="text-[10px] text-slate-400">Thu:</span> <span class="font-black text-blue-600">${getYield(h.name).toFixed(1)}kg</span></div>
+                    <div class="text-right border-t pt-1 mt-1 border-slate-50"><span class="text-[10px] text-slate-400 mr-1">Thu:</span><span class="font-black text-blue-600">${getYield(h.name).toFixed(1)} kg</span></div>
                 </div>`).join('')}
             </div>
         </div>`;
     },
 
-    // 2. VIỆC (ĐÃ SỬA NHẬT KÝ CHUNG)
+    // 2. VIỆC (ĐÃ FIX LỖI HIỂN THỊ ID)
     renderTasksAndShip: (tasks, currentUser, houses, employees) => {
         const container = document.getElementById('view-tasks');
         const canAssign = ['Quản lý','Tổ trưởng','Admin','Giám đốc'].includes(currentUser.role);
         const myTasks = tasks.filter(t => t.assignee === currentUser.name && t.status !== 'done');
-        const otherTasks = tasks.filter(t => t.status === 'done' || t.assignee !== currentUser.name);
+        const otherTasks = tasks.filter(t => t.status === 'done' || (t.assignee !== currentUser.name && t.status !== 'done'));
 
         container.innerHTML = `
         <div class="space-y-6">
              ${canAssign ? `
-             <div class="bg-white p-5 rounded-2xl shadow-md border border-blue-50">
+             <div class="card p-5 border border-blue-50">
                 <div class="flex justify-between items-center mb-4"><h4 class="font-black text-blue-700 uppercase text-xs tracking-wider">Giao Nhiệm Vụ</h4></div>
                 <div class="space-y-3">
                     <input id="task-title" class="input-box text-sm font-bold" placeholder="Tên công việc">
@@ -100,31 +100,26 @@ export const UI = {
                 </div>
              </div>` : ''}
              <div>
-                 <h3 class="font-bold text-slate-700 text-sm uppercase mb-3 pl-2 border-l-4 border-orange-500">Cần Làm Ngay</h3>
-                 <div class="space-y-3">${myTasks.length ? myTasks.map(t => `<div class="bg-white p-4 rounded-xl border-l-4 ${t.status==='received'?'border-blue-500':'border-red-500'} shadow-sm"><div class="flex justify-between items-start mb-2"><h4 class="font-bold text-slate-800">${t.title}</h4><span class="text-[9px] font-black px-2 py-1 rounded ${t.status==='received'?'bg-blue-100 text-blue-600':'bg-red-100 text-red-600'}">${t.status==='received'?'ĐANG LÀM':'MỚI'}</span></div><div class="text-xs text-slate-500 mb-3 bg-slate-50 p-2 rounded">${t.house||'Chung'} • ${t.desc||'-'}</div>${t.status === 'pending' ? `<button class="w-full bg-red-50 text-red-600 py-3 rounded-lg text-xs font-black btn-action border border-red-100" data-action="receiveTask" data-payload="${t._id}">NHẬN VIỆC</button>` : `<button class="w-full bg-blue-600 text-white py-3 rounded-lg text-xs font-black btn-action shadow-md" data-action="submitTask" data-payload="${t._id}">BÁO CÁO XONG</button>`}</div>`).join('') : '<div class="text-center p-6 text-slate-400 text-xs italic bg-white rounded-xl">Không có việc!</div>'}</div>
+                 <h3 class="font-bold text-slate-700 text-sm uppercase mb-3 pl-2 border-l-4 border-orange-500">Cần Làm Ngay (${myTasks.length})</h3>
+                 <div class="space-y-3">${myTasks.length ? myTasks.map(t => `<div class="card p-4 border-l-4 ${t.status==='received'?'border-blue-500':'border-red-500'} shadow-sm"><div class="flex justify-between items-start mb-2"><h4 class="font-bold text-slate-800">${t.title}</h4><span class="text-[9px] font-black px-2 py-1 rounded ${t.status==='received'?'bg-blue-100 text-blue-600':'bg-red-100 text-red-600'}">${t.status==='received'?'ĐANG LÀM':'MỚI'}</span></div><div class="text-xs text-slate-500 mb-3 bg-slate-50 p-2 rounded">${t.house||'Chung'} • ${t.desc||'-'}</div>${t.status === 'pending' ? `<button class="w-full bg-red-50 text-red-600 py-3 rounded-lg text-xs font-black btn-action border border-red-100" data-action="receiveTask" data-payload="${t._id}">NHẬN VIỆC</button>` : `<button class="w-full bg-blue-600 text-white py-3 rounded-lg text-xs font-black btn-action shadow-md" data-action="submitTask" data-payload="${t._id}">BÁO CÁO XONG</button>`}</div>`).join('') : '<div class="text-center p-6 text-slate-400 text-xs italic bg-white rounded-xl">Bạn đang rảnh rỗi!</div>'}</div>
              </div>
-             
-             <div class="space-y-2 opacity-75">
-                <h3 class="font-bold text-slate-400 text-xs mt-6">Nhật ký hoạt động</h3>
-                ${otherTasks.slice(0, 8).map(t => `
-                    <div class="bg-white p-3 rounded-lg border border-slate-100 flex justify-between items-center">
-                        <div>
-                            <div class="font-bold text-slate-600 text-xs">${t.title}</div>
-                            <div class="text-[10px] text-slate-400 font-bold">${t.assignee} ${t.house ? `• ${t.house}` : ''}</div>
-                        </div>
-                        ${t.status==='done' ? '<span class="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded">ĐÃ XONG</span>' : '<span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-400">ĐANG LÀM</span>'}
-                    </div>`).join('')}
-             </div>
+             <div class="space-y-2 opacity-75"><h3 class="font-bold text-slate-400 text-xs mt-6">Nhật ký hoạt động</h3>${otherTasks.slice(0, 8).map(t => `<div class="bg-white p-3 rounded-lg border border-slate-100 flex justify-between items-center"><div><div class="font-bold text-slate-600 text-xs">${t.title}</div><div class="text-[10px] text-slate-400">${t.assignee} ${t.house ? '• '+t.house : ''}</div></div>${t.status==='done' ? '<span class="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded">XONG</span>' : '<span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-400">...</span>'}</div>`).join('')}</div>
         </div>`;
     },
 
-    // 3. THDG
+    // 3. THDG (ĐÃ THÊM SẢN PHẨM MỚI V450)
     renderTH: (houses, harvestLogs, shippingLogs) => {
         const container = document.getElementById('view-th');
         const sorted = [...houses].sort((a,b)=>a.name.localeCompare(b.name, 'vi', {numeric:true}));
+        
         const g1 = [{c:'b2',l:'B2'},{c:'a1',l:'A1'},{c:'a2',l:'A2'},{c:'b1',l:'B1'},{c:'d1',l:'D1'},{c:'a1f',l:'A1F'},{c:'a2f',l:'A2F'},{c:'b2f',l:'B2F'},{c:'ht',l:'Hầu Thủ'}];
         const g2 = [{c:'cn',l:'Chân nấm'},{c:'hc',l:'Hư hỏng'},{c:'hh',l:'Khác'}];
-        const g3 = [{c:'snack',l:'Snack'},{c:'kho',l:'Nấm Khô'},{c:'tra',l:'Trà'}];
+        // CẬP NHẬT DANH SÁCH MỚI
+        const g3 = [
+            {c:'snack',l:'Snack'}, {c:'kho',l:'Nấm Khô'}, {c:'tra',l:'Trà'},
+            {c:'chan_nam',l:'Chân Nấm'}, {c:'mu_l1',l:'Mũ Hương L1'}, 
+            {c:'mu_l2',l:'Mũ Hương L2'}, {c:'hau_thu_kho',l:'Hầu Thủ Khô'}
+        ];
 
         container.innerHTML = `
         <div class="space-y-4">
@@ -136,10 +131,10 @@ export const UI = {
                 <div class="card p-5 border border-green-100">
                     <div class="flex justify-between items-center border-b pb-3 mb-4"><span class="font-black text-green-700 text-sm uppercase"><i class="fas fa-download mr-2"></i>Nhập Kho</span></div>
                     <div class="space-y-4">
-                        <select id="th-area" class="input-box text-green-800 font-bold border-green-300"><option value="">-- Chọn Nguồn --</option>${sorted.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}<option value="KhuCheBien">Khu Chế Biến</option></select>
+                        <select id="th-area" class="input-box text-green-800 font-bold border-green-300"><option value="">-- Nguồn --</option>${sorted.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}<option value="KhuCheBien">Khu Chế Biến</option></select>
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-200"><h4 class="text-[10px] font-bold text-slate-500 uppercase mb-2">1. Nấm Tươi (Kg)</h4><div class="grid grid-cols-3 gap-3">${g1.map(m=>`<div><label class="text-[9px] font-bold text-slate-400 block mb-1">${m.l}</label><input type="number" step="0.1" id="th-${m.c}" class="input-harvest w-full text-center font-bold text-sm focus:border-green-500" placeholder="-"></div>`).join('')}</div></div>
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-200"><h4 class="text-[10px] font-bold text-slate-500 uppercase mb-2">2. Phụ Phẩm (Kg)</h4><div class="grid grid-cols-3 gap-3">${g2.map(m=>`<div><label class="text-[9px] font-bold text-slate-400 block mb-1">${m.l}</label><input type="number" step="0.1" id="th-${m.c}" class="input-harvest w-full text-center font-bold text-sm focus:border-orange-500" placeholder="-"></div>`).join('')}</div></div>
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200"><h4 class="text-[10px] font-bold text-slate-500 uppercase mb-2">3. Thành Phẩm (Gói)</h4><div class="grid grid-cols-3 gap-3">${g3.map(m=>`<div><label class="text-[9px] font-bold text-slate-400 block mb-1">${m.l}</label><input type="number" id="th-${m.c}" class="input-harvest w-full text-center font-bold text-sm focus:border-purple-500" placeholder="-"></div>`).join('')}</div></div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200"><h4 class="text-[10px] font-bold text-slate-500 uppercase mb-2">3. Thành Phẩm (Gói/Kg)</h4><div class="grid grid-cols-2 gap-3">${g3.map(m=>`<div><label class="text-[9px] font-bold text-slate-400 block mb-1">${m.l}</label><input type="number" id="th-${m.c}" class="input-harvest w-full text-center font-bold text-sm focus:border-purple-500" placeholder="-"></div>`).join('')}</div></div>
                         <button class="btn-primary w-full bg-green-600 py-3 rounded-xl font-black shadow-lg btn-action" data-action="submitTH">LƯU KHO</button>
                     </div>
                 </div>
@@ -232,8 +227,15 @@ export const UI = {
         const sorted = [...houses].sort((a,b)=>a.name.localeCompare(b.name, 'vi', {numeric:true}));
         container.innerHTML = `<div class="p-4"><div class="card p-4 border border-blue-100 space-y-3"><h3 class="font-black text-blue-700 uppercase border-b pb-2">Nhập Phôi (Kho A)</h3><select id="sx-house-select" class="input-box text-blue-800 font-bold">${sorted.map(h=>`<option value="${h._id}">${h.name}</option>`).join('')}</select><div class="grid grid-cols-2 gap-3"><input id="sx-strain" class="input-box" placeholder="Mã giống"><input id="sx-date" type="date" class="input-box"></div><input id="sx-spawn-qty" type="number" class="input-box text-lg font-bold text-blue-600" placeholder="Số lượng"><button class="btn-primary w-full bg-blue-600 py-3 rounded-lg font-bold shadow-md btn-action" data-action="setupHouseBatch">KÍCH HOẠT LÔ</button></div></div>`;
     },
-    renderSettingsModal: () => {
+    // THÊM NÚT CÀI APP VÀ BẬT THÔNG BÁO VÀO SETTINGS
+    renderSettingsModal: (employees) => {
         const m = document.getElementById('modal-settings'); m.classList.remove('hidden');
-        m.innerHTML = `<div class="card w-full max-w-md p-5 h-[80vh] flex flex-col"><div class="flex justify-between border-b pb-3 mb-3"><h3 class="font-black text-xl text-slate-700 uppercase">Quản Trị</h3><button class="text-2xl text-slate-400 modal-close-btn" data-payload="modal-settings">&times;</button></div><div class="flex-1 overflow-y-auto space-y-6"><div><h4 class="font-bold text-green-700 uppercase text-sm mb-2">Xuất Báo Cáo</h4><div class="grid grid-cols-1 gap-2"><button class="py-2 bg-green-100 text-green-700 font-bold rounded btn-action" data-action="adminExport" data-payload="harvest">📥 Báo cáo Thu Hoạch</button><button class="py-2 bg-blue-100 text-blue-700 font-bold rounded btn-action" data-action="adminExport" data-payload="tasks">📥 Báo cáo Công Việc</button><button class="py-2 bg-orange-100 text-orange-700 font-bold rounded btn-action" data-action="adminExport" data-payload="attendance">📥 Báo cáo Chấm Công</button></div></div></div></div>`;
+        m.innerHTML = `<div class="card w-full max-w-md p-5 h-[80vh] flex flex-col">
+            <div class="flex justify-between border-b pb-3 mb-3"><h3 class="font-black text-xl text-slate-700 uppercase">Quản Trị</h3><button class="text-2xl text-slate-400 modal-close-btn" data-payload="modal-settings">&times;</button></div>
+            <div class="flex-1 overflow-y-auto space-y-6">
+                <div><h4 class="font-bold text-green-700 uppercase text-sm mb-2">Tiện Ích</h4><div class="grid grid-cols-2 gap-2"><button class="py-2 bg-blue-100 text-blue-700 font-bold rounded btn-action" data-action="installApp"><i class="fas fa-download mr-1"></i> Cài App</button><button class="py-2 bg-orange-100 text-orange-700 font-bold rounded btn-action" data-action="enableNotif"><i class="fas fa-bell mr-1"></i> Bật Thông Báo</button></div></div>
+                <div><h4 class="font-bold text-green-700 uppercase text-sm mb-2">Xuất Báo Cáo</h4><div class="grid grid-cols-1 gap-2"><button class="py-2 bg-green-100 text-green-700 font-bold rounded btn-action" data-action="adminExport" data-payload="harvest">📥 Báo cáo Thu Hoạch</button><button class="py-2 bg-blue-100 text-blue-700 font-bold rounded btn-action" data-action="adminExport" data-payload="tasks">📥 Báo cáo Công Việc</button><button class="py-2 bg-orange-100 text-orange-700 font-bold rounded btn-action" data-action="adminExport" data-payload="attendance">📥 Báo cáo Chấm Công</button></div></div>
+            </div>
+        </div>`;
     }
 };
