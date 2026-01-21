@@ -27,30 +27,25 @@ const App = {
                 const payload = btn.dataset.payload;
                 if(App.actions[action]) App.actions[action](payload);
             }
-            if(e.target.closest('#btn-open-chat')) App.actions.toggleChat(); // Gọi qua Action
+            if(e.target.closest('#btn-open-chat')) App.actions.toggleChat();
             if(e.target.dataset.action === 'toggleTH') {
                 const mode = e.target.dataset.payload;
                 document.getElementById('zone-th').classList.toggle('hidden', mode !== 'in');
                 document.getElementById('zone-ship').classList.toggle('hidden', mode !== 'out');
             }
             if(e.target.closest('#btn-open-settings')) {
-                if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user.role)) {
-                    UI.renderSettingsModal(App.data.employees);
-                }
+                if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user.role)) UI.renderSettingsModal(App.data.employees);
             }
         });
         
         signInAnonymously(auth).then(() => {
-            document.getElementById('login-status').innerText = '✔ V500 Titanium';
+            document.getElementById('login-status').innerText = '✔ V501 Ready';
             App.syncData();
             if(App.user) {
                 document.getElementById('login-overlay').classList.add('hidden');
                 document.getElementById('head-user').innerText = App.user.name;
                 document.getElementById('head-role').innerText = App.user.role;
-                // Nút cài đặt
-                if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user.role)) {
-                    document.getElementById('btn-open-settings').classList.remove('hidden');
-                }
+                if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user.role)) document.getElementById('btn-open-settings').classList.remove('hidden');
                 App.ui.switchTab('home');
             }
         });
@@ -108,11 +103,11 @@ const App = {
         },
         logout: () => { if(confirm("Đăng xuất?")) { localStorage.removeItem('n5_modular_user'); location.reload(); } },
         
-        // --- UI ACTIONS (MỚI) ---
+        // --- UI ACTIONS ---
         toggleChat: () => { 
-            const layer = document.getElementById('chat-layer');
-            layer.classList.toggle('hidden');
-            if(!layer.classList.contains('hidden')) {
+            const l = document.getElementById('chat-layer');
+            l.classList.toggle('hidden');
+            if(!l.classList.contains('hidden')) {
                 document.getElementById('chat-badge').classList.add('hidden');
                 UI.renderChat(App.data.chat, App.user?.id);
             }
@@ -123,11 +118,10 @@ const App = {
         openSettings: () => { if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user.role)) UI.renderSettingsModal(App.data.employees); },
 
         sendChat: async () => { const inp = document.getElementById('chat-input'); if(inp.value.trim()) { await addDoc(collection(db, `${ROOT_PATH}/chat`), { text: inp.value, senderId: App.user.id, senderName: App.user.name, time: Date.now() }); inp.value=''; } },
-        
         installApp: () => { if (!App.deferredPrompt) return UI.showMsg("Đã cài hoặc không hỗ trợ", "error"); App.deferredPrompt.prompt(); },
         enableNotif: () => { Notification.requestPermission().then(p => { if(p==='granted') UI.showMsg("Đã bật thông báo!"); else UI.showMsg("Đã chặn", "error"); }); },
 
-        // --- CORE LOGIC ---
+        // --- CORE ---
         addTask: async () => {
             const t = document.getElementById('task-title').value; const h = document.getElementById('task-house').value; const a = document.getElementById('task-assignee').value; const d = document.getElementById('task-deadline').value; const desc = document.getElementById('task-desc').value;
             if(!t || !a) return UI.showMsg("Thiếu tên hoặc người làm!", "error");
@@ -146,7 +140,7 @@ const App = {
             App.helpers.notify(`✅ ${App.user.name} xong việc (+${points.toFixed(1)}đ)`);
         },
         
-        // --- FIX QUAN TRỌNG: CẬP NHẬT ĐỦ MÃ MỚI ---
+        // --- QUAN TRỌNG: MẢNG MÃ NẤM ĐẦY ĐỦ V466 ---
         submitTH: async () => {
             const area = document.getElementById('th-area').value; if(!area) return alert("Chọn nơi thu hoạch!");
             const codes = ['b2','a1','a2','b1','ht','a1f','a2f','b2f','d1','cn','hc','hh','snack','kho','tra','chan_nam_tp','mu_l1','mu_l2','hau_thu_kho'];
