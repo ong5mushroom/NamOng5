@@ -6,6 +6,7 @@ const ROOT_PATH = "artifacts/namong5_production/public/data";
 const App = {
     data: { employees: [], houses: [], harvest: [], tasks: [], shipping: [], chat: [], hr_requests: [], buy_requests: [] },
     user: JSON.parse(localStorage.getItem('n5_modular_user')) || null,
+    deferredPrompt: null, // Biến lưu sự kiện cài app
 
     helpers: {
         notify: async (msg) => {
@@ -17,7 +18,14 @@ const App = {
 
     init: () => {
         UI.initModals();
-        // SỰ KIỆN TẬP TRUNG (QUAN TRỌNG)
+        
+        // PWA INSTALL HANDLER
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            App.deferredPrompt = e;
+        });
+
+        // SỰ KIỆN CLICK TẬP TRUNG (FIX LỖI BẤM KHÔNG ĂN)
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('.btn-action');
             if(btn) {
@@ -35,7 +43,7 @@ const App = {
         });
         
         signInAnonymously(auth).then(() => {
-            document.getElementById('login-status').innerText = '✔ V405 Ready';
+            document.getElementById('login-status').innerText = '✔ V450 Ready';
             App.syncData();
             if(App.user) {
                 document.getElementById('login-overlay').classList.add('hidden');
@@ -61,14 +69,12 @@ const App = {
                     UI.renderEmployeeOptions(App.data.employees);
                 }
                 
-                // Refresh UI chỉ khi cần thiết
                 if(App.user) App.ui.refresh(localStorage.getItem('n5_current_tab') || 'home');
             });
         });
     },
 
     ui: {
-        // Hàm refresh trung gian để gọi đúng render
         refresh: (tab) => {
             if(tab==='home') UI.renderHome(App.data.houses, App.data.harvest, App.data.employees);
             if(tab==='sx') UI.renderSX(App.data.houses);
@@ -85,7 +91,6 @@ const App = {
     actions: {
         login: () => {
             const id = document.getElementById('login-user').value; const pin = document.getElementById('login-pin').value;
-            // Tìm theo tên vì ID trong option là tên
             const emp = App.data.employees.find(e => e.name === id && String(e.pin) == pin);
             if(emp) { App.user = emp; localStorage.setItem('n5_modular_user', JSON.stringify(emp)); location.reload(); } else alert("Sai PIN!");
         },
@@ -93,17 +98,27 @@ const App = {
         closeChat: () => document.getElementById('chat-layer').classList.add('hidden'),
         sendChat: async () => { const inp = document.getElementById('chat-input'); if(inp.value.trim()) { await addDoc(collection(db, `${ROOT_PATH}/chat`), { text: inp.value, senderId: App.user.id, senderName: App.user.name, time: Date.now() }); inp.value=''; } },
 
-        // --- TASKS FIX ---
+        // --- NEW FEATURES ---
+        installApp: () => {
+            if (!App.deferredPrompt) return UI.showMsg("App đã cài hoặc không hỗ trợ", "error");
+            App.deferredPrompt.prompt();
+        },
+        enableNotif: () => {
+            Notification.requestPermission().then(p => {
+                if(p==='granted') UI.showMsg("Đã bật thông báo!"); else UI.showMsg("Bạn đã chặn thông báo", "error");
+            });
+        },
+
+        // --- CORE LOGIC ---
         addTask: async () => {
             const t = document.getElementById('task-title').value; const h = document.getElementById('task-house').value; const a = document.getElementById('task-assignee').value; const d = document.getElementById('task-deadline').value; const desc = document.getElementById('task-desc').value;
-            // Cho phép nhà trống (việc chung) nhưng tên và người làm phải có
-            if(!t || !a) return UI.showMsg("Thiếu tên việc hoặc người làm!", "error");
+            if(!t || !a) return UI.showMsg("Thiếu tên hoặc người làm!", "error"); // Fix lỗi báo thiếu tin
             await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title:t, house:h, assignee:a, deadline:d, desc, status:'pending', createdBy:App.user.name, time:Date.now() });
             App.helpers.notify(`📋 Giao việc: ${t} cho ${a}`);
         },
         receiveTask: async (id) => { await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), {status:'received', receivedAt:Date.now()}); UI.showMsg("Đã nhận việc"); },
         submitTask: async (id) => { 
-            // Check bảo mật: Chỉ người được giao mới báo cáo được
+            // FIX BẢO MẬT: CHỈ NGƯỜI ĐƯỢC GIAO MỚI BÁO CÁO
             const task = App.data.tasks.find(t => t._id === id);
             if(task && task.assignee !== App.user.name) return UI.showMsg("Không phải việc của bạn!", "error");
 
@@ -116,19 +131,18 @@ const App = {
         },
         submitTH: async () => {
             const area = document.getElementById('th-area').value; if(!area) return alert("Chọn nơi thu hoạch!");
-            const codes = ['b2','a1','a2','b1','ht','a1f','a2f','b2f','d1','cn','hc','hh','snack','kho','tra'];
+            const codes = ['b2','a1','a2','b1','ht','a1f','a2f','b2f','d1','cn','hc','hh','snack','kho','tra','chan_nam','mu_l1','mu_l2','hau_thu_kho'];
             let d = {}, total = 0;
-            codes.forEach(c => { const v = Number(document.getElementById(`th-${c}`).value)||0; if(v>0) { d[c]=v; total+=v; } });
+            codes.forEach(c => { const v = Number(document.getElementById(`th-${c}`)?.value)||0; if(v>0) { d[c]=v; total+=v; } });
             if(total===0) return alert("Chưa nhập số!");
-            // Reset input
-            codes.forEach(c => document.getElementById(`th-${c}`).value = '');
-            await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details:d, total, user:App.user.name, time:Date.now() });
-            App.helpers.notify(`🍄 ${App.user.name} nhập ${total} đơn vị từ ${area}`);
+            await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details:d, total, note:'', user:App.user.name, time:Date.now() });
+            // Reset fields
+            codes.forEach(c => { if(document.getElementById(`th-${c}`)) document.getElementById(`th-${c}`).value = ''; });
+            App.helpers.notify(`🍄 ${App.user.name} nhập ${total} đơn vị`);
         },
         submitShip: async () => {
             const c = document.getElementById('ship-cust').value; const t = document.getElementById('ship-type').value; const q = Number(document.getElementById('ship-qty').value);
             if(!c || !q) return alert("Thiếu tin!");
-            document.getElementById('ship-cust').value=''; document.getElementById('ship-qty').value='';
             await addDoc(collection(db, `${ROOT_PATH}/shipping`), { customer: c, type: t, qty: q, note: document.getElementById('ship-note').value, user: App.user.name, time: Date.now() });
             App.helpers.notify(`🚚 Xuất ${q}kg ${t} cho ${c}`);
         },
