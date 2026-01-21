@@ -3,40 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nấm Ông 5 - V450</title>
-    <link rel="manifest" href="manifest.json">
+    <title>Nấm Ông 5 - V460 SECURE</title>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* CORE CSS FIX */
-        body { background-color: #f1f5f9 !important; color: #0f172a !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .card, .bg-white { background-color: #ffffff !important; color: #0f172a !important; }
+        /* CSS FIX CỨNG: ÉP MÀU & KÍCH THƯỚC */
+        body { background-color: #f1f5f9 !important; color: #0f172a !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card, .bg-white, .modal-content { background-color: #ffffff !important; color: #0f172a !important; }
         
-        /* INPUT ĐỀU TĂM TẮP */
+        /* INPUT ĐỀU TĂM TẮP 100% */
         input, select, textarea {
             background-color: #f8fafc !important;
             border: 1px solid #cbd5e1 !important;
-            color: #0f172a !important;
+            color: #000000 !important;
             font-weight: 600;
             border-radius: 8px;
             padding: 12px;
-            width: 100%;
+            width: 100% !important; /* Quan trọng */
+            box-sizing: border-box; /* Quan trọng */
             outline: none;
             font-size: 14px;
         }
         input:focus, select:focus { border-color: #3b82f6 !important; background-color: #fff !important; }
         
-        /* TEXT COLORS */
-        .btn-primary, .bg-blue-600, .bg-green-600, .bg-orange-600, .bg-purple-600, .bg-red-600 { color: #ffffff !important; }
+        .btn-primary, .bg-blue-600, .bg-green-600, .bg-orange-600, .bg-purple-600, .bg-red-600, .bg-slate-800 { color: #ffffff !important; }
 
-        /* SCROLLBAR & ANIMATION */
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .animate-fade { animation: fadeIn 0.25s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* CHAT PATTERN */
         .chat-bg { background-color: #efeae2; background-image: url("https://www.transparenttextures.com/patterns/cubes.png"); }
     </style>
 </head>
@@ -50,7 +46,7 @@
                 <div id="head-role" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded inline-block">Connecting...</div>
             </div>
         </div>
-        <button id="btn-open-settings" class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 hover:bg-blue-50 transition flex items-center justify-center"><i class="fas fa-cog text-xl"></i></button>
+        <button id="btn-open-settings" class="hidden w-10 h-10 rounded-full bg-slate-100 text-slate-600 hover:bg-blue-50 transition flex items-center justify-center"><i class="fas fa-cog text-xl"></i></button>
     </header>
 
     <main id="main-app" class="flex-1 mt-16 overflow-y-auto pb-24 px-2 pt-3 scroll-smooth">
@@ -71,7 +67,7 @@
         </div>
     </nav>
 
-    <button id="btn-open-chat" class="fixed bottom-24 right-4 w-14 h-14 bg-gradient-to-tr from-green-500 to-emerald-600 text-white rounded-full shadow-2xl z-40 flex items-center justify-center active:scale-90 transition border-2 border-white"><i class="fas fa-comment-dots text-2xl"></i></button>
+    <button id="btn-open-chat" class="fixed bottom-24 right-4 w-14 h-14 bg-gradient-to-tr from-green-500 to-emerald-600 text-white rounded-full shadow-2xl z-40 flex items-center justify-center active:scale-90 transition border-2 border-white"><i class="fas fa-comment-dots text-2xl"></i><div id="chat-badge" class="hidden absolute top-0 right-0 w-4 h-4 bg-red-600 rounded-full border-2 border-white"></div></button>
 
     <div id="login-overlay" class="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center p-6">
         <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-8 shadow-2xl animate-bounce"><i class="fas fa-mushroom text-5xl text-amber-800"></i></div>
@@ -81,7 +77,7 @@
             <input type="password" id="login-pin" class="w-full p-4 rounded-xl text-slate-900 text-center text-2xl font-black tracking-widest shadow-lg" placeholder="PIN" maxlength="4">
             <button id="login-btn" class="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white py-4 rounded-xl font-black shadow-lg uppercase text-lg active:scale-95 transition">Đăng Nhập</button>
         </div>
-        <div id="login-status" class="mt-6 text-slate-400 text-xs font-mono">V450 Ready</div>
+        <div id="login-status" class="mt-6 text-slate-400 text-xs font-mono">V460 Secure</div>
     </div>
 
     <div id="chat-layer" class="hidden fixed inset-0 z-50 bg-white flex flex-col animate-slide-up"></div>
