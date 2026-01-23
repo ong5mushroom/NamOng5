@@ -3,48 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Nấm Ông 5 - V605 STABLE</title>
+    <title>Nấm Ông 5 - V610 FIXED</title>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* BASE STYLES */
-        body { background-color: #f0f2f5 !important; color: #1e293b !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        /* CORE */
+        body { background-color: #f0f2f5 !important; color: #0f172a !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        /* GLASS UI (V600) */
-        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border-radius: 16px; }
+        /* GLASS UI */
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border-radius: 16px; }
         
-        /* INPUT CHUẨN */
+        /* INPUT */
         input, select, textarea {
-            background: #ffffff !important; border: 1px solid #cbd5e1 !important; color: #0f172a !important;
+            background: #ffffff !important; border: 1px solid #cbd5e1 !important; color: #000000 !important;
             font-weight: 600; border-radius: 10px; padding: 12px; width: 100% !important; outline: none; font-size: 14px;
         }
-        input:focus, select:focus { border-color: #2563eb !important; ring: 2px solid #bfdbfe; }
+        input:focus, select:focus, textarea:focus { border-color: #2563eb !important; ring: 2px solid #bfdbfe; }
         
-        /* UTILS */
         .btn-action:active { transform: scale(0.96); transition: transform 0.1s; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
-        .animate-fade { animation: fadeIn 0.25s ease-out; }
+        .animate-fade { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .chat-bg { background-color: #e2e8f0; background-image: radial-gradient(#94a3b8 1px, transparent 1px); background-size: 20px 20px; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden bg-slate-50">
 
-    <header class="h-16 glass fixed top-0 w-full z-40 flex items-center justify-between px-4 m-0 rounded-none border-b">
+    <header class="h-16 glass fixed top-0 w-full z-40 flex items-center justify-between px-4 border-b">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-200">N</div>
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">N</div>
             <div>
                 <div id="head-user" class="text-sm font-black text-slate-800 uppercase">KHÁCH</div>
-                <div id="head-role" class="text-[10px] font-bold text-slate-500">Connecting...</div>
+                <div id="head-role" class="text-[10px] font-bold text-slate-500">...</div>
             </div>
         </div>
         <button id="btn-open-settings" class="hidden w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center btn-action" data-action="openSettings"><i class="fas fa-cog text-xl"></i></button>
     </header>
 
-    <main id="main-app" class="flex-1 mt-16 overflow-y-auto pb-24 px-3 pt-3 scroll-smooth">
+    <main id="main-app" class="flex-1 mt-16 overflow-y-auto pb-28 px-3 pt-3 scroll-smooth">
         <div id="view-home" class="view-section animate-fade"></div>
         <div id="view-tasks" class="view-section hidden animate-fade"></div>
         <div id="view-sx" class="view-section hidden animate-fade"></div>
@@ -60,12 +59,12 @@
         <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group" data-tab="team"><i class="fas fa-users text-xl mb-1 group-active:-translate-y-1 transition"></i><span class="text-[9px] font-bold">TEAM</span></button>
     </nav>
 
-    <button id="btn-open-chat" class="fixed bottom-24 right-4 w-14 h-14 bg-green-500 text-white rounded-full shadow-2xl z-40 flex items-center justify-center active:scale-90 transition border-2 border-white btn-action" data-action="toggleChat">
+    <button id="btn-open-chat" class="fixed bottom-24 right-4 w-14 h-14 bg-green-600 text-white rounded-full shadow-2xl z-[100] flex items-center justify-center active:scale-90 transition border-2 border-white btn-action" data-action="toggleChat">
         <i class="fas fa-comment-dots text-2xl"></i>
         <div id="chat-badge" class="hidden absolute top-0 right-0 w-4 h-4 bg-red-600 rounded-full border-2 border-white"></div>
     </button>
 
-    <div id="login-overlay" class="fixed inset-0 z-[100] bg-slate-100 flex flex-col items-center justify-center p-6">
+    <div id="login-overlay" class="fixed inset-0 z-[200] bg-slate-100 flex flex-col items-center justify-center p-6">
         <div class="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-8 shadow-2xl animate-bounce"><i class="fas fa-mushroom text-5xl text-amber-800"></i></div>
         <h2 class="text-3xl font-black text-slate-800 uppercase tracking-widest mb-10">NẤM ÔNG 5</h2>
         <div class="w-full max-w-xs space-y-4">
@@ -73,19 +72,19 @@
             <input type="password" id="login-pin" class="glass !bg-white p-4 text-center text-2xl font-black tracking-widest" placeholder="PIN" maxlength="4">
             <button id="login-btn" class="w-full bg-slate-800 text-white py-4 rounded-xl font-bold shadow-xl uppercase text-lg active:scale-95 transition">Đăng Nhập</button>
         </div>
-        <div id="login-status" class="mt-6 text-slate-400 text-xs font-mono">V605 Stable</div>
+        <div id="login-status" class="mt-6 text-slate-400 text-xs font-mono">V610 Fixed</div>
     </div>
 
-    <div id="chat-layer" class="hidden fixed inset-0 z-50 bg-white flex flex-col animate-fade">
+    <div id="chat-layer" class="hidden fixed inset-0 z-[150] bg-white flex flex-col animate-fade">
         <div class="h-16 glass border-b flex items-center justify-between px-4 shadow-sm z-10"><h3 class="font-black text-slate-800 flex items-center"><i class="fas fa-comments text-blue-600 mr-2"></i>NHÓM CHUNG</h3><button class="w-10 h-10 bg-slate-100 rounded-full btn-action flex items-center justify-center text-slate-500" data-action="closeChat"><i class="fas fa-times"></i></button></div>
         <div id="chat-msgs" class="flex-1 overflow-y-auto p-4 space-y-3 chat-bg"></div>
         <div class="p-3 bg-white border-t flex gap-2 pb-safe"><input id="chat-input" class="bg-slate-100 rounded-full px-5 font-bold" placeholder="Nhập tin nhắn..."><button class="w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg btn-action" data-action="sendChat"><i class="fas fa-paper-plane"></i></button></div>
     </div>
 
-    <div id="modal-settings" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm btn-action" data-action="closeModal" data-target="modal-settings"></div>
-    <div id="modal-add-prod" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"></div>
+    <div id="modal-settings" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm btn-action" data-action="closeModal" data-target="modal-settings"></div>
+    <div id="modal-add-prod" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"></div>
     
-    <div id="modal-leave" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div id="modal-leave" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
         <div class="glass !bg-white w-full max-w-sm p-6 space-y-4 shadow-2xl">
             <h3 class="font-black text-center text-slate-800 text-lg uppercase">Xin Nghỉ Phép</h3>
             <input id="leave-date" type="date">
@@ -93,8 +92,7 @@
             <div class="flex gap-3"><button class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500 btn-action" data-action="closeModal" data-target="modal-leave">Hủy</button><button class="flex-1 py-3 bg-orange-500 text-white rounded-xl font-bold btn-action shadow-lg" data-action="submitLeave">Gửi</button></div>
         </div>
     </div>
-    
-    <div id="modal-buy-req" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div id="modal-buy-req" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
         <div class="glass !bg-white w-full max-w-sm p-6 space-y-4 shadow-2xl">
             <h3 class="font-black text-center text-slate-800 text-lg uppercase">Mua Hàng</h3>
             <input id="buy-name" placeholder="Tên hàng">
@@ -104,7 +102,7 @@
         </div>
     </div>
 
-    <div id="msg-box" class="hidden fixed top-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl text-white font-bold z-[100] text-sm animate-fade bg-slate-900/90 backdrop-blur whitespace-nowrap"></div>
+    <div id="msg-box" class="hidden fixed top-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl text-white font-bold z-[200] text-sm animate-fade bg-slate-900/90 backdrop-blur whitespace-nowrap"></div>
 
     <script type="module" src="js/logic.js"></script>
 </body>
