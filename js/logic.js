@@ -4,9 +4,17 @@ import { UI } from './ui.js';
 const ROOT_PATH = "artifacts/namong5_production/public/data"; 
 
 const App = {
-    data: { employees: [], houses: [], harvest: [], tasks: [], shipping: [], chat: [], products: [] },
+    data: { employees: [], houses: [], harvest: [], tasks: [], shipping: [], chat: [], hr_requests: [], buy_requests: [], products: [] },
     user: JSON.parse(localStorage.getItem('n5_modular_user')) || null,
     deferredPrompt: null,
+
+    helpers: {
+        notify: async (msg) => {
+            UI.playSound('success');
+            await addDoc(collection(db, `${ROOT_PATH}/chat`), { text: msg, senderId: 'SYSTEM', senderName: 'HỆ THỐNG', type: 'system', time: Date.now() });
+            UI.showMsg(msg);
+        }
+    },
 
     init: () => {
         UI.initModals();
@@ -19,25 +27,25 @@ const App = {
                 const payload = btn.dataset.payload;
                 if(App.actions[action]) App.actions[action](payload);
             }
-            // Toggle Chat
             if(e.target.closest('#btn-open-chat')) App.actions.toggleChat();
-            
-            // Toggle TH/Ship
             if(e.target.dataset.action === 'toggleTH') {
                 const mode = e.target.dataset.payload;
                 document.getElementById('zone-th').classList.toggle('hidden', mode !== 'in');
                 document.getElementById('zone-ship').classList.toggle('hidden', mode !== 'out');
-                // Active style
+                // Active style toggle
                 const btns = e.target.parentElement.querySelectorAll('button');
                 btns.forEach(b => {
                     if(b === e.target) b.classList.add('bg-white','text-green-600','shadow-sm');
                     else b.classList.remove('bg-white','text-green-600','shadow-sm');
                 });
             }
+            if(e.target.closest('#btn-open-settings')) {
+                if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user.role)) UI.renderSettingsModal(App.data.employees);
+            }
         });
         
         signInAnonymously(auth).then(() => {
-            document.getElementById('login-status').innerText = '✔ V600 Connected';
+            document.getElementById('login-status').innerText = '✔ V605 Connected';
             App.syncData();
             if(App.user) {
                 document.getElementById('login-overlay').classList.add('hidden');
@@ -52,13 +60,13 @@ const App = {
     },
 
     syncData: () => {
-        const colls = ['employees','houses','harvest_logs','tasks','shipping','chat','products'];
+        const colls = ['employees','houses','harvest_logs','tasks','shipping','chat','hr_requests','buy_requests', 'products'];
         colls.forEach(c => {
             onSnapshot(collection(db, `${ROOT_PATH}/${c}`), (snap) => {
                 const key = c==='harvest_logs'?'harvest':c;
                 App.data[key] = snap.docs.map(d => ({...d.data(), _id: d.id}));
                 
-                // TỰ ĐỘNG TẠO SẢN PHẨM MẪU NẾU TRỐNG (AUTO SEEDER)
+                // --- AUTO SEEDER ---
                 if(c === 'products' && snap.empty) {
                     const seeds = [
                         {name:"B2", code:"b2", group:"1"}, {name:"A1", code:"a1", group:"1"}, {name:"Hầu Thủ", code:"ht", group:"1"},
@@ -93,7 +101,7 @@ const App = {
         refresh: (tab) => {
             if(tab==='home') UI.renderHome(App.data.houses, App.data.harvest, App.data.employees);
             if(tab==='sx') UI.renderSX(App.data.houses);
-            if(tab==='th') UI.renderTH(App.data.houses, App.data.harvest, App.data.shipping, App.data.products);
+            if(tab==='th') UI.renderTH(App.data.houses, App.data.harvest, App.data.shipping, App.data.products); // Truyền products vào
             if(tab==='tasks') UI.renderTasksAndShip(App.data.tasks, App.user, App.data.houses, App.data.employees);
             if(tab==='team') UI.renderTeam(App.user, [], App.data.employees);
         },
@@ -113,7 +121,12 @@ const App = {
             if(!l.classList.contains('hidden')) { document.getElementById('chat-badge').classList.add('hidden'); UI.renderChat(App.data.chat, App.user?.id); }
         },
         closeChat: () => document.getElementById('chat-layer').classList.add('hidden'),
-        openModal: (id) => UI.toggleModal(id),
+        
+        // FIX: ĐÃ THÊM ACTION MỞ/ĐÓNG MODAL
+        openModal: (id) => {
+            if(id === 'modal-add-prod') UI.renderAddProductModal(); // Render trước khi mở
+            UI.toggleModal(id);
+        },
         closeModal: (id) => document.getElementById(id).classList.add('hidden'),
         openSettings: () => { if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user.role)) UI.renderSettingsModal(App.data.employees); },
 
@@ -121,17 +134,19 @@ const App = {
         installApp: () => { if (!App.deferredPrompt) return UI.showMsg("Đã cài hoặc không hỗ trợ"); App.deferredPrompt.prompt(); },
         enableNotif: () => { Notification.requestPermission().then(p => UI.showMsg(p==='granted'?"Đã bật thông báo!":"Đã chặn")); },
 
-        // DYNAMIC TH
+        // FIX: HÀM LƯU SẢN PHẨM MỚI
         submitAddProd: async () => {
             const n = document.getElementById('new-prod-name').value; const c = document.getElementById('new-prod-code').value; const g = document.getElementById('new-prod-group').value;
             if(!n || !c) return UI.showMsg("Thiếu tin!");
             await addDoc(collection(db, `${ROOT_PATH}/products`), { name:n, code:c, group:g });
             document.getElementById('modal-add-prod').classList.add('hidden'); UI.showMsg(`Đã thêm ${n}`);
         },
+
+        // FIX: HÀM LƯU KHO DUYỆT QUA LIST ĐỘNG
         submitTH: async () => {
             const area = document.getElementById('th-area').value; if(!area) return alert("Chọn nơi thu hoạch!");
             let d = {}, total = 0;
-            // Loop qua danh sách sản phẩm động
+            // Loop qua danh sách sản phẩm lấy từ DB
             App.data.products.forEach(p => {
                 const el = document.getElementById(`th-${p.code}`);
                 if(el) { const v = Number(el.value)||0; if(v>0) { d[p.code]=v; total+=v; } el.value=''; }
@@ -141,9 +156,8 @@ const App = {
             App.helpers.notify(`🍄 ${App.user.name} nhập ${total} đơn vị`);
         },
         
-        // STANDARD ACTIONS
         submitShip: async () => { const c = document.getElementById('ship-cust').value; const t = document.getElementById('ship-type').value; const q = Number(document.getElementById('ship-qty').value); if(!c || !q) return alert("Thiếu tin!"); await addDoc(collection(db, `${ROOT_PATH}/shipping`), { customer: c, type: t, qty: q, note: document.getElementById('ship-note').value, user: App.user.name, time: Date.now() }); App.helpers.notify(`🚚 Xuất ${q}kg ${t}`); },
-        calcVariance: () => { const a = Number(document.getElementById('stock-count').value); const diff = a - 150.0; const r = document.getElementById('stock-variance-res'); r.classList.remove('hidden'); r.innerText = diff===0 ? '✅ KHỚP' : `⚠️ LỆCH: ${diff}kg`; },
+        calcVariance: () => { const a = Number(document.getElementById('stock-count').value); const diff = a - 150.0; const r = document.getElementById('stock-variance-res'); r.classList.remove('hidden'); r.className = diff===0 ? 'mt-2 text-center text-xs font-bold text-green-600 bg-green-100 p-2 rounded' : 'mt-2 text-center text-xs font-bold text-red-600 bg-red-100 p-2 rounded'; r.innerText = diff===0 ? '✅ KHỚP' : `⚠️ LỆCH: ${diff}kg`; },
         submitAttendance: async () => { if(confirm("Chấm công?")) { await addDoc(collection(db, `${ROOT_PATH}/attendance`), { user:App.user.name, type:'CHECK_IN', time:Date.now() }); App.helpers.notify(`🕒 Đã điểm danh`); } },
         submitLeave: async () => { await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), { user:App.user.name, type:'LEAVE', date:document.getElementById('leave-date').value, reason:document.getElementById('leave-reason').value, status:'pending', time:Date.now() }); document.getElementById('modal-leave').classList.add('hidden'); App.helpers.notify("📝 Đã gửi đơn nghỉ"); },
         submitBuyRequest: async () => { await addDoc(collection(db, `${ROOT_PATH}/buy_requests`), { user:App.user.name, item:document.getElementById('buy-name').value, unit:document.getElementById('buy-unit').value, qty:document.getElementById('buy-qty').value, status:'pending', time:Date.now() }); document.getElementById('modal-buy-req').classList.add('hidden'); App.helpers.notify("🛒 Đã gửi đề xuất mua"); },
