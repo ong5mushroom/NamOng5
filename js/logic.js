@@ -4,17 +4,9 @@ import { UI } from './ui.js';
 const ROOT_PATH = "artifacts/namong5_production/public/data"; 
 
 const App = {
-    data: { employees: [], houses: [], harvest: [], tasks: [], shipping: [], chat: [], hr_requests: [], buy_requests: [] },
+    data: { employees: [], houses: [], harvest: [], tasks: [], shipping: [], chat: [], products: [] },
     user: JSON.parse(localStorage.getItem('n5_modular_user')) || null,
     deferredPrompt: null,
-
-    helpers: {
-        notify: async (msg) => {
-            UI.playSound('success');
-            await addDoc(collection(db, `${ROOT_PATH}/chat`), { text: msg, senderId: 'SYSTEM', senderName: 'HỆ THỐNG', type: 'system', time: Date.now() });
-            UI.showMsg(msg);
-        }
-    },
 
     init: () => {
         UI.initModals();
@@ -27,19 +19,25 @@ const App = {
                 const payload = btn.dataset.payload;
                 if(App.actions[action]) App.actions[action](payload);
             }
+            // Toggle Chat
             if(e.target.closest('#btn-open-chat')) App.actions.toggleChat();
+            
+            // Toggle TH/Ship
             if(e.target.dataset.action === 'toggleTH') {
                 const mode = e.target.dataset.payload;
                 document.getElementById('zone-th').classList.toggle('hidden', mode !== 'in');
                 document.getElementById('zone-ship').classList.toggle('hidden', mode !== 'out');
-            }
-            if(e.target.closest('#btn-open-settings')) {
-                if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user.role)) UI.renderSettingsModal(App.data.employees);
+                // Active style
+                const btns = e.target.parentElement.querySelectorAll('button');
+                btns.forEach(b => {
+                    if(b === e.target) b.classList.add('bg-white','text-green-600','shadow-sm');
+                    else b.classList.remove('bg-white','text-green-600','shadow-sm');
+                });
             }
         });
         
         signInAnonymously(auth).then(() => {
-            document.getElementById('login-status').innerText = '✔ V501 Ready';
+            document.getElementById('login-status').innerText = '✔ V600 Connected';
             App.syncData();
             if(App.user) {
                 document.getElementById('login-overlay').classList.add('hidden');
@@ -54,12 +52,24 @@ const App = {
     },
 
     syncData: () => {
-        const colls = ['employees','houses','harvest_logs','tasks','shipping','chat','hr_requests','buy_requests'];
+        const colls = ['employees','houses','harvest_logs','tasks','shipping','chat','products'];
         colls.forEach(c => {
             onSnapshot(collection(db, `${ROOT_PATH}/${c}`), (snap) => {
                 const key = c==='harvest_logs'?'harvest':c;
                 App.data[key] = snap.docs.map(d => ({...d.data(), _id: d.id}));
                 
+                // TỰ ĐỘNG TẠO SẢN PHẨM MẪU NẾU TRỐNG (AUTO SEEDER)
+                if(c === 'products' && snap.empty) {
+                    const seeds = [
+                        {name:"B2", code:"b2", group:"1"}, {name:"A1", code:"a1", group:"1"}, {name:"Hầu Thủ", code:"ht", group:"1"},
+                        {name:"Chân Nấm", code:"chan_nam", group:"2"}, {name:"Hư Hỏng", code:"hu_hong", group:"2"},
+                        {name:"Snack", code:"snack", group:"3"}, {name:"Nấm Khô", code:"nam_kho", group:"3"}, 
+                        {name:"Trà", code:"tra", group:"3"}, {name:"Chân Nấm (TP)", code:"chan_nam_tp", group:"3"},
+                        {name:"Mũ L1", code:"mu_l1", group:"3"}, {name:"Mũ L2", code:"mu_l2", group:"3"}, {name:"Hầu Thủ Khô", code:"hau_thu_kho", group:"3"}
+                    ];
+                    seeds.forEach(p => addDoc(collection(db, `${ROOT_PATH}/products`), p));
+                }
+
                 if(c==='chat') {
                     App.data.chat.sort((a,b) => (a.time||0)-(b.time||0));
                     if(!document.getElementById('chat-layer').classList.contains('hidden')) UI.renderChat(App.data.chat, App.user?.id);
@@ -67,8 +77,6 @@ const App = {
                         document.getElementById('chat-badge')?.classList.remove('hidden');
                         UI.playSound('msg');
                     }
-                } else if(App.data[key].length && App.data[key][0].time) {
-                    App.data[key].sort((a,b) => (b.time||0)-(a.time||0));
                 }
 
                 if(c==='employees') {
@@ -85,14 +93,11 @@ const App = {
         refresh: (tab) => {
             if(tab==='home') UI.renderHome(App.data.houses, App.data.harvest, App.data.employees);
             if(tab==='sx') UI.renderSX(App.data.houses);
-            if(tab==='th') UI.renderTH(App.data.houses, App.data.harvest, App.data.shipping);
+            if(tab==='th') UI.renderTH(App.data.houses, App.data.harvest, App.data.shipping, App.data.products);
             if(tab==='tasks') UI.renderTasksAndShip(App.data.tasks, App.user, App.data.houses, App.data.employees);
-            if(tab==='team') UI.renderTeam(App.user, [...(App.data.hr_requests||[]), ...(App.data.buy_requests||[])], App.data.employees);
+            if(tab==='team') UI.renderTeam(App.user, [], App.data.employees);
         },
-        switchTab: (tab) => {
-            UI.switchTab(tab);
-            App.ui.refresh(tab);
-        }
+        switchTab: (tab) => { UI.switchTab(tab); App.ui.refresh(tab); }
     },
 
     actions: {
@@ -103,14 +108,9 @@ const App = {
         },
         logout: () => { if(confirm("Đăng xuất?")) { localStorage.removeItem('n5_modular_user'); location.reload(); } },
         
-        // --- UI ACTIONS ---
         toggleChat: () => { 
-            const l = document.getElementById('chat-layer');
-            l.classList.toggle('hidden');
-            if(!l.classList.contains('hidden')) {
-                document.getElementById('chat-badge').classList.add('hidden');
-                UI.renderChat(App.data.chat, App.user?.id);
-            }
+            const l = document.getElementById('chat-layer'); l.classList.toggle('hidden');
+            if(!l.classList.contains('hidden')) { document.getElementById('chat-badge').classList.add('hidden'); UI.renderChat(App.data.chat, App.user?.id); }
         },
         closeChat: () => document.getElementById('chat-layer').classList.add('hidden'),
         openModal: (id) => UI.toggleModal(id),
@@ -118,64 +118,41 @@ const App = {
         openSettings: () => { if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user.role)) UI.renderSettingsModal(App.data.employees); },
 
         sendChat: async () => { const inp = document.getElementById('chat-input'); if(inp.value.trim()) { await addDoc(collection(db, `${ROOT_PATH}/chat`), { text: inp.value, senderId: App.user.id, senderName: App.user.name, time: Date.now() }); inp.value=''; } },
-        installApp: () => { if (!App.deferredPrompt) return UI.showMsg("Đã cài hoặc không hỗ trợ", "error"); App.deferredPrompt.prompt(); },
-        enableNotif: () => { Notification.requestPermission().then(p => { if(p==='granted') UI.showMsg("Đã bật thông báo!"); else UI.showMsg("Đã chặn", "error"); }); },
+        installApp: () => { if (!App.deferredPrompt) return UI.showMsg("Đã cài hoặc không hỗ trợ"); App.deferredPrompt.prompt(); },
+        enableNotif: () => { Notification.requestPermission().then(p => UI.showMsg(p==='granted'?"Đã bật thông báo!":"Đã chặn")); },
 
-        // --- CORE ---
-        addTask: async () => {
-            const t = document.getElementById('task-title').value; const h = document.getElementById('task-house').value; const a = document.getElementById('task-assignee').value; const d = document.getElementById('task-deadline').value; const desc = document.getElementById('task-desc').value;
-            if(!t || !a) return UI.showMsg("Thiếu tên hoặc người làm!", "error");
-            await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title:t, house:h, assignee:a, deadline:d, desc, status:'pending', createdBy:App.user.name, time:Date.now() });
-            App.helpers.notify(`📋 Giao việc: ${t} cho ${a}`);
+        // DYNAMIC TH
+        submitAddProd: async () => {
+            const n = document.getElementById('new-prod-name').value; const c = document.getElementById('new-prod-code').value; const g = document.getElementById('new-prod-group').value;
+            if(!n || !c) return UI.showMsg("Thiếu tin!");
+            await addDoc(collection(db, `${ROOT_PATH}/products`), { name:n, code:c, group:g });
+            document.getElementById('modal-add-prod').classList.add('hidden'); UI.showMsg(`Đã thêm ${n}`);
         },
-        receiveTask: async (id) => { await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), {status:'received', receivedAt:Date.now()}); UI.showMsg("Đã nhận việc"); },
-        submitTask: async (id) => { 
-            const task = App.data.tasks.find(t => t._id === id);
-            if(task && task.assignee !== App.user.name) return UI.showMsg("Không phải việc của bạn!", "error");
-            const todayTasks = App.data.tasks.filter(t => t.assignee === App.user.name && new Date(t.time).getDate() === new Date().getDate());
-            const points = todayTasks.length > 0 ? (10 / todayTasks.length) : 10;
-            const empRef = App.data.employees.find(e => e.id === App.user.id);
-            if(empRef) { await updateDoc(doc(db, `${ROOT_PATH}/employees`, empRef._id), { score: Math.round(((empRef.score||0) + points) * 10) / 10 }); }
-            await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), {status:'done', completedBy:App.user.name, completedAt:Date.now()});
-            App.helpers.notify(`✅ ${App.user.name} xong việc (+${points.toFixed(1)}đ)`);
-        },
-        
-        // --- QUAN TRỌNG: MẢNG MÃ NẤM ĐẦY ĐỦ V466 ---
         submitTH: async () => {
             const area = document.getElementById('th-area').value; if(!area) return alert("Chọn nơi thu hoạch!");
-            const codes = ['b2','a1','a2','b1','ht','a1f','a2f','b2f','d1','cn','hc','hh','snack','kho','tra','chan_nam_tp','mu_l1','mu_l2','hau_thu_kho'];
             let d = {}, total = 0;
-            codes.forEach(c => { const v = Number(document.getElementById(`th-${c}`)?.value)||0; if(v>0) { d[c]=v; total+=v; } });
+            // Loop qua danh sách sản phẩm động
+            App.data.products.forEach(p => {
+                const el = document.getElementById(`th-${p.code}`);
+                if(el) { const v = Number(el.value)||0; if(v>0) { d[p.code]=v; total+=v; } el.value=''; }
+            });
             if(total===0) return alert("Chưa nhập số!");
             await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details:d, total, note:'', user:App.user.name, time:Date.now() });
-            codes.forEach(c => { if(document.getElementById(`th-${c}`)) document.getElementById(`th-${c}`).value = ''; });
             App.helpers.notify(`🍄 ${App.user.name} nhập ${total} đơn vị`);
         },
         
-        submitShip: async () => {
-            const c = document.getElementById('ship-cust').value; const t = document.getElementById('ship-type').value; const q = Number(document.getElementById('ship-qty').value);
-            if(!c || !q) return alert("Thiếu tin!");
-            await addDoc(collection(db, `${ROOT_PATH}/shipping`), { customer: c, type: t, qty: q, note: document.getElementById('ship-note').value, user: App.user.name, time: Date.now() });
-            App.helpers.notify(`🚚 Xuất ${q}kg ${t} cho ${c}`);
-        },
-        calcVariance: () => {
-            const actual = Number(document.getElementById('stock-count').value);
-            const system = 150.0; const diff = actual - system;
-            const res = document.getElementById('stock-variance-res');
-            res.classList.remove('hidden');
-            res.className = diff===0 ? 'mt-3 p-3 rounded-lg text-center text-sm font-bold bg-green-100 text-green-700' : 'mt-3 p-3 rounded-lg text-center text-sm font-bold bg-red-100 text-red-700';
-            res.innerText = diff===0 ? '✅ KHỚP SỐ LIỆU' : `⚠️ LỆCH: ${diff > 0 ? '+' : ''}${diff.toFixed(1)} kg`;
-        },
-        submitAttendance: async () => { if(confirm("Chấm công?")) { await addDoc(collection(db, `${ROOT_PATH}/attendance`), { user:App.user.name, type:'CHECK_IN', time:Date.now() }); App.helpers.notify(`🕒 ${App.user.name} đã điểm danh`); } },
+        // STANDARD ACTIONS
+        submitShip: async () => { const c = document.getElementById('ship-cust').value; const t = document.getElementById('ship-type').value; const q = Number(document.getElementById('ship-qty').value); if(!c || !q) return alert("Thiếu tin!"); await addDoc(collection(db, `${ROOT_PATH}/shipping`), { customer: c, type: t, qty: q, note: document.getElementById('ship-note').value, user: App.user.name, time: Date.now() }); App.helpers.notify(`🚚 Xuất ${q}kg ${t}`); },
+        calcVariance: () => { const a = Number(document.getElementById('stock-count').value); const diff = a - 150.0; const r = document.getElementById('stock-variance-res'); r.classList.remove('hidden'); r.innerText = diff===0 ? '✅ KHỚP' : `⚠️ LỆCH: ${diff}kg`; },
+        submitAttendance: async () => { if(confirm("Chấm công?")) { await addDoc(collection(db, `${ROOT_PATH}/attendance`), { user:App.user.name, type:'CHECK_IN', time:Date.now() }); App.helpers.notify(`🕒 Đã điểm danh`); } },
         submitLeave: async () => { await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), { user:App.user.name, type:'LEAVE', date:document.getElementById('leave-date').value, reason:document.getElementById('leave-reason').value, status:'pending', time:Date.now() }); document.getElementById('modal-leave').classList.add('hidden'); App.helpers.notify("📝 Đã gửi đơn nghỉ"); },
         submitBuyRequest: async () => { await addDoc(collection(db, `${ROOT_PATH}/buy_requests`), { user:App.user.name, item:document.getElementById('buy-name').value, unit:document.getElementById('buy-unit').value, qty:document.getElementById('buy-qty').value, status:'pending', time:Date.now() }); document.getElementById('modal-buy-req').classList.add('hidden'); App.helpers.notify("🛒 Đã gửi đề xuất mua"); },
         punishEmp: async (payload) => { const [id, points] = payload.split('|'); const r = prompt("Lý do:"); if(r) { const emp = App.data.employees.find(e => e._id === id); await updateDoc(doc(db, `${ROOT_PATH}/employees`, id), { score: (emp.score || 0) - Number(points) }); App.helpers.notify(`⚠️ PHẠT: ${emp.name} -${points}đ (${r})`); } },
-        adminAddEmp: async () => { const n = document.getElementById('new-emp-name').value; const p = document.getElementById('new-emp-pin').value; if(n && p) { await addDoc(collection(db, `${ROOT_PATH}/employees`), { id:Date.now(), name:n, pin:p, role:'Nhân viên', score:100 }); App.helpers.notify("Đã thêm NV"); } },
-        adminDelEmp: async (id) => { if(confirm("Xóa?")) await deleteDoc(doc(db, `${ROOT_PATH}/employees`, id)); },
-        approveRequest: async (id) => { let isHR=App.data.hr_requests.find(r=>r._id===id); await updateDoc(doc(db,`${ROOT_PATH}/${isHR?'hr_requests':'buy_requests'}`,id),{status:'approved'}); App.helpers.notify("Đã duyệt đơn"); },
-        rejectRequest: async (id) => { let isHR=App.data.hr_requests.find(r=>r._id===id); await updateDoc(doc(db,`${ROOT_PATH}/${isHR?'hr_requests':'buy_requests'}`,id),{status:'rejected'}); App.helpers.notify("Đã từ chối đơn"); },
-        setupHouseBatch: async () => { const h = document.getElementById('sx-house-select').value; const s = document.getElementById('sx-strain').value; const dStr = document.getElementById('sx-date').value; const q = Number(document.getElementById('sx-spawn-qty').value); if(!h) return alert("Thiếu tin!"); const d = new Date(dStr); const bc = `${s.toUpperCase()}-${String(d.getDate()).padStart(2,'0')}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getFullYear()).slice(-2)}`; await updateDoc(doc(db, `${ROOT_PATH}/houses`, h), { currentBatch: bc, currentSpawn: q, status: 'ACTIVE', startDate: Date.now() }); App.helpers.notify(`🏭 Vào lô: ${bc} tại ${h}`); },
-        adminExport: (type) => { UI.renderSettingsModal(App.data.employees); UI.showMsg("Đang xuất file..."); }
+        addTask: async () => { const t = document.getElementById('task-title').value; const h = document.getElementById('task-house').value; const a = document.getElementById('task-assignee').value; if(!t) return UI.showMsg("Thiếu tên việc!"); await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title:t, house:h, assignee:a, status:'pending', createdBy:App.user.name, time:Date.now() }); App.helpers.notify(`📋 Giao việc cho ${a}`); },
+        receiveTask: async (id) => { await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), {status:'received', receivedAt:Date.now()}); UI.showMsg("Đã nhận việc"); },
+        submitTask: async (id) => { const task = App.data.tasks.find(t=>t._id===id); if(task.assignee!==App.user.name) return UI.showMsg("Không phải việc của bạn!"); await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), {status:'done', completedBy:App.user.name, completedAt:Date.now()}); const emp = App.data.employees.find(e=>e.name===App.user.name); if(emp) await updateDoc(doc(db, `${ROOT_PATH}/employees`, emp._id), {score: (emp.score||0)+10}); App.helpers.notify(`✅ Xong việc (+10đ)`); },
+        setupHouseBatch: async () => { const h = document.getElementById('sx-house-select').value; const s = document.getElementById('sx-strain').value; const q = Number(document.getElementById('sx-spawn-qty').value); if(!h) return alert("Thiếu tin!"); await updateDoc(doc(db, `${ROOT_PATH}/houses`, h), { currentBatch: s, currentSpawn: q, status: 'ACTIVE' }); App.helpers.notify(`🏭 Vào lô tại ${h}`); },
+        adminExport: () => UI.showMsg("Tính năng đang phát triển")
     }
 };
 
