@@ -7,9 +7,8 @@ const App = {
     user: JSON.parse(localStorage.getItem('n5_modular_user')) || null,
 
     init: () => {
-        UI.initModals();
+        UI.initModals(); // Gọi hàm đã sửa
         
-        // GLOBAL CLICK HANDLER (QUAN TRỌNG NHẤT)
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('.btn-action');
             if(btn) {
@@ -41,7 +40,6 @@ const App = {
             }
         });
         
-        // Tab Nav
         document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => {
             UI.switchTab(btn.dataset.tab);
             App.renderAll();
@@ -49,7 +47,6 @@ const App = {
     },
 
     handleAction: (action, payload) => {
-        // Tìm action trong các Modules
         if(Features.Production.actions[action]) Features.Production.actions[action](App.user);
         else if(Features.Warehouse.actions[action]) Features.Warehouse.actions[action](App.user, App.data);
         else if(Features.HR.actions[action]) Features.HR.actions[action](App.user, payload);
@@ -57,7 +54,7 @@ const App = {
             const id = document.getElementById('login-user').value; const pin = document.getElementById('login-pin').value;
             const emp = App.data.employees.find(e => e.name === id && String(e.pin) == pin);
             if(emp) { App.user = emp; localStorage.setItem('n5_modular_user', JSON.stringify(emp)); location.reload(); } else UI.showMsg("Sai PIN!");
-        }
+        },
         else if(action === 'logout') { if(confirm("Thoát?")) { localStorage.removeItem('n5_modular_user'); location.reload(); } }
         else if(action === 'closeModal') UI.toggleModal(null);
         else if(action === 'sendChat') {
@@ -72,7 +69,7 @@ const App = {
                 const key = c==='harvest_logs'?'harvest':c;
                 App.data[key] = snap.docs.map(d => ({...d.data(), _id: d.id}));
                 
-                if(c === 'products' && snap.empty) { // Auto Seed
+                if(c === 'products' && snap.empty) { // Tự tạo mã nấm mẫu
                     [{name:"B2",code:"b2",group:"1"}, {name:"A1",code:"a1",group:"1"}, {name:"Chân Nấm",code:"chan_nam",group:"2"}, {name:"Snack",code:"snack",group:"3"}].forEach(p => addDoc(collection(db, `${ROOT_PATH}/products`), p));
                 }
                 if(c === 'employees' && snap.empty) addDoc(collection(db, `${ROOT_PATH}/employees`), {id:999, name:"Admin", pin:"9999", role:"Giám đốc"});
