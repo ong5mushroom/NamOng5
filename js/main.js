@@ -7,8 +7,14 @@ const App = {
     user: JSON.parse(localStorage.getItem('n5_modular_user')) || null,
 
     init: () => {
-        UI.initModals(); // Gọi hàm đã sửa
-        
+        // --- SAFE INIT (QUAN TRỌNG) ---
+        if (UI && typeof UI.initModals === 'function') {
+            UI.initModals();
+        } else {
+            console.error("Critical: UI.initModals not found");
+        }
+
+        // --- GLOBAL EVENTS ---
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('.btn-action');
             if(btn) {
@@ -20,24 +26,36 @@ const App = {
                 const mode = e.target.dataset.payload;
                 document.getElementById('zone-th').classList.toggle('hidden', mode !== 'in');
                 document.getElementById('zone-ship').classList.toggle('hidden', mode !== 'out');
-                e.target.parentElement.querySelectorAll('button').forEach(b => { if(b===e.target) b.classList.add('bg-white','text-green-600','shadow-sm'); else b.classList.remove('bg-white','text-green-600','shadow-sm'); });
+                e.target.parentElement.querySelectorAll('button').forEach(b => {
+                    if(b===e.target) b.classList.add('bg-white','text-green-600','shadow-sm');
+                    else b.classList.remove('bg-white','text-green-600','shadow-sm');
+                });
             }
-            if(e.target.closest('#btn-open-settings')) UI.toggleModal(UI.Templates.ModalBase("Quản Trị", `<button class="w-full py-3 bg-blue-100 rounded-xl font-bold btn-action" data-action="installApp">Cài App</button>`, "closeModal", "Đóng"));
+            if(e.target.closest('#btn-open-settings')) {
+                UI.toggleModal(UI.Templates.ModalBase("Quản Trị", `<button class="w-full py-3 bg-blue-100 text-blue-700 font-bold rounded-xl btn-action" data-action="installApp">Cài App</button><button class="w-full py-3 mt-2 bg-green-100 text-green-700 font-bold rounded-xl btn-action" data-action="adminExport">Xuất Báo Cáo</button>`, "closeModal", "Đóng"));
+            }
             if(e.target.closest('#btn-open-chat')) {
-                const l = document.getElementById('chat-layer'); l.classList.remove('hidden'); l.style.display='flex'; UI.Templates.Chat(App.data.chat, App.user?.id);
+                const l = document.getElementById('chat-layer');
+                l.classList.remove('hidden'); l.style.display='flex';
+                document.getElementById('chat-badge').classList.add('hidden');
+                if(App.data.chat) UI.Templates.Chat(App.data.chat, App.user?.id);
             }
         });
 
         signInAnonymously(auth).then(() => {
+            console.log("Connected");
             App.syncData();
             if(App.user) {
                 document.getElementById('login-overlay').classList.add('hidden');
                 document.getElementById('head-user').innerText = App.user.name;
                 document.getElementById('head-role').innerText = App.user.role;
-                if(App.user.role === 'Giám đốc' || App.user.role === 'Quản lý') document.getElementById('btn-open-settings').classList.remove('hidden');
+                if(['Giám đốc','Quản lý','Admin'].includes(App.user.role)) document.getElementById('btn-open-settings').classList.remove('hidden');
                 UI.switchTab('home');
                 App.renderAll();
             }
+        }).catch(err => {
+            console.error("Auth Error:", err);
+            document.getElementById('debug-msg').innerText = "Lỗi kết nối Server";
         });
         
         document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => {
@@ -54,13 +72,16 @@ const App = {
             const id = document.getElementById('login-user').value; const pin = document.getElementById('login-pin').value;
             const emp = App.data.employees.find(e => e.name === id && String(e.pin) == pin);
             if(emp) { App.user = emp; localStorage.setItem('n5_modular_user', JSON.stringify(emp)); location.reload(); } else UI.showMsg("Sai PIN!");
-        },
+        }
         else if(action === 'logout') { if(confirm("Thoát?")) { localStorage.removeItem('n5_modular_user'); location.reload(); } }
         else if(action === 'closeModal') UI.toggleModal(null);
+        else if(action === 'closeChat') document.getElementById('chat-layer').classList.add('hidden');
         else if(action === 'sendChat') {
             const inp = document.getElementById('chat-input');
             if(inp.value.trim()) { addDoc(collection(db, `${ROOT_PATH}/chat`), { text: inp.value, senderId: App.user.id, senderName: App.user.name, time: Date.now() }); inp.value=''; }
         }
+        else if(action === 'installApp') { UI.showMsg("Chức năng đang cập nhật"); }
+        else if(action === 'adminExport') { UI.showMsg("Đang xuất file..."); }
     },
 
     syncData: () => {
@@ -69,12 +90,13 @@ const App = {
                 const key = c==='harvest_logs'?'harvest':c;
                 App.data[key] = snap.docs.map(d => ({...d.data(), _id: d.id}));
                 
-                if(c === 'products' && snap.empty) { // Tự tạo mã nấm mẫu
+                if(c === 'products' && snap.empty) { // Auto Seed
                     [{name:"B2",code:"b2",group:"1"}, {name:"A1",code:"a1",group:"1"}, {name:"Chân Nấm",code:"chan_nam",group:"2"}, {name:"Snack",code:"snack",group:"3"}].forEach(p => addDoc(collection(db, `${ROOT_PATH}/products`), p));
                 }
-                if(c === 'employees' && snap.empty) addDoc(collection(db, `${ROOT_PATH}/employees`), {id:999, name:"Admin", pin:"9999", role:"Giám đốc"});
-                
-                if(c === 'employees') UI.renderEmployeeOptions(App.data.employees);
+                if(c === 'employees') {
+                    if(snap.empty) addDoc(collection(db, `${ROOT_PATH}/employees`), {id:999, name:"Admin", pin:"9999", role:"Giám đốc"});
+                    UI.renderEmployeeOptions(App.data.employees);
+                }
                 if(c === 'chat' && !document.getElementById('chat-layer').classList.contains('hidden')) UI.Templates.Chat(App.data.chat, App.user?.id);
                 
                 if(App.user) App.renderAll();
