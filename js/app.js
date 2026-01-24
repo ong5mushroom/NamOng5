@@ -7,13 +7,7 @@ import { SX } from './modules/sx.js';
 import { Chat } from './modules/chat.js';
 import { Admin } from './modules/admin.js';
 
-// Mảng màu sắc đẹp để random cho avatar
-const AVATAR_COLORS = [
-    'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500', 
-    'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500', 
-    'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500', 
-    'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500'
-];
+// XÓA BỎ mảng AVATAR_COLORS vì không dùng nữa
 
 const App = {
     data: { employees: [], houses: [], harvest: [], tasks: [], shipping: [], chat: [], products: [], materials: [] },
@@ -28,18 +22,8 @@ const App = {
             if(btn) {
                 // Xử lý các nút action chung nếu cần
             }
-
-            // Xử lý chọn User ở màn hình Login (Logic mới)
-            const userOpt = e.target.closest('.user-option');
-            if(userOpt) {
-                // Xóa chọn cũ
-                document.querySelectorAll('.user-option').forEach(el => el.classList.remove('selected', 'ring-2', 'ring-blue-500'));
-                // Chọn mới
-                userOpt.classList.add('selected', 'ring-2', 'ring-blue-500');
-                document.getElementById('login-user').value = userOpt.dataset.name;
-                // Focus vào ô PIN để nhập luôn
-                document.getElementById('login-pin').focus();
-            }
+            
+            // XÓA BỎ logic xử lý click .user-option (avatar) ở đây
 
             if(e.target.closest('#btn-settings')) {
                 if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user?.role)) Admin.openSettings();
@@ -85,26 +69,14 @@ const App = {
                 
                 if(c==='chat' && !document.getElementById('chat-layer').classList.contains('hidden')) Chat.render(App.data, App.user);
 
-                // --- RENDER LOGIN USER LIST (AVATAR MÀU SẮC) ---
+                // --- RENDER LOGIN DROPDOWN (QUAY VỀ SELECT) ---
                 if(c==='employees') {
-                    const listContainer = document.getElementById('login-user-list');
-                    if(listContainer) {
-                        if(App.data.employees.length === 0) {
-                            listContainer.innerHTML = '<div class="col-span-4 text-center text-xs text-slate-400">Chưa có dữ liệu</div>';
-                        } else {
-                            listContainer.innerHTML = App.data.employees.map((e, index) => {
-                                // Lấy chữ cái đầu
-                                const firstLetter = e.name.charAt(0).toUpperCase();
-                                // Chọn màu cố định dựa trên độ dài tên để không bị đổi màu khi reload
-                                const colorClass = AVATAR_COLORS[e.name.length % AVATAR_COLORS.length];
-                                
-                                return `
-                                <div class="user-option flex flex-col items-center gap-1 p-2 rounded-xl cursor-pointer hover:bg-slate-50" data-name="${e.name}">
-                                    <div class="user-avatar ${colorClass}">${firstLetter}</div>
-                                    <span class="text-[10px] font-bold text-slate-600 truncate w-full text-center">${e.name}</span>
-                                </div>`;
-                            }).join('');
-                        }
+                    const sel = document.getElementById('login-user');
+                    if(sel) {
+                        // Sắp xếp tên theo thứ tự bảng chữ cái
+                        const sortedEmps = App.data.employees.sort((a, b) => a.name.localeCompare(b.name));
+                        sel.innerHTML = '<option value="">-- Chọn tên của bạn --</option>' + 
+                            sortedEmps.map(e => `<option value="${e.name}" class="font-bold">${e.name}</option>`).join('');
                     }
                 }
 
@@ -129,10 +101,10 @@ const App = {
     },
 
     handleLogin: () => {
-        const id = document.getElementById('login-user').value; // Lấy từ input hidden
+        const id = document.getElementById('login-user').value; // Lấy giá trị từ thẻ SELECT
         const pin = document.getElementById('login-pin').value;
         
-        if(!id) return Utils.toast("Vui lòng chọn nhân viên!", "err");
+        if(!id) return Utils.toast("Vui lòng chọn tên nhân viên!", "err");
 
         const emp = App.data.employees.find(e => e.name === id && String(e.pin) == pin);
         if(emp) { 
