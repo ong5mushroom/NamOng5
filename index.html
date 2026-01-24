@@ -3,99 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Nấm Ông 5 - V800 FINAL</title>
+    <title>Nấm Ông 5 - V800 ULTIMATE</title>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* CORE SETUP */
-        body { background-color: #f0f2f5 !important; color: #1e293b !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        
-        /* GLASS UI - HIỆU ỨNG KÍNH */
-        .glass { 
-            background: rgba(255, 255, 255, 0.92); 
-            backdrop-filter: blur(12px); 
-            -webkit-backdrop-filter: blur(12px); 
-            border: 1px solid rgba(255,255,255,0.8); 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
-            border-radius: 16px; 
-        }
-        
-        /* INPUT CHUẨN */
-        input, select, textarea {
-            background: #ffffff !important; border: 1px solid #cbd5e1 !important; color: #0f172a !important;
-            font-weight: 600; border-radius: 12px; padding: 12px; width: 100% !important; outline: none; font-size: 14px;
-            transition: all 0.2s;
-        }
-        input:focus, select:focus { border-color: #2563eb !important; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        
-        /* BUTTON ANIMATION */
-        .btn-action:active { transform: scale(0.96); transition: transform 0.1s; }
-        
-        /* SCROLLBAR & UTILS */
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-        .animate-fade { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .chat-bg { background-color: #e2e8f0; background-image: radial-gradient(#94a3b8 1px, transparent 1px); background-size: 20px 20px; }
+        body { background-color: #f0f2f5 !important; color: #0f172a !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); border-radius: 20px; }
+        input, select, textarea { background: #fff !important; border: 1px solid #cbd5e1 !important; color: #000 !important; font-weight: 600; border-radius: 12px; padding: 12px; width: 100%; outline: none; transition: 0.2s; }
+        input:focus, select:focus { border-color: #2563eb !important; ring: 2px solid #bfdbfe; }
+        .btn-action:active { transform: scale(0.96); }
+        .hidden { display: none !important; }
+        ::-webkit-scrollbar { width: 0px; }
+        .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden bg-slate-100">
+<body class="h-screen flex flex-col overflow-hidden bg-slate-50">
 
-    <header class="h-16 glass fixed top-0 w-full z-40 flex items-center justify-between px-4 border-b border-white/50">
+    <header class="h-16 glass fixed top-0 w-full z-40 flex items-center justify-between px-4 border-b">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-200">N</div>
-            <div>
-                <div id="head-user" class="text-sm font-black text-slate-800 uppercase tracking-tight">KHÁCH</div>
-                <div id="head-role" class="text-[10px] font-bold text-slate-500 bg-white/50 px-2 py-0.5 rounded-full">Connecting...</div>
-            </div>
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">N</div>
+            <div><div id="head-user" class="text-sm font-black text-slate-800 uppercase">KHÁCH</div><div id="head-role" class="text-[10px] font-bold text-slate-500">Connecting...</div></div>
         </div>
-        <button id="btn-open-settings" class="hidden w-10 h-10 rounded-full bg-white text-slate-500 shadow-sm flex items-center justify-center btn-action" data-action="openSettings"><i class="fas fa-cog text-xl pointer-events-none"></i></button>
+        <button id="btn-open-settings" class="hidden w-10 h-10 rounded-full bg-white text-slate-600 shadow-sm flex items-center justify-center btn-action" data-action="openSettings"><i class="fas fa-cog text-xl"></i></button>
     </header>
 
-    <main id="main-app" class="flex-1 mt-16 overflow-y-auto pb-28 px-3 pt-4 scroll-smooth">
-        <div id="view-home" class="view-section animate-fade"></div>
-        <div id="view-tasks" class="view-section hidden animate-fade"></div>
-        <div id="view-sx" class="view-section hidden animate-fade"></div>
-        <div id="view-th" class="view-section hidden animate-fade"></div>
-        <div id="view-team" class="view-section hidden animate-fade"></div>
+    <main id="main-app" class="flex-1 mt-16 overflow-y-auto pb-28 px-3 pt-3 scroll-smooth">
+        <div id="view-home" class="view-section animate-pop"></div>
+        <div id="view-tasks" class="view-section hidden animate-pop"></div>
+        <div id="view-sx" class="view-section hidden animate-pop"></div>
+        <div id="view-th" class="view-section hidden animate-pop"></div>
+        <div id="view-team" class="view-section hidden animate-pop"></div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 glass h-[75px] z-30 flex justify-around items-center pb-2 rounded-t-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-white/50">
-        <button class="nav-btn active flex flex-col items-center justify-center text-blue-600 group w-full h-full" data-tab="home"><i class="fas fa-home text-xl mb-1 group-active:-translate-y-1 transition pointer-events-none"></i><span class="text-[9px] font-bold pointer-events-none">HOME</span></button>
-        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full h-full" data-tab="tasks"><i class="fas fa-clipboard-list text-xl mb-1 group-active:-translate-y-1 transition pointer-events-none"></i><span class="text-[9px] font-bold pointer-events-none">VIỆC</span></button>
-        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full h-full" data-tab="sx">
-            <div class="w-12 h-12 -mt-8 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30 text-white group-active:scale-90 transition border-4 border-slate-50 pointer-events-none"><span class="text-xs font-black">SX</span></div>
-        </button>
-        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full h-full" data-tab="th"><i class="fas fa-warehouse text-xl mb-1 group-active:-translate-y-1 transition pointer-events-none"></i><span class="text-[9px] font-bold pointer-events-none">THDG</span></button>
-        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full h-full" data-tab="team"><i class="fas fa-users text-xl mb-1 group-active:-translate-y-1 transition pointer-events-none"></i><span class="text-[9px] font-bold pointer-events-none">TEAM</span></button>
+    <nav class="fixed bottom-0 left-0 right-0 glass h-[75px] z-30 flex justify-around items-center pb-2 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        <button class="nav-btn active flex flex-col items-center justify-center text-blue-600 group w-full" data-tab="home"><i class="fas fa-home text-xl mb-1"></i><span class="text-[9px] font-bold">HOME</span></button>
+        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="tasks"><i class="fas fa-clipboard-list text-xl mb-1"></i><span class="text-[9px] font-bold">VIỆC</span></button>
+        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="sx"><div class="w-12 h-12 -mt-8 bg-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/40 text-white border-4 border-slate-50"><span class="text-xs font-black">SX</span></div></button>
+        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="th"><i class="fas fa-warehouse text-xl mb-1"></i><span class="text-[9px] font-bold">THDG</span></button>
+        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="team"><i class="fas fa-users text-xl mb-1"></i><span class="text-[9px] font-bold">TEAM</span></button>
     </nav>
 
-    <button id="btn-open-chat" class="fixed bottom-24 right-4 w-14 h-14 bg-green-500 text-white rounded-full shadow-2xl z-[100] flex items-center justify-center active:scale-90 transition border-2 border-white btn-action" data-action="toggleChat">
-        <i class="fas fa-comment-dots text-2xl pointer-events-none"></i>
-        <div id="chat-badge" class="hidden absolute top-0 right-0 w-4 h-4 bg-red-600 rounded-full border-2 border-white"></div>
-    </button>
+    <button id="btn-open-chat" class="fixed bottom-24 right-4 w-14 h-14 bg-green-500 text-white rounded-full shadow-2xl z-[100] flex items-center justify-center border-2 border-white btn-action" data-action="toggleChat"><i class="fas fa-comment-dots text-2xl pointer-events-none"></i><div id="chat-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full border-2 border-white"></div></button>
 
     <div id="login-overlay" class="fixed inset-0 z-[200] bg-slate-100 flex flex-col items-center justify-center p-6">
         <div class="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-8 shadow-xl animate-bounce"><i class="fas fa-mushroom text-5xl text-amber-800"></i></div>
-        <h2 class="text-3xl font-black text-slate-800 uppercase tracking-widest mb-10">NẤM ÔNG 5</h2>
+        <h2 class="text-2xl font-black text-slate-800 uppercase tracking-widest mb-8">HỆ THỐNG V800</h2>
         <div class="w-full max-w-xs space-y-4">
-            <select id="login-user" class="glass !bg-white p-4 text-center text-lg font-bold shadow-md"><option value="">Đang tải...</option></select>
-            <input type="password" id="login-pin" class="glass !bg-white p-4 text-center text-2xl font-black tracking-[0.5em] shadow-md" placeholder="••••" maxlength="4">
-            <button id="login-btn" class="w-full bg-slate-800 text-white py-4 rounded-xl font-bold shadow-xl uppercase text-lg active:scale-95 transition btn-action" data-action="login">Đăng Nhập</button>
+            <select id="login-user" class="glass !bg-white p-4 text-center text-lg font-bold"><option value="">Đang tải...</option></select>
+            <input type="password" id="login-pin" class="glass !bg-white p-4 text-center text-2xl font-black tracking-widest" placeholder="PIN" maxlength="4">
+            <button id="login-btn" class="w-full bg-slate-800 text-white py-4 rounded-xl font-bold shadow-xl uppercase btn-action" data-action="login">Đăng Nhập</button>
         </div>
-        <div id="login-status" class="mt-8 text-slate-400 text-xs font-mono font-bold">V800 Architect</div>
+        <div id="login-status" class="mt-6 text-slate-400 text-xs font-mono">System Ready</div>
     </div>
 
-    <div id="chat-layer" class="hidden fixed inset-0 z-[150] bg-white flex flex-col animate-fade">
-        <div class="h-16 glass border-b flex items-center justify-between px-4 shadow-sm z-10"><h3 class="font-black text-slate-800 flex items-center"><i class="fas fa-comments text-blue-600 mr-2"></i>NHÓM CHUNG</h3><button class="w-10 h-10 bg-slate-100 rounded-full btn-action flex items-center justify-center text-slate-500" data-action="closeChat"><i class="fas fa-times pointer-events-none"></i></button></div>
-        <div id="chat-msgs" class="flex-1 overflow-y-auto p-4 space-y-3 chat-bg"></div>
-        <div class="p-3 bg-white border-t flex gap-2 pb-safe"><input id="chat-input" class="bg-slate-100 rounded-full px-5 font-bold" placeholder="Nhập tin nhắn..."><button class="w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg btn-action" data-action="sendChat"><i class="fas fa-paper-plane pointer-events-none"></i></button></div>
+    <div id="chat-layer" class="hidden fixed inset-0 z-[150] bg-white flex flex-col animate-pop">
+        <div class="h-16 glass border-b flex items-center justify-between px-4 shadow-sm z-10"><h3 class="font-black text-slate-800">NHÓM CHUNG</h3><button class="w-10 h-10 bg-slate-100 rounded-full btn-action flex items-center justify-center" data-action="closeChat"><i class="fas fa-times"></i></button></div>
+        <div id="chat-msgs" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-100"></div>
+        <div class="p-3 bg-white border-t flex gap-2 pb-safe"><input id="chat-input" class="bg-slate-100 rounded-full px-5 font-bold" placeholder="Nhập tin..."><button class="w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg btn-action" data-action="sendChat"><i class="fas fa-paper-plane"></i></button></div>
     </div>
 
-    <div id="modal-container" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"></div>
-    <div id="msg-box" class="hidden fixed top-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl text-white font-bold z-[200] text-sm animate-fade bg-slate-900/90 backdrop-blur whitespace-nowrap"></div>
+    <div id="modal-container" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-all"></div>
+    <div id="msg-box" class="hidden fixed top-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl text-white font-bold z-[200] text-sm animate-pop bg-slate-900/90 whitespace-nowrap"></div>
 
     <script type="module" src="js/main.js"></script>
 </body>
