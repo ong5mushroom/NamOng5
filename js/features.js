@@ -2,7 +2,7 @@ import { addDoc, updateDoc, doc, collection, db, ROOT_PATH } from './config.js';
 import { UI } from './core.js';
 
 export const Features = {
-    // --- MODULE HOME ---
+    // --- HOME ---
     Home: {
         render: (data) => {
             const container = document.getElementById('view-home');
@@ -13,25 +13,49 @@ export const Features = {
             <div class="space-y-5">
                 <div class="glass p-5 !bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-lg">
                     <h3 class="font-bold text-xs uppercase tracking-widest mb-2 opacity-80 text-center">Tổng quan trại</h3>
-                    <div class="text-center"><span class="text-3xl font-black">${sorted.filter(h=>h.status==='ACTIVE').length}</span> <span class="text-sm opacity-80">Nhà đang SX</span></div>
+                    <div class="text-center">
+                        <span class="text-4xl font-black">${sorted.filter(h=>h.status==='ACTIVE').length}</span> 
+                        <span class="text-sm opacity-80 block">Nhà đang hoạt động</span>
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    ${sorted.map(h => `<div class="glass p-3 border-l-4 ${h.status==='ACTIVE'?'border-green-500':'border-slate-300'} relative"><div class="flex justify-between items-start mb-2"><span class="font-black text-lg text-slate-700">${h.name}</span><span class="text-[9px] font-bold px-2 py-1 rounded ${h.status==='ACTIVE'?'bg-green-100 text-green-700':'bg-slate-200 text-slate-500'}">${h.status==='ACTIVE'?'SX':'CHỜ'}</span></div><div class="text-[10px] text-slate-400 uppercase font-bold mb-1">${h.currentBatch||'-'}</div><div class="text-right"><span class="text-xl font-black text-slate-700">${getYield(h.name).toFixed(1)}</span> <span class="text-[10px] text-slate-400">kg</span></div></div>`).join('')}
+                    ${sorted.map(h => `
+                    <div class="glass p-3 border-l-4 ${h.status==='ACTIVE'?'border-green-500':'border-slate-300'} relative">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-black text-lg text-slate-700">${h.name}</span>
+                            <span class="text-[9px] font-bold px-2 py-1 rounded ${h.status==='ACTIVE'?'bg-green-100 text-green-700':'bg-slate-200 text-slate-500'}">${h.status==='ACTIVE'?'SX':'CHỜ'}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">${h.currentBatch||'-'}</div>
+                        <div class="text-right"><span class="text-xl font-black text-slate-700">${getYield(h.name).toFixed(1)}</span> <span class="text-[10px] text-slate-400">kg</span></div>
+                    </div>`).join('')}
                 </div>
             </div>`;
         }
     },
 
-    // --- MODULE PRODUCTION (SX) ---
+    // --- SX ---
     Production: {
         render: (data) => {
             const container = document.getElementById('view-sx');
             const sorted = [...data.houses].sort((a,b)=>a.name.localeCompare(b.name, 'vi', {numeric:true}));
-            container.innerHTML = `<div class="p-4"><div class="glass p-5 border-l-4 border-blue-500 space-y-4"><h3 class="font-black text-slate-700 uppercase">Nhập Phôi (Kho A)</h3><select id="sx-house-select" class="font-bold">${sorted.map(h=>`<option value="${h._id}">${h.name}</option>`).join('')}</select><div class="grid grid-cols-2 gap-3"><input id="sx-strain" placeholder="Mã giống"><input id="sx-date" type="date"></div><input id="sx-spawn-qty" type="number" placeholder="Số lượng bịch" class="text-lg font-bold text-blue-600"><textarea id="sx-note" placeholder="Ghi chú (NCC...)" class="h-20"></textarea><button class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold shadow-lg btn-action" data-action="setupHouseBatch">KÍCH HOẠT LÔ MỚI</button></div></div>`;
+            container.innerHTML = `
+            <div class="p-4">
+                <div class="glass p-5 border-l-4 border-blue-500 space-y-4">
+                    <h3 class="font-black text-slate-700 uppercase">Nhập Phôi (Kho A)</h3>
+                    <select id="sx-house-select" class="font-bold">${sorted.map(h=>`<option value="${h._id}">${h.name}</option>`).join('')}</select>
+                    <div class="grid grid-cols-2 gap-3"><input id="sx-strain" placeholder="Mã giống"><input id="sx-date" type="date"></div>
+                    <input id="sx-spawn-qty" type="number" placeholder="Số lượng bịch" class="text-lg font-bold text-blue-600">
+                    <textarea id="sx-note" placeholder="Ghi chú (NCC...)" class="h-20"></textarea>
+                    <button class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold shadow-lg btn-action" data-action="setupHouseBatch">KÍCH HOẠT LÔ MỚI</button>
+                </div>
+            </div>`;
         },
         actions: {
             setupHouseBatch: async (user) => {
-                const h = document.getElementById('sx-house-select').value; const s = document.getElementById('sx-strain').value; const q = Number(document.getElementById('sx-spawn-qty').value); const n = document.getElementById('sx-note').value;
+                const h = document.getElementById('sx-house-select').value; 
+                const s = document.getElementById('sx-strain').value; 
+                const q = Number(document.getElementById('sx-spawn-qty').value); 
+                const n = document.getElementById('sx-note').value;
                 if(!h) return alert("Thiếu tin!"); 
                 await updateDoc(doc(db, `${ROOT_PATH}/houses`, h), { currentBatch: s, currentSpawn: q, status: 'ACTIVE', startDate: Date.now(), note: n }); 
                 UI.showMsg(`Đã vào lô tại ${h}`);
@@ -39,7 +63,7 @@ export const Features = {
         }
     },
 
-    // --- MODULE WAREHOUSE (THDG - DYNAMIC) ---
+    // --- KHO (THDG) ---
     Warehouse: {
         render: (data) => {
             const container = document.getElementById('view-th');
@@ -55,7 +79,10 @@ export const Features = {
                     <button class="flex-1 py-2 rounded-lg font-bold text-xs text-slate-400 hover:bg-slate-50 btn-action" data-action="toggleTH" data-payload="out">XUẤT BÁN</button>
                 </div>
                 <div id="zone-th" class="glass p-5 border-l-4 border-green-500">
-                    <div class="flex justify-between items-center mb-4"><span class="font-black text-slate-700 uppercase">Nhập Kho</span><button class="text-xs bg-slate-100 px-3 py-1 rounded text-blue-600 font-bold btn-action" data-action="openAddProd">+ Mã SP</button></div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="font-black text-slate-700 uppercase">Nhập Kho</span>
+                        <button class="text-xs bg-slate-100 px-3 py-1 rounded text-blue-600 font-bold btn-action" data-action="openAddProd">+ Mã SP</button>
+                    </div>
                     <div class="space-y-4">
                         <select id="th-area" class="font-bold text-green-700"><option value="">-- Chọn Nguồn --</option>${sorted.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}<option value="KhuCheBien">Khu Chế Biến</option></select>
                         ${g1.length ? `<div class="bg-slate-50 p-3 rounded-xl border border-slate-200"><h4 class="text-[10px] font-bold text-slate-400 uppercase mb-2">1. Nấm Tươi</h4><div class="grid grid-cols-3 gap-3">${g1.map(p=>`<div><label class="text-[9px] font-bold text-slate-500 block truncate text-center mb-1">${p.name}</label><input type="number" step="0.1" id="th-${p.code}" class="text-center font-bold text-sm focus:border-green-500" placeholder="-"></div>`).join('')}</div></div>` : ''}
@@ -66,7 +93,12 @@ export const Features = {
                 </div>
                 <div id="zone-ship" class="hidden glass p-5 border-l-4 border-orange-500">
                     <h4 class="font-black text-slate-700 uppercase mb-4">Xuất Bán</h4>
-                    <div class="space-y-3"><input id="ship-cust" placeholder="Khách hàng"><div class="grid grid-cols-2 gap-3"><select id="ship-type"><option>Nấm Tươi</option><option>Thành Phẩm</option></select><input id="ship-qty" type="number" placeholder="Số lượng"></div><textarea id="ship-note" placeholder="Ghi chú..."></textarea><button class="w-full py-4 bg-orange-600 text-white rounded-xl font-bold shadow-lg btn-action" data-action="submitShip">XUẤT & IN</button></div>
+                    <div class="space-y-3">
+                        <input id="ship-cust" placeholder="Khách hàng">
+                        <div class="grid grid-cols-2 gap-3"><select id="ship-type"><option>Nấm Tươi</option><option>Thành Phẩm</option></select><input id="ship-qty" type="number" placeholder="Số lượng"></div>
+                        <textarea id="ship-note" placeholder="Ghi chú..."></textarea>
+                        <button class="w-full py-4 bg-orange-600 text-white rounded-xl font-bold shadow-lg btn-action" data-action="submitShip">XUẤT & IN</button>
+                    </div>
                 </div>
             </div>`;
         },
@@ -74,7 +106,10 @@ export const Features = {
             submitTH: async (user, data) => {
                 const area = document.getElementById('th-area').value; if(!area) return UI.showMsg("Chọn nguồn!");
                 let d = {}, total = 0;
-                data.products.forEach(p => { const el = document.getElementById(`th-${p.code}`); if(el) { const v = Number(el.value)||0; if(v>0) { d[p.code]=v; total+=v; } el.value=''; } });
+                data.products.forEach(p => { 
+                    const el = document.getElementById(`th-${p.code}`); 
+                    if(el) { const v = Number(el.value)||0; if(v>0) { d[p.code]=v; total+=v; } el.value=''; } 
+                });
                 if(total===0) return UI.showMsg("Chưa nhập số!");
                 await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details:d, total, note:'', user:user.name, time:Date.now() });
                 UI.showMsg(`Đã lưu ${total} đơn vị`);
@@ -84,6 +119,10 @@ export const Features = {
                 if(!c || !q) return UI.showMsg("Thiếu thông tin!");
                 await addDoc(collection(db, `${ROOT_PATH}/shipping`), { customer: c, qty: q, user: user.name, time: Date.now() }); 
                 UI.showMsg("Đã xuất kho"); 
+            },
+            toggleTH: (mode) => {
+                document.getElementById('zone-th').classList.toggle('hidden', mode !== 'in');
+                document.getElementById('zone-ship').classList.toggle('hidden', mode !== 'out');
             },
             openAddProd: () => {
                 const html = `<div><label class="text-xs font-bold text-slate-500">Tên</label><input id="new-prod-name" placeholder="VD: Nấm Mỡ"></div><div><label class="text-xs font-bold text-slate-500">Mã (ko dấu)</label><input id="new-prod-code" placeholder="VD: nam_mo"></div><div><label class="text-xs font-bold text-slate-500">Nhóm</label><select id="new-prod-group"><option value="1">1. Tươi</option><option value="2">2. Phụ Phẩm</option><option value="3">3. Thành Phẩm</option></select></div>`;
@@ -98,7 +137,7 @@ export const Features = {
         }
     },
 
-    // --- MODULE HR (TASKS & TEAM) ---
+    // --- NHÂN SỰ ---
     HR: {
         renderTasks: (data, user) => {
             const container = document.getElementById('view-tasks');
