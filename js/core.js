@@ -1,5 +1,5 @@
 export const UI = {
-    // 1. INIT & UTILS
+    // --- 1. UTILS ---
     initModals: () => {
         const c = document.getElementById('modal-container');
         if(c) c.addEventListener('click', e => { if(e.target === c) c.classList.add('hidden'); });
@@ -23,7 +23,7 @@ export const UI = {
         const s1 = document.getElementById('login-user'); if(s1) s1.innerHTML = h;
     },
 
-    // 2. TEMPLATES
+    // --- 2. TEMPLATES ---
     Templates: {
         ModalBase: (t, c, btn, btnTxt) => `<div class="glass !bg-white w-full max-w-sm p-6 space-y-4 shadow-2xl animate-pop" onclick="event.stopPropagation()"><div class="flex justify-between items-center border-b pb-2"><h3 class="font-black text-slate-800 text-lg uppercase">${t}</h3><button class="text-2xl text-slate-400 btn-action" data-action="closeModal">&times;</button></div><div class="space-y-3">${c}</div><div class="flex gap-3 pt-2"><button class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500 btn-action" data-action="closeModal">Hủy</button>${btn?`<button class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold btn-action shadow-lg" data-action="${btn}">${btnTxt}</button>`:''}</div></div>`,
         Chat: (msgs, uid) => {
@@ -32,19 +32,10 @@ export const UI = {
                 b.innerHTML = msgs.map(m => `<div class="flex flex-col ${String(m.senderId)===String(uid)?'items-end':'items-start'} animate-fade"><span class="text-[9px] text-slate-400 px-2 uppercase font-bold">${m.senderName}</span><div class="${String(m.senderId)===String(uid)?'bg-blue-600 text-white':'bg-white text-slate-700'} px-4 py-2 rounded-2xl shadow-sm text-sm max-w-[85%] mb-2 break-words">${m.text}</div></div>`).join('');
                 b.scrollTop = b.scrollHeight;
             }
-        },
-        ScoreGuide: () => `
-            <div class="text-sm space-y-2">
-                <p><b>1. Điểm danh:</b> +1đ/lần (Sáng/Chiều)</p>
-                <p><b>2. Hoàn thành việc:</b> +10đ/nhiệm vụ</p>
-                <p><b>3. Nhập kho:</b> +2đ/lần nhập liệu</p>
-                <p><b>4. Điểm phạt:</b> -5đ (Đi muộn, làm sai quy trình)</p>
-                <p class="text-xs text-slate-400 italic mt-2">Điểm được tổng kết và reset vào cuối tháng.</p>
-            </div>
-        `
+        }
     },
 
-    // 3. VIEWS
+    // --- 3. VIEWS (GIAO DIỆN CHÍNH) ---
     Views: {
         Home: (data, isAdmin) => {
             const sorted = [...data.houses].sort((a, b) => a.name.localeCompare(b.name, 'vi', {numeric: true}));
@@ -52,7 +43,6 @@ export const UI = {
             return `
             <div class="space-y-5">
                 <div class="glass p-5 !bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-lg relative">
-                    <button class="absolute top-2 right-2 text-white/50 hover:text-white btn-action" data-action="showScoreGuide"><i class="fas fa-question-circle"></i></button>
                     <h3 class="font-bold text-xs uppercase tracking-widest mb-2 opacity-80 text-center">Tổng quan trại</h3>
                     <div class="text-center"><span class="text-4xl font-black">${sorted.filter(h=>h.status==='ACTIVE').length}</span> <span class="text-sm opacity-80 block">Nhà đang hoạt động</span></div>
                 </div>
@@ -64,8 +54,7 @@ export const UI = {
         },
         Production: (data) => {
             const sorted = [...data.houses].sort((a,b)=>a.name.localeCompare(b.name, 'vi', {numeric:true}));
-            // Kho vật tư
-            const materials = data.materials || []; 
+            const mats = data.materials || [];
             return `
             <div class="space-y-6">
                 <div class="glass p-5 border-l-4 border-blue-500 space-y-4">
@@ -80,7 +69,7 @@ export const UI = {
                 <div class="glass p-5 border-l-4 border-purple-500">
                     <div class="flex justify-between items-center mb-3"><h3 class="font-black text-slate-700 uppercase">Kho Vật Tư</h3><button class="text-xs bg-slate-100 px-2 py-1 rounded font-bold btn-action" data-action="openAddMat">+ Nhập</button></div>
                     <div class="grid grid-cols-2 gap-2">
-                        ${materials.length ? materials.map(m => `<div class="bg-slate-50 p-2 rounded border"><span class="text-xs font-bold text-slate-600">${m.name}</span><div class="text-purple-600 font-black">${m.qty} <span class="text-[10px] text-slate-400">${m.unit}</span></div></div>`).join('') : '<span class="text-xs italic text-slate-400">Kho trống</span>'}
+                        ${mats.length ? mats.map(m => `<div class="bg-slate-50 p-2 rounded border flex justify-between items-center"><span class="text-xs font-bold text-slate-600 truncate">${m.name}</span><div class="text-purple-600 font-black text-sm">${m.qty} <span class="text-[9px] text-slate-400">${m.unit}</span></div></div>`).join('') : '<span class="text-xs italic text-slate-400">Kho trống</span>'}
                     </div>
                 </div>
             </div>`;
@@ -90,8 +79,7 @@ export const UI = {
             const g1 = data.products.filter(p => p.group == '1');
             const g2 = data.products.filter(p => p.group == '2');
             const g3 = data.products.filter(p => p.group == '3');
-            // Nhật ký 48h
-            const recentLogs = data.shipping.filter(s => (Date.now() - s.time) < 172800000).sort((a,b)=>b.time-a.time);
+            const recentLogs = data.shipping.filter(s => (Date.now() - s.time) < 172800000).sort((a,b)=>b.time-a.time); // 48h
 
             return `
             <div class="space-y-4">
@@ -112,10 +100,7 @@ export const UI = {
                 <div id="zone-ship" class="hidden glass p-5 border-l-4 border-orange-500">
                     <h4 class="font-black text-slate-700 uppercase mb-4">Xuất Bán</h4>
                     <div class="space-y-3"><input id="ship-cust" placeholder="Khách hàng"><div class="grid grid-cols-2 gap-3"><select id="ship-type"><option value="">-- Mã Hàng --</option>${[...g1,...g3].map(p=>`<option value="${p.name}">${p.name}</option>`).join('')}</select><input id="ship-qty" type="number" placeholder="Số lượng"></div><textarea id="ship-note" placeholder="Ghi chú..."></textarea><button class="w-full py-4 bg-orange-600 text-white rounded-xl font-bold shadow-lg btn-action" data-action="submitShip">XUẤT & IN</button></div>
-                    <div class="mt-4 pt-4 border-t">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Nhật ký xuất (48h qua)</p>
-                        <div class="space-y-2 max-h-40 overflow-y-auto">${recentLogs.map(l=>`<div class="flex justify-between text-xs p-2 bg-orange-50 rounded"><span class="font-bold">${l.customer}</span><span>${l.qty}kg ${l.type}</span></div>`).join('')}</div>
-                    </div>
+                    <div class="mt-4 pt-4 border-t"><p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Nhật ký xuất (48h qua)</p><div class="space-y-2 max-h-40 overflow-y-auto">${recentLogs.map(l=>`<div class="flex justify-between text-xs p-2 bg-orange-50 rounded"><span class="font-bold">${l.customer}</span><span>${l.qty}kg ${l.type}</span></div>`).join('')}</div></div>
                 </div>
             </div>`;
         },
@@ -125,17 +110,13 @@ export const UI = {
             const recentTasks = data.tasks.filter(t => (Date.now() - t.time) < 259200000).sort((a,b)=>b.time-a.time); // 3 ngày
             return `
             <div class="space-y-6">
-                 ${canAssign ? `
-                 <div class="glass p-5 border-l-4 border-blue-500">
-                    <div class="flex justify-between mb-3"><h4 class="font-black text-slate-700 uppercase text-xs">Giao Việc</h4><button class="text-[10px] font-bold text-blue-600 underline btn-action" data-action="toggleTaskHistory">Lịch sử 3 ngày</button></div>
-                    <div id="task-form" class="space-y-3"><input id="task-title" placeholder="Tên công việc"><div class="grid grid-cols-2 gap-3"><select id="task-house"><option value="">-- Nhà/Khu --</option>${data.houses.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}</select><input id="task-deadline" type="date"></div><div class="max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2 grid grid-cols-2 gap-2">${empCheckboxes}</div><button class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold btn-action" data-action="addTask">PHÁT LỆNH</button></div>
-                    <div id="task-history" class="hidden mt-3 space-y-2 border-t pt-2 max-h-40 overflow-y-auto">${recentTasks.map(t=>`<div class="text-xs flex justify-between p-2 bg-slate-50 rounded"><span class="font-bold">${t.title}</span><span class="${t.status==='done'?'text-green-500':'text-orange-500'}">${t.status==='done'?'Xong':'Chờ'}</span></div>`).join('')}</div>
-                 </div>` : ''}
+                 ${canAssign ? `<div class="glass p-5 border-l-4 border-blue-500"><div class="flex justify-between mb-3"><h4 class="font-black text-slate-700 uppercase text-xs">Giao Việc</h4><button class="text-[10px] font-bold text-blue-600 underline btn-action" onclick="document.getElementById('task-history').classList.toggle('hidden')">Lịch sử 3 ngày</button></div><div id="task-form" class="space-y-3"><input id="task-title" placeholder="Tên công việc"><div class="grid grid-cols-2 gap-3"><select id="task-house"><option value="">-- Nhà/Khu --</option>${data.houses.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}</select><input id="task-deadline" type="date"></div><div class="max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2 grid grid-cols-2 gap-2">${empCheckboxes}</div><button class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold btn-action" data-action="addTask">PHÁT LỆNH</button></div><div id="task-history" class="hidden mt-3 space-y-2 border-t pt-2 max-h-40 overflow-y-auto">${recentTasks.map(t=>`<div class="text-xs flex justify-between p-2 bg-slate-50 rounded"><span class="font-bold">${t.title}</span><span class="${t.status==='done'?'text-green-500':'text-orange-500'}">${t.status==='done'?'Xong':'Chờ'}</span></div>`).join('')}</div></div>` : ''}
                  <div><h3 class="font-bold text-slate-400 text-xs uppercase pl-2">Cần Làm Ngay</h3>${data.tasks.filter(t=>t.assignee===user.name && t.status!=='done').map(t => `<div class="glass p-4 border-l-4 border-orange-500 mb-2"><div class="flex justify-between items-start mb-2"><h4 class="font-bold text-slate-800">${t.title}</h4></div><div class="text-xs text-slate-500 mb-3">${t.house||'Chung'}</div><button class="w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold btn-action shadow-md" data-action="submitTask" data-payload="${t._id}">BÁO CÁO XONG</button></div>`).join('')}</div>
             </div>`;
         },
         Team: (user, data) => {
-            return `<div class="p-4 space-y-4"><div class="glass p-6 !bg-gradient-to-br from-blue-700 to-indigo-800 text-white border-0 shadow-xl flex items-center gap-5"><div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl font-black">${user.name.charAt(0)}</div><div><h2 class="text-xl font-black uppercase">${user.name}</h2><p class="text-xs opacity-80">${user.role}</p></div></div><div class="grid grid-cols-2 gap-3 mb-6"><button class="card p-4 flex flex-col items-center gap-2 btn-action" data-action="submitAttendance"><i class="fas fa-fingerprint text-2xl text-green-600"></i><span class="text-xs font-bold">ĐIỂM DANH</span></button><button class="card p-4 flex flex-col items-center gap-2 btn-action" data-action="openLeaveModal"><i class="fas fa-umbrella-beach text-2xl text-orange-600"></i><span class="text-xs font-bold">XIN NGHỈ</span></button><button class="card p-4 flex flex-col items-center gap-2 btn-action" data-action="openBuyModal"><i class="fas fa-shopping-cart text-2xl text-purple-600"></i><span class="text-xs font-bold">MUA HÀNG</span></button><button class="card p-4 flex flex-col items-center gap-2 btn-action" data-action="logout"><i class="fas fa-power-off text-2xl text-slate-500"></i><span class="text-xs font-bold">THOÁT</span></button></div></div>`;
+            const isManager = ['Quản lý', 'Admin', 'Giám đốc'].includes(user.role);
+            return `<div class="p-4 space-y-4"><div class="glass p-6 !bg-gradient-to-br from-blue-700 to-indigo-800 text-white border-0 shadow-xl flex items-center gap-5"><div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl font-black">${user.name.charAt(0)}</div><div><h2 class="text-xl font-black uppercase">${user.name}</h2><p class="text-xs opacity-80">${user.role}</p></div></div><div class="grid grid-cols-2 gap-3 mb-6"><button class="card p-4 flex flex-col items-center gap-2 btn-action" data-action="submitAttendance"><i class="fas fa-fingerprint text-2xl text-green-600"></i><span class="text-xs font-bold">ĐIỂM DANH</span></button><button class="card p-4 flex flex-col items-center gap-2 btn-action" data-action="openLeaveModal"><i class="fas fa-umbrella-beach text-2xl text-orange-600"></i><span class="text-xs font-bold">XIN NGHỈ</span></button><button class="card p-4 flex flex-col items-center gap-2 btn-action" data-action="openBuyModal"><i class="fas fa-shopping-cart text-2xl text-purple-600"></i><span class="text-xs font-bold">MUA HÀNG</span></button><button class="card p-4 flex flex-col items-center gap-2 btn-action" data-action="logout"><i class="fas fa-power-off text-2xl text-slate-500"></i><span class="text-xs font-bold">THOÁT</span></button></div>${isManager ? `<div class="glass p-0 overflow-hidden"><div class="bg-slate-50 p-4 border-b border-slate-100"><h3 class="font-black text-slate-400 text-xs uppercase tracking-widest">Nhân sự & Kỷ luật</h3></div>${data.employees.map(e => `<div class="flex justify-between items-center p-4 border-b border-slate-50 last:border-0"><div><div class="font-bold text-sm text-slate-700">${e.name}</div><div class="text-[10px] font-bold text-amber-500">${e.score} điểm</div></div><div class="flex gap-2"><button class="w-8 h-8 rounded-lg bg-red-50 text-red-500 font-bold text-xs btn-action" data-action="punishEmp" data-payload="${e._id}|5">-5</button></div></div>`).join('')}</div>` : ''}</div>`;
         }
     }
 };
