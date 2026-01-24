@@ -20,7 +20,7 @@ export const HR = {
                     <button class="text-[10px] font-bold text-blue-600 underline" onclick="document.getElementById('task-history').classList.toggle('hidden')">Lịch sử giao</button>
                 </div>
                 <div class="space-y-3">
-                    <input id="task-title" placeholder="Tên công việc (VD: Tưới nước, Hái nấm...)" class="font-bold">
+                    <input id="task-title" placeholder="Tên công việc (VD: Tưới nước...)" class="font-bold">
                     <div class="grid grid-cols-2 gap-3">
                         <select id="task-house" class="w-full p-2 border rounded"><option value="Chung">-- Khu vực --</option>${data.houses.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}</select>
                         <input id="task-deadline" type="date">
@@ -55,7 +55,7 @@ export const HR = {
 
         c.innerHTML = `<div class="space-y-4">${assignPanel}<div><h3 class="font-bold text-slate-400 text-xs uppercase pl-2 mb-2">Nhiệm Vụ Của Bạn</h3>${myTaskList}</div></div>`;
 
-        // GẮN SỰ KIỆN
+        // EVENTS GIAO VIỆC
         if(canAssign) document.getElementById('btn-add-task').onclick = async () => {
             const t = document.getElementById('task-title').value; const h = document.getElementById('task-house').value; 
             const checks = document.querySelectorAll('.task-emp-check:checked');
@@ -64,25 +64,21 @@ export const HR = {
             Utils.toast(`Đã giao cho ${checks.length} người`);
         };
 
-        // Nút Nhận Việc
         document.querySelectorAll('.btn-receive-task').forEach(b => b.onclick = async () => {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, b.dataset.id), {status:'received', receivedAt:Date.now()});
             Utils.toast("Đã nhận việc! Hãy làm ngay.");
         });
 
-        // Nút Báo Cáo (Mở Modal Ghi chú)
         document.querySelectorAll('.btn-finish-task').forEach(b => b.onclick = () => {
             Utils.modal("Báo Cáo Kết Quả", `
-                <p class="text-xs text-slate-500 mb-1">Ghi chú kết quả (VD: Đã tưới 30 phút, Hái được 5kg...)</p>
-                <textarea id="task-note" class="w-full border p-2 rounded h-20" placeholder="Nhập ghi chú..."></textarea>
+                <p class="text-xs text-slate-500 mb-1">Ghi chú kết quả:</p>
+                <textarea id="task-note" class="w-full border p-2 rounded h-20" placeholder="Đã làm xong..."></textarea>
             `, [{id:'btn-confirm-finish', text:'Gửi Báo Cáo'}]);
-            
             setTimeout(() => {
                 document.getElementById('btn-confirm-finish').onclick = async () => {
                     const note = document.getElementById('task-note').value;
                     await updateDoc(doc(db, `${ROOT_PATH}/tasks`, b.dataset.id), {status:'done', note: note, completedBy:user.name, completedAt:Date.now()});
-                    Utils.modal(null);
-                    Utils.toast("Đã báo cáo xong! (+Điểm)");
+                    Utils.modal(null); Utils.toast("Đã báo cáo xong! (+Điểm)");
                 }
             }, 100);
         });
@@ -94,12 +90,11 @@ export const HR = {
         
         const isManager = ['Quản lý', 'Admin', 'Giám đốc'].includes(user.role);
         
-        // HTML Danh sách nhân viên (Chỉ quản lý thấy)
+        // HTML Danh sách nhân viên
         const empList = isManager ? `
             <div class="glass p-0 overflow-hidden mt-4">
                 <div class="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="font-black text-slate-400 text-xs uppercase tracking-widest">Nhân sự & Điểm</h3>
-                    <span class="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded">Tháng này</span>
                 </div>
                 <div class="max-h-80 overflow-y-auto">
                     ${data.employees.map(e => `
@@ -131,17 +126,43 @@ export const HR = {
                 ${empList}
             </div>`;
 
-        // EVENTS
+        // EVENTS CHUNG
         document.getElementById('btn-checkin').onclick = async () => { if(confirm("Chấm công bây giờ?")) { await addDoc(collection(db, `${ROOT_PATH}/attendance`), { user:user.name, type:'CHECK_IN', time:Date.now() }); Utils.toast("✅ Đã điểm danh"); } };
         document.getElementById('btn-logout').onclick = () => { if(confirm("Đăng xuất?")) { localStorage.removeItem('n5_modular_user'); location.reload(); } };
         
-        // Modal Xin Nghỉ & Mua Hàng (Giữ nguyên logic cũ, gọi Utils.modal)
+        // 1. XIN NGHỈ
         document.getElementById('btn-leave').onclick = () => {
-             Utils.modal("Xin Nghỉ Phép", `<input id="leave-date" type="date"><textarea id="leave-reason" class="w-full border p-2 rounded" placeholder="Lý do..."></textarea>`, [{id:'submit-leave', text:'Gửi Đơn'}]);
+             Utils.modal("Xin Nghỉ Phép", `<input id="leave-date" type="date" class="w-full border p-2 rounded mb-2"><textarea id="leave-reason" class="w-full border p-2 rounded" placeholder="Lý do..."></textarea>`, [{id:'submit-leave', text:'Gửi Đơn'}]);
              setTimeout(()=>document.getElementById('submit-leave').onclick = async()=>{ await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), {user:user.name, type:'LEAVE', date:document.getElementById('leave-date').value, reason:document.getElementById('leave-reason').value, status:'pending', time:Date.now()}); Utils.modal(null); Utils.toast("Đã gửi đơn"); }, 100);
         };
 
-        // Logic Phạt/Thưởng (Quan trọng)
+        // 2. MUA HÀNG (ĐÃ FIX: Thêm sự kiện click)
+        document.getElementById('btn-buy').onclick = () => {
+            Utils.modal("Đề Xuất Mua Hàng", `
+                <input id="buy-item" class="w-full border p-2 rounded mb-2" placeholder="Tên hàng hóa (Cồn, bao bì...)">
+                <div class="flex gap-2">
+                    <input id="buy-qty" type="number" class="w-2/3 border p-2 rounded" placeholder="Số lượng">
+                    <input id="buy-unit" class="w-1/3 border p-2 rounded" placeholder="ĐVT">
+                </div>
+            `, [{id:'submit-buy', text:'Gửi Đề Xuất'}]);
+
+            setTimeout(() => {
+                document.getElementById('submit-buy').onclick = async () => {
+                    const item = document.getElementById('buy-item').value;
+                    const qty = document.getElementById('buy-qty').value;
+                    const unit = document.getElementById('buy-unit').value;
+                    if(!item || !qty) return Utils.toast("Thiếu thông tin!", "err");
+
+                    await addDoc(collection(db, `${ROOT_PATH}/buy_requests`), {
+                        user: user.name, item, qty, unit, status: 'pending', time: Date.now()
+                    });
+                    Utils.modal(null);
+                    Utils.toast("Đã gửi đề xuất mua hàng");
+                }
+            }, 100);
+        };
+
+        // 3. THƯỞNG PHẠT
         if(isManager) {
             document.querySelectorAll('.btn-punish').forEach(b => b.onclick = () => {
                 const isPhat = b.dataset.type === 'phat';
@@ -161,11 +182,9 @@ export const HR = {
                         const finalScore = (emp.score || 0) + (isPhat ? -pts : pts);
                         
                         await updateDoc(doc(db, `${ROOT_PATH}/employees`, b.dataset.id), { score: finalScore });
-                        // Lưu log phạt để tra cứu sau
                         await addDoc(collection(db, `${ROOT_PATH}/hr_logs`), { user: b.dataset.name, by: user.name, type: isPhat?'PUNISH':'BONUS', point: isPhat?-pts:pts, reason, time: Date.now() });
                         
-                        Utils.modal(null);
-                        Utils.toast(`Đã cập nhật điểm cho ${b.dataset.name}`);
+                        Utils.modal(null); Utils.toast(`Đã cập nhật điểm`);
                     }
                 }, 100);
             });
