@@ -10,7 +10,8 @@ export const Home = {
 
         c.innerHTML = `
         <div class="space-y-6">
-            <div class="glass p-6 !bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-0 shadow-lg shadow-blue-500/30">
+            <div class="glass p-6 !bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-0 shadow-lg shadow-blue-500/30 relative">
+                <button class="absolute top-2 right-2 text-white/50 hover:text-white btn-action" data-action="showScoreGuide"><i class="fas fa-question-circle"></i></button>
                 <h3 class="font-bold text-xs uppercase tracking-widest mb-4 opacity-80 text-center">Bảng Phong Thần Tháng Này</h3>
                 <div class="flex justify-center items-end gap-4">
                     ${topEmployees[1] ? `<div class="flex flex-col items-center opacity-90"><div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold mb-1 border border-white/30">2</div><span class="text-[10px] font-bold">${topEmployees[1].name}</span><span class="text-[10px]">${topEmployees[1].score}đ</span></div>` : ''}
@@ -33,7 +34,7 @@ export const Home = {
             <div>
                 <div class="flex justify-between items-center mb-3 px-1">
                     <h3 class="font-bold text-slate-500 text-xs uppercase">Trạng thái nhà nấm</h3>
-                    ${isAdmin ? `<button id="btn-add-house" class="text-[10px] bg-white px-2 py-1 rounded shadow text-blue-600 font-bold">+ Nhà mới</button>` : ''}
+                    ${isAdmin ? `<button class="text-[10px] bg-white px-3 py-1.5 rounded-lg shadow text-blue-600 font-bold btn-action" data-action="openAddHouse"><i class="fas fa-plus mr-1"></i> Nhà mới</button>` : ''}
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     ${data.houses.map(h => `
