@@ -8,7 +8,7 @@ export const THDG = {
         
         const sorted = [...data.houses].sort((a,b)=>a.name.localeCompare(b.name, 'vi', {numeric:true}));
         
-        // 1. Phân loại 3 nhóm theo yêu cầu
+        // 1. Phân loại 3 nhóm
         const g1 = data.products.filter(p => p.group == '1'); // Nấm Tươi
         const g2 = data.products.filter(p => p.group == '2'); // Nấm Khô
         const g3 = data.products.filter(p => p.group == '3'); // Nấm Sơ Chế
@@ -125,4 +125,112 @@ export const THDG = {
                                     <div class="font-bold text-slate-700">${l.customer}</div>
                                     <div class="text-[9px] text-slate-400">${new Date(l.time).toLocaleString('vi-VN')}</div>
                                 </div>
-                                <div class="font-black text-orange-600 text-sm">${l.qty} <span class="text-[10px
+                                <div class="font-black text-orange-600 text-sm">${l.qty} <span class="text-[10px] text-slate-500 font-normal">${l.type}</span></div>
+                            </div>
+                        `).join('') : '<div class="text-center text-xs text-slate-300 italic">Chưa có dữ liệu xuất</div>'}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+        // --- GẮN SỰ KIỆN (EVENTS) ---
+        setTimeout(() => {
+            // 1. Chuyển Tab Nhập/Xuất
+            document.querySelectorAll('.btn-tab-th').forEach(btn => {
+                btn.onclick = () => {
+                    const target = btn.dataset.target;
+                    // Toggle UI content
+                    document.getElementById('zone-th-in').classList.toggle('hidden', target !== 'in');
+                    document.getElementById('zone-th-out').classList.toggle('hidden', target !== 'out');
+                    
+                    // Update Button Styles
+                    document.querySelectorAll('.btn-tab-th').forEach(b => {
+                        if(b === btn) {
+                            b.classList.add('bg-green-100', 'text-green-700', 'shadow-sm');
+                            b.classList.remove('text-slate-400', 'hover:bg-slate-50');
+                        } else {
+                            b.classList.remove('bg-green-100', 'text-green-700', 'shadow-sm');
+                            b.classList.add('text-slate-400', 'hover:bg-slate-50');
+                        }
+                    });
+                }
+            });
+
+            // 2. Lưu Nhập Kho
+            document.getElementById('btn-save-th').onclick = async () => {
+                const area = document.getElementById('th-area').value;
+                if(!area) return Utils.toast("Vui lòng chọn Nguồn thu!", "err");
+                
+                let d = {}, total = 0;
+                data.products.forEach(p => { 
+                    const el = document.getElementById(`th-${p.code}`); 
+                    if(el && Number(el.value) > 0) { 
+                        d[p.code] = Number(el.value); 
+                        total += Number(el.value); 
+                        el.value = ''; // Reset ô nhập
+                    } 
+                });
+
+                if(total === 0) return Utils.toast("Chưa nhập số lượng nào!", "err");
+                
+                await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { 
+                    area, details: d, total, note: '', user: user.name, time: Date.now() 
+                });
+                Utils.toast(`✅ Đã nhập kho thành công ${total} đơn vị`);
+            };
+
+            // 3. Thêm Mã Sản Phẩm Mới (Modal 3 Nhóm)
+            document.getElementById('btn-add-prod').onclick = () => {
+                const html = `
+                    <div><label class="text-xs font-bold text-slate-500">Tên hiển thị</label><input id="new-prod-name" placeholder="VD: Nấm Mỡ AA" class="w-full p-2 border rounded font-bold"></div>
+                    <div><label class="text-xs font-bold text-slate-500">Mã hệ thống (ko dấu)</label><input id="new-prod-code" placeholder="VD: nam_mo_aa" class="w-full p-2 border rounded"></div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500">Nhóm hàng</label>
+                        <select id="new-prod-group" class="w-full p-2 border rounded font-bold text-blue-600">
+                            <option value="1">1. Nấm Tươi</option>
+                            <option value="2">2. Nấm Khô</option>
+                            <option value="3">3. Nấm Sơ Chế</option>
+                        </select>
+                    </div>`;
+                
+                Utils.modal("Thêm Mã Hàng Mới", html, [{id:'submit-new-prod', text:'Lưu Mã', cls:'bg-blue-600 text-white'}]);
+
+                setTimeout(() => document.getElementById('submit-new-prod').onclick = async () => {
+                    const n = document.getElementById('new-prod-name').value;
+                    const c = document.getElementById('new-prod-code').value;
+                    const g = document.getElementById('new-prod-group').value;
+                    
+                    if(n && c) { 
+                        await addDoc(collection(db, `${ROOT_PATH}/products`), { name:n, code:c, group:g }); 
+                        Utils.modal(null); 
+                        Utils.toast("Đã thêm mã hàng mới"); 
+                    } else {
+                        Utils.toast("Thiếu tên hoặc mã!", "err");
+                    }
+                }, 100);
+            };
+
+            // 4. Xử lý Xuất Kho
+            document.getElementById('btn-submit-ship').onclick = async () => {
+                const c = document.getElementById('ship-cust').value;
+                const t = document.getElementById('ship-type').value;
+                const q = Number(document.getElementById('ship-qty').value);
+                const n = document.getElementById('ship-note').value;
+
+                if(!c || !t || !q) return Utils.toast("Thiếu thông tin xuất hàng!", "err");
+
+                await addDoc(collection(db, `${ROOT_PATH}/shipping`), { 
+                    customer: c, type: t, qty: q, note: n, user: user.name, time: Date.now() 
+                });
+                
+                // Reset form
+                document.getElementById('ship-cust').value = '';
+                document.getElementById('ship-qty').value = '';
+                document.getElementById('ship-note').value = '';
+                
+                Utils.toast("🚚 Đã xuất kho thành công!");
+            };
+
+        }, 0);
+    }
+};
