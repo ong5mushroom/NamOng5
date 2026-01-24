@@ -7,6 +7,14 @@ import { SX } from './modules/sx.js';
 import { Chat } from './modules/chat.js';
 import { Admin } from './modules/admin.js';
 
+// Mảng màu sắc đẹp để random cho avatar
+const AVATAR_COLORS = [
+    'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500', 
+    'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500', 
+    'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500', 
+    'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500'
+];
+
 const App = {
     data: { employees: [], houses: [], harvest: [], tasks: [], shipping: [], chat: [], products: [], materials: [] },
     user: JSON.parse(localStorage.getItem('n5_modular_user')) || null,
@@ -14,42 +22,38 @@ const App = {
     init: () => {
         Utils.init();
         
-        // --- GLOBAL CLICK HANDLER ---
+        // GLOBAL CLICK HANDLER
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('.btn-action');
             if(btn) {
-                const action = btn.dataset.action;
-                const payload = btn.dataset.payload;
-                
-                // Gọi Action tương ứng từ các Module (nếu có trong Actions của Features cũ hoặc tự định nghĩa)
-                // Ở V900, ta dùng cơ chế gọi trực tiếp hoặc qua switch case nếu cần
-                // Tuy nhiên để đơn giản, ta xử lý các nút chung ở đây
+                // Xử lý các nút action chung nếu cần
             }
 
-            // Xử lý nút Settings (Quản trị)
-            // FIX LỖI: Dùng đúng ID 'btn-settings' khớp với index.html
+            // Xử lý chọn User ở màn hình Login (Logic mới)
+            const userOpt = e.target.closest('.user-option');
+            if(userOpt) {
+                // Xóa chọn cũ
+                document.querySelectorAll('.user-option').forEach(el => el.classList.remove('selected', 'ring-2', 'ring-blue-500'));
+                // Chọn mới
+                userOpt.classList.add('selected', 'ring-2', 'ring-blue-500');
+                document.getElementById('login-user').value = userOpt.dataset.name;
+                // Focus vào ô PIN để nhập luôn
+                document.getElementById('login-pin').focus();
+            }
+
             if(e.target.closest('#btn-settings')) {
-                if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user?.role)) {
-                    Admin.openSettings();
-                } else {
-                    Utils.toast("Bạn không có quyền truy cập!", "err");
-                }
+                if(['Quản lý', 'Admin', 'Giám đốc'].includes(App.user?.role)) Admin.openSettings();
+                else Utils.toast("Bạn không có quyền!", "err");
             }
 
-            // Xử lý nút Chat
             if(e.target.closest('#btn-chat')) {
-                const l = document.getElementById('chat-layer');
-                l.classList.remove('hidden'); l.style.display = 'flex';
+                document.getElementById('chat-layer').classList.remove('hidden');
+                document.getElementById('chat-layer').style.display = 'flex';
                 document.getElementById('chat-badge').classList.add('hidden');
                 Chat.render(App.data, App.user);
             }
-
-            // Nút đóng chat
-            if(e.target.dataset.action === 'closeChat') {
-                document.getElementById('chat-layer').classList.add('hidden');
-            }
-
-            // Nút style toggle cho THDG
+            if(e.target.dataset.action === 'closeChat') document.getElementById('chat-layer').classList.add('hidden');
+            
             if(e.target.dataset.action === 'toggleTH') {
                 e.target.parentElement.querySelectorAll('button').forEach(b => {
                     if(b === e.target) b.classList.add('bg-green-100','text-green-700','shadow-sm');
@@ -58,16 +62,12 @@ const App = {
             }
         });
 
-        // Xử lý đăng nhập
         document.getElementById('login-btn')?.addEventListener('click', App.handleLogin);
-
-        // Tab Navigation
         document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => { 
             UI_App.switchTab(btn);
             App.renderModule(btn.dataset.tab); 
         }));
 
-        // Firebase Sync
         signInAnonymously(auth).then(() => {
             console.log("System Online");
             App.syncData();
@@ -80,32 +80,39 @@ const App = {
                 const key = c==='harvest_logs'?'harvest':c;
                 App.data[key] = snap.docs.map(d => ({...d.data(), _id: d.id}));
                 
-                // Auto Seeder
                 if(c==='products' && snap.empty) App.seedProducts();
                 if(c==='employees' && snap.empty) App.seedAdmin();
+                
+                if(c==='chat' && !document.getElementById('chat-layer').classList.contains('hidden')) Chat.render(App.data, App.user);
 
-                // Realtime Chat Update
-                if(c==='chat' && !document.getElementById('chat-layer').classList.contains('hidden')) {
-                    Chat.render(App.data, App.user);
-                }
-
-                // Update Login Dropdown
+                // --- RENDER LOGIN USER LIST (AVATAR MÀU SẮC) ---
                 if(c==='employees') {
-                    const sel = document.getElementById('login-user');
-                    if(sel) sel.innerHTML = '<option value="">-- Chọn --</option>' + App.data.employees.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+                    const listContainer = document.getElementById('login-user-list');
+                    if(listContainer) {
+                        if(App.data.employees.length === 0) {
+                            listContainer.innerHTML = '<div class="col-span-4 text-center text-xs text-slate-400">Chưa có dữ liệu</div>';
+                        } else {
+                            listContainer.innerHTML = App.data.employees.map((e, index) => {
+                                // Lấy chữ cái đầu
+                                const firstLetter = e.name.charAt(0).toUpperCase();
+                                // Chọn màu cố định dựa trên độ dài tên để không bị đổi màu khi reload
+                                const colorClass = AVATAR_COLORS[e.name.length % AVATAR_COLORS.length];
+                                
+                                return `
+                                <div class="user-option flex flex-col items-center gap-1 p-2 rounded-xl cursor-pointer hover:bg-slate-50" data-name="${e.name}">
+                                    <div class="user-avatar ${colorClass}">${firstLetter}</div>
+                                    <span class="text-[10px] font-bold text-slate-600 truncate w-full text-center">${e.name}</span>
+                                </div>`;
+                            }).join('');
+                        }
+                    }
                 }
 
-                // NẾU ĐÃ ĐĂNG NHẬP -> VẼ GIAO DIỆN & HIỆN NÚT SETTINGS
                 if(App.user) {
                     document.getElementById('login-overlay').classList.add('hidden');
                     document.getElementById('head-user').innerText = App.user.name;
                     document.getElementById('head-role').innerText = App.user.role;
-                    
-                    // FIX LỖI QUAN TRỌNG: Hiện nút settings dùng đúng ID 'btn-settings'
-                    if(['Admin','Quản lý','Giám đốc'].includes(App.user.role)) {
-                        document.getElementById('btn-settings').classList.remove('hidden');
-                    }
-                    
+                    if(['Admin','Quản lý','Giám đốc'].includes(App.user.role)) document.getElementById('btn-settings').classList.remove('hidden');
                     const currentTab = localStorage.getItem('n5_current_tab') || 'home';
                     App.renderModule(currentTab);
                 }
@@ -122,14 +129,17 @@ const App = {
     },
 
     handleLogin: () => {
-        const id = document.getElementById('login-user').value; 
+        const id = document.getElementById('login-user').value; // Lấy từ input hidden
         const pin = document.getElementById('login-pin').value;
+        
+        if(!id) return Utils.toast("Vui lòng chọn nhân viên!", "err");
+
         const emp = App.data.employees.find(e => e.name === id && String(e.pin) == pin);
         if(emp) { 
             App.user = emp;
             localStorage.setItem('n5_modular_user', JSON.stringify(emp)); 
             location.reload(); 
-        } else Utils.toast("Sai thông tin đăng nhập!", "err");
+        } else Utils.toast("Sai mã PIN!", "err");
     },
 
     seedProducts: () => { [{name:"B2",code:"b2",group:"1"},{name:"A1",code:"a1",group:"1"}].forEach(p => addDoc(collection(db, `${ROOT_PATH}/products`), p)); },
