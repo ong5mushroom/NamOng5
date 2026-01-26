@@ -15,7 +15,7 @@ export const Chat = {
         // 1. Nếu chưa có tin nhắn
         if (msgs.length === 0) {
             content.innerHTML = `
-                <div class="h-full flex flex-col items-center justify-center opacity-40 mt-20">
+                <div class="h-full flex flex-col items-center justify-center opacity-40 mt-20" id="no-msg-placeholder">
                     <i class="fas fa-comments text-6xl mb-4 text-slate-400"></i>
                     <p class="text-sm font-bold text-slate-500">Chưa có tin nhắn nào</p>
                 </div>`;
@@ -79,9 +79,40 @@ export const Chat = {
         const text = inp.value.trim();
         if(!text) return;
 
-        inp.value = ''; // Xóa ô nhập ngay lập tức
+        // 1. Xóa ô nhập ngay lập tức để người dùng cảm thấy mượt
+        inp.value = ''; 
         inp.focus();
 
+        // 2. HIỂN THỊ NGAY LẬP TỨC (OPTIMISTIC UI)
+        const content = document.getElementById('chat-msgs');
+        
+        // Nếu đang hiện thông báo "Chưa có tin nhắn nào" thì xóa nó đi
+        // (Kiểm tra bằng cách tìm class hoặc id, ở đây check nội dung text cho đơn giản)
+        if(content.innerHTML.includes('Chưa có tin nhắn nào')) {
+            content.innerHTML = '';
+        }
+
+        // Tạo HTML tin nhắn mới (Mô phỏng giống hệt cấu trúc render ở trên)
+        // Vì là tin mình gửi nên luôn là items-end và bg-blue-600
+        const timeStr = new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+        
+        const msgHtml = `
+            <div class="flex flex-col items-end mb-2 w-full animate-pop">
+                <div class="max-w-[75%] px-4 py-3 text-sm shadow-sm break-words leading-relaxed bg-blue-600 text-white rounded-2xl rounded-tr-sm">
+                    ${text}
+                </div>
+                <span class="text-[9px] text-slate-400 px-1 mt-1 opacity-70">
+                    ${timeStr}
+                </span>
+            </div>`;
+
+        // Chèn vào cuối danh sách hiện có
+        content.insertAdjacentHTML('beforeend', msgHtml);
+        
+        // Cuộn xuống đáy ngay lập tức
+        content.scrollTop = content.scrollHeight;
+
+        // 3. Gửi dữ liệu lên Server
         try {
             await addDoc(collection(db, `${ROOT_PATH}/chat`), { 
                 text: text, 
@@ -92,7 +123,8 @@ export const Chat = {
         } catch (e) {
             console.error(e);
             Utils.toast("Lỗi gửi tin!", "err");
-            inp.value = text; // Hoàn tác nếu lỗi
+            // Nếu lỗi thì trả lại text vào ô nhập để người dùng gửi lại
+            inp.value = text; 
         }
     }
 };
