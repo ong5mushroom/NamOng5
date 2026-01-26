@@ -1,4 +1,5 @@
-import { addDoc, collection, db, ROOT_PATH } from '../config.js';
+// Dùng ../config.js và ../utils.js
+import { ... } from '../config.js'; 
 import { Utils } from '../utils.js';
 
 export const Chat = {
