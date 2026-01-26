@@ -1,5 +1,5 @@
-// Dùng ../config.js và ../utils.js
-import { ... } from '../config.js'; 
+// ĐƯỜNG DẪN: js/modules/chat.js
+import { addDoc, collection, db, ROOT_PATH } from '../config.js';
 import { Utils } from '../utils.js';
 
 export const Chat = {
@@ -10,13 +10,11 @@ export const Chat = {
         const msgs = data.chat || [];
         const content = document.getElementById('chat-msgs');
         
-        // Render danh sách tin nhắn
         if (msgs.length === 0) {
             content.innerHTML = `<div class="text-center mt-10 text-slate-400">Chưa có tin nhắn</div>`;
         } else {
             content.innerHTML = msgs.map((m, index) => {
-                // Ép kiểu về String để so sánh chính xác
-                const currentUserId = user ? String(user.id) : "guest";
+                const currentUserId = user ? String(user._id) : "guest";
                 const senderId = String(m.senderId);
                 const isMe = senderId === currentUserId;
                 
@@ -33,17 +31,15 @@ export const Chat = {
             }).join('');
         }
         
-        // Luôn cuộn xuống cuối sau khi render
         setTimeout(() => content.scrollTop = content.scrollHeight, 50);
 
-        // GẮN SỰ KIỆN (Chỉ gắn 1 lần)
         const sendBtn = document.querySelector('[data-action="sendChat"]');
         if(sendBtn) {
-            const newBtn = sendBtn.cloneNode(true); // Xóa event cũ
+            const newBtn = sendBtn.cloneNode(true);
             sendBtn.parentNode.replaceChild(newBtn, sendBtn);
             
             const handleSend = (e) => {
-                if(e) e.preventDefault(); // CHẶN RELOAD
+                if(e) e.preventDefault();
                 Chat.sendMessage(user);
             };
 
@@ -64,22 +60,20 @@ export const Chat = {
         const text = inp.value.trim();
         if(!text) return;
 
-        inp.value = ''; // Xóa ô nhập
+        inp.value = ''; 
         inp.focus();
 
-        // --- QUAN TRỌNG: KHÔNG VẼ TẠM Ở ĐÂY NỮA ---
-        // Chỉ gửi lên server và để onSnapshot tự lo
         try {
             await addDoc(collection(db, `${ROOT_PATH}/chat`), { 
                 text: text, 
-                senderId: String(user.id), 
+                senderId: String(user._id), 
                 senderName: user.name, 
                 time: Date.now() 
             });
         } catch (e) {
             console.error(e);
             Utils.toast("Lỗi gửi tin", "err");
-            inp.value = text; // Trả lại text nếu lỗi
+            inp.value = text;
         }
     }
 };
