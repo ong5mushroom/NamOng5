@@ -7,47 +7,65 @@ export const Chat = {
         const c = document.getElementById('chat-layer');
         if (!c || c.classList.contains('hidden')) return;
 
-        const msgs = Array.isArray(data.chat) ? data.chat : [];
-        const content = document.getElementById('chat-msgs');
-        if (!content) return;
+        try {
+            const msgs = Array.isArray(data.chat) ? data.chat : [];
+            const content = document.getElementById('chat-msgs');
+            if (!content) return;
 
-        if (msgs.length === 0) {
-            content.innerHTML = `<div class="text-center mt-20 text-slate-400 font-bold opacity-60">Chưa có tin nhắn nào</div>`;
-        } else {
-            content.innerHTML = msgs.map((m) => {
-                // Xử lý an toàn cho ID
-                const myId = user ? String(user._id || user.id) : "guest";
-                const senderId = String(m.senderId);
-                const isMe = senderId === myId;
-                const timeStr = m.time ? new Date(m.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'}) : '';
+            if (msgs.length === 0) {
+                content.innerHTML = `<div class="text-center mt-20 text-slate-400 font-bold opacity-60">Chưa có tin nhắn nào</div>`;
+            } else {
+                // Dùng try-catch bên trong map để 1 tin lỗi không làm hỏng cả list
+                content.innerHTML = msgs.map((m) => {
+                    try {
+                        if (!m) return ''; // Bỏ qua tin rác
+                        
+                        // Xử lý ID an toàn
+                        const myId = user ? String(user._id || user.id) : "guest";
+                        const senderId = m.senderId ? String(m.senderId) : "unknown";
+                        const isMe = senderId === myId;
+                        
+                        // Xử lý thời gian an toàn
+                        let timeStr = '';
+                        if (m.time) {
+                            timeStr = new Date(m.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+                        }
 
-                return `
-                <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-3 w-full animate-pop">
-                    ${!isMe ? `<span class="text-[10px] text-slate-500 ml-2 mb-0.5 font-bold">${m.senderName || 'Người lạ'}</span>` : ''}
-                    <div class="max-w-[80%] px-4 py-3 text-sm shadow-sm break-words leading-relaxed
-                        ${isMe ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-100'}">
-                        ${m.text}
-                    </div>
-                    <span class="text-[9px] text-slate-400 px-1 mt-1 opacity-70">${timeStr}</span>
-                </div>`;
-            }).join('');
-        }
-        
-        // Cuộn xuống cuối
-        setTimeout(() => content.scrollTop = content.scrollHeight, 100);
-
-        // Gắn sự kiện gửi (Chỉ gắn 1 lần)
-        const sendBtn = document.querySelector('[data-action="sendChat"]');
-        if(sendBtn && !sendBtn.dataset.bound) {
-            const newBtn = sendBtn.cloneNode(true);
-            sendBtn.parentNode.replaceChild(newBtn, sendBtn);
-            newBtn.dataset.bound = "true";
-
-            const handleSend = () => Chat.sendMessage(user);
-            newBtn.addEventListener('click', handleSend);
+                        return `
+                        <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-3 w-full animate-pop">
+                            ${!isMe ? `<span class="text-[10px] text-slate-500 ml-2 mb-0.5 font-bold">${m.senderName || 'Người lạ'}</span>` : ''}
+                            <div class="max-w-[80%] px-4 py-3 text-sm shadow-sm break-words leading-relaxed 
+                                ${isMe ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-100'}">
+                                ${m.text || '(Tin nhắn trống)'}
+                            </div>
+                            <span class="text-[9px] text-slate-400 px-1 mt-1 opacity-70">${timeStr}</span>
+                        </div>`;
+                    } catch (err) {
+                        return ''; // Nếu tin này lỗi thì ẩn đi, không crash app
+                    }
+                }).join('');
+            }
             
-            const inp = document.getElementById('chat-input');
-            if(inp) inp.onkeydown = (e) => { if(e.key === 'Enter') handleSend(); };
+            // Cuộn xuống cuối
+            setTimeout(() => { if(content) content.scrollTop = content.scrollHeight; }, 100);
+
+            // Gắn sự kiện gửi
+            const sendBtn = document.querySelector('[data-action="sendChat"]');
+            if(sendBtn && !sendBtn.dataset.bound) {
+                const newBtn = sendBtn.cloneNode(true);
+                sendBtn.parentNode.replaceChild(newBtn, sendBtn);
+                newBtn.dataset.bound = "true";
+
+                const handleSend = () => Chat.sendMessage(user);
+                newBtn.addEventListener('click', handleSend);
+                
+                const inp = document.getElementById('chat-input');
+                if(inp) inp.onkeydown = (e) => { if(e.key === 'Enter') handleSend(); };
+            }
+
+        } catch (e) {
+            console.error("Critical Chat Error:", e);
+            // Không hiện lỗi lên màn hình chat để tránh xấu giao diện, chỉ log console
         }
     },
 
@@ -57,7 +75,7 @@ export const Chat = {
         const text = inp.value.trim();
         if(!text) return;
 
-        inp.value = ''; inp.focus(); // Xóa ngay cho mượt
+        inp.value = ''; inp.focus();
 
         try {
             await addDoc(collection(db, `${ROOT_PATH}/chat`), { 
@@ -67,7 +85,6 @@ export const Chat = {
                 time: Date.now() 
             });
         } catch (e) {
-            console.error(e);
             Utils.toast("Lỗi gửi tin!", "err");
             inp.value = text;
         }
