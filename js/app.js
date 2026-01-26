@@ -1,15 +1,11 @@
-// ĐƯỜNG DẪN FILE: js/app.js
-
-// 1. Import Modules: Dùng ./modules/... vì thư mục modules nằm ngay cạnh file này
+// ĐƯỜNG DẪN: js/app.js
 import { Home } from './modules/home.js';
 import { HR } from './modules/hr.js';
 import { SX } from './modules/sx.js';
 import { THDG } from './modules/thdg.js';
 import { Chat } from './modules/chat.js';
 import { Admin } from './modules/admin.js';
-
-// 2. Import Config/Utils: Dùng ./... vì nó nằm cùng thư mục js
-import { auth, db, collection, onSnapshot, signInAnonymously, onAuthStateChanged, ROOT_PATH } from './config.js';
+import { auth, db, collection, onSnapshot, signInAnonymously, ROOT_PATH } from './config.js';
 import { Utils } from './utils.js';
 
 const App = {
@@ -25,8 +21,7 @@ const App = {
             await signInAnonymously(auth);
             console.log("Firebase Connected");
         } catch (e) {
-            console.error(e);
-            Utils.toast("Lỗi kết nối Server!", "err");
+            console.error("FB Error:", e);
         }
 
         App.listenData();
@@ -35,23 +30,25 @@ const App = {
     },
 
     listenData: () => {
-        // Tải User để login
+        // 1. Luôn tải danh sách nhân viên để Login
         onSnapshot(collection(db, `${ROOT_PATH}/employees`), (snap) => {
             App.data.employees = snap.docs.map(d => ({...d.data(), _id: d.id}));
             App.data.users = App.data.employees; 
             App.renderLoginList();
         });
 
-        // Chỉ tải dữ liệu nặng khi đã đăng nhập
+        // 2. Nếu đã đăng nhập thì tải dữ liệu chính
         if (App.user) {
             const cols = ['houses', 'tasks', 'chat', 'spawn_inventory', 'products', 'harvest_logs', 'shipping'];
             cols.forEach(key => {
-                // Map harvest_logs về key harvest trong data
                 const dataKey = key === 'harvest_logs' ? 'harvest' : key;
                 onSnapshot(collection(db, `${ROOT_PATH}/${key}`), (snap) => {
                     let docs = snap.docs.map(d => ({...d.data(), id: d.id}));
+                    // Sort chat
                     if(dataKey === 'chat') docs.sort((a,b) => a.time - b.time);
                     App.data[dataKey] = docs;
+                    
+                    // Vẽ lại giao diện khi có dữ liệu mới
                     App.renderActiveTab();
                 });
             });
@@ -71,7 +68,19 @@ const App = {
             document.getElementById('login-overlay').classList.add('hidden');
             document.getElementById('head-user').innerText = App.user.name;
             document.getElementById('head-role').innerText = App.user.role;
-            if(['Admin','Quản lý'].includes(App.user.role)) document.getElementById('btn-settings').classList.remove('hidden');
+            
+            // --- FIX LỖI MẤT NÚT BÁNH XE ---
+            // Kiểm tra không phân biệt hoa thường và đảm bảo user.role tồn tại
+            const role = (App.user.role || '').toLowerCase();
+            const btnSettings = document.getElementById('btn-settings');
+            
+            if(['admin', 'quản lý', 'giám đốc'].includes(role)) {
+                btnSettings.classList.remove('hidden');
+            } else {
+                btnSettings.classList.add('hidden');
+            }
+
+            // Mở tab mặc định
             App.switchTab('home');
         } else {
             document.getElementById('login-overlay').classList.remove('hidden');
@@ -117,6 +126,7 @@ const App = {
             case 'sx': SX.render(App.data); break;
             case 'thdg': THDG.render(App.data, App.user); break;
         }
+        // Chat luôn được render ngầm để cập nhật tin mới
         Chat.render(App.data, App.user);
     },
 
