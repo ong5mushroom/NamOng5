@@ -3,9 +3,22 @@ export const Home = {
         const c = document.getElementById('view-home');
         if(c.classList.contains('hidden')) return;
 
-        // Tính toán số liệu
+        // 1. TÍNH TOÁN SỐ LIỆU TỔNG HỢP
         const activeHouses = data.houses.filter(h => h.status === 'ACTIVE');
-        const totalYield = data.harvest.reduce((acc, h) => acc + (Number(h.total) || 0), 0);
+        
+        // Tính tổng toàn trại
+        const totalYield = (data.harvest || []).reduce((acc, h) => acc + (Number(h.total) || 0), 0);
+        
+        // --- LOGIC MỚI: TÍNH SẢN LƯỢNG RIÊNG CHO TỪNG NHÀ ---
+        const yieldByHouse = {};
+        (data.harvest || []).forEach(log => {
+            // log.area là tên nhà (VD: Nhà 1, Nhà 2...)
+            if (!yieldByHouse[log.area]) yieldByHouse[log.area] = 0;
+            yieldByHouse[log.area] += (Number(log.total) || 0);
+        });
+        // ---------------------------------------------------
+
+        // Top nhân viên (Giữ nguyên)
         const topEmployees = [...data.employees].sort((a,b) => (b.score||0) - (a.score||0)).slice(0,3);
 
         c.innerHTML = `
@@ -22,11 +35,11 @@ export const Home = {
 
             <div class="grid grid-cols-2 gap-3">
                 <div class="glass p-4 bg-white">
-                    <span class="text-[10px] text-slate-400 font-bold uppercase">Sản lượng tổng</span>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase">Tổng thu hoạch</span>
                     <div class="text-2xl font-black text-slate-700">${totalYield.toLocaleString()} <span class="text-xs text-slate-400">kg</span></div>
                 </div>
                 <div class="glass p-4 bg-white">
-                    <span class="text-[10px] text-slate-400 font-bold uppercase">Nhà đang chạy</span>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase">Đang sản xuất</span>
                     <div class="text-2xl font-black text-green-600">${activeHouses.length} <span class="text-xs text-slate-400">nhà</span></div>
                 </div>
             </div>
@@ -36,15 +49,33 @@ export const Home = {
                     <h3 class="font-bold text-slate-500 text-xs uppercase">Trạng thái nhà nấm</h3>
                     ${isAdmin ? `<button class="text-[10px] bg-white px-3 py-1.5 rounded-lg shadow text-blue-600 font-bold btn-action" data-action="openAddHouse"><i class="fas fa-plus mr-1"></i> Nhà mới</button>` : ''}
                 </div>
+                
                 <div class="grid grid-cols-2 gap-3">
-                    ${data.houses.map(h => `
-                    <div class="glass p-3 border-l-4 ${h.status==='ACTIVE'?'border-green-500':'border-slate-300'} relative">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="font-black text-lg text-slate-700">${h.name}</span>
-                            <span class="text-[9px] font-bold px-2 py-1 rounded ${h.status==='ACTIVE'?'bg-green-100 text-green-700':'bg-slate-200 text-slate-500'}">${h.status==='ACTIVE'?'SX':'CHỜ'}</span>
-                        </div>
-                        <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">${h.currentBatch || 'Trống'}</div>
-                    </div>`).join('')}
+                    ${data.houses.map(h => {
+                        // Lấy sản lượng của nhà này từ biến yieldByHouse đã tính ở trên
+                        const daThu = yieldByHouse[h.name] || 0; 
+
+                        return `
+                        <div class="glass p-3 border-l-4 ${h.status==='ACTIVE'?'border-green-500':'border-slate-300'} relative">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="font-black text-lg text-slate-700 truncate pr-2">${h.name}</span>
+                                <span class="text-[9px] font-bold px-2 py-1 rounded ${h.status==='ACTIVE'?'bg-green-100 text-green-700':'bg-slate-200 text-slate-500'}">
+                                    ${h.status==='ACTIVE'?'SX':'CHỜ'}
+                                </span>
+                            </div>
+                            
+                            <div class="text-[10px] text-slate-400 uppercase font-bold mb-1 truncate">
+                                ${h.currentBatch || 'Chưa có lô'}
+                            </div>
+
+                            ${h.status === 'ACTIVE' ? `
+                                <div class="mt-2 pt-2 border-t border-slate-100 flex justify-between items-center">
+                                    <span class="text-[9px] font-bold text-slate-400">Đã thu:</span>
+                                    <span class="text-sm font-black text-green-600">${daThu.toLocaleString()} kg</span>
+                                </div>
+                            ` : ''}
+                        </div>`;
+                    }).join('')}
                 </div>
             </div>
         </div>`;
