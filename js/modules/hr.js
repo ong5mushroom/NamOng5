@@ -1,5 +1,6 @@
-// Dùng ../config.js và ../utils.js
-import { ... } from '../config.js'; 
+// ĐƯỜNG DẪN: js/modules/hr.js
+// Lưu ý: Dùng ../ để lùi ra thư mục js tìm file config.js
+import { addDoc, updateDoc, doc, collection, db, ROOT_PATH } from '../config.js';
 import { Utils } from '../utils.js';
 
 export const HR = {
@@ -49,40 +50,45 @@ export const HR = {
                     </span>
                 </div>
                 ${t.status === 'pending' 
-                    ? `<button class="w-full py-2 bg-orange-100 text-orange-700 rounded-lg text-xs font-bold btn-receive-task" data-id="${t._id}">NHẬN VIỆC</button>`
-                    : `<button class="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-md btn-finish-task" data-id="${t._id}">BÁO CÁO XONG</button>`
+                    ? `<button class="w-full py-2 bg-orange-100 text-orange-700 rounded-lg text-xs font-bold btn-receive-task" data-id="${t.id}">NHẬN VIỆC</button>`
+                    : `<button class="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-md btn-finish-task" data-id="${t.id}">BÁO CÁO XONG</button>`
                 }
             </div>`).join('') : `<div class="text-center p-8 text-slate-400 italic">Bạn đang rảnh rỗi!</div>`;
 
         c.innerHTML = `<div class="space-y-4">${assignPanel}<div><h3 class="font-bold text-slate-400 text-xs uppercase pl-2 mb-2">Nhiệm Vụ Của Bạn</h3>${myTaskList}</div></div>`;
 
         // EVENTS GIAO VIỆC
-        if(canAssign) document.getElementById('btn-add-task').onclick = async () => {
-            const t = document.getElementById('task-title').value; const h = document.getElementById('task-house').value; 
-            const checks = document.querySelectorAll('.task-emp-check:checked');
-            if(!t || checks.length===0) return Utils.toast("Thiếu thông tin!", "err");
-            checks.forEach(async (cb) => { await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title:t, house:h, assignee:cb.value, status:'pending', createdBy:user.name, time:Date.now() }); });
-            Utils.toast(`Đã giao cho ${checks.length} người`);
-        };
+        setTimeout(() => {
+            if(canAssign) {
+                const btnAdd = document.getElementById('btn-add-task');
+                if(btnAdd) btnAdd.onclick = async () => {
+                    const t = document.getElementById('task-title').value; const h = document.getElementById('task-house').value; 
+                    const checks = document.querySelectorAll('.task-emp-check:checked');
+                    if(!t || checks.length===0) return Utils.toast("Thiếu thông tin!", "err");
+                    checks.forEach(async (cb) => { await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title:t, house:h, assignee:cb.value, status:'pending', createdBy:user.name, time:Date.now() }); });
+                    Utils.toast(`Đã giao cho ${checks.length} người`);
+                };
+            }
 
-        document.querySelectorAll('.btn-receive-task').forEach(b => b.onclick = async () => {
-            await updateDoc(doc(db, `${ROOT_PATH}/tasks`, b.dataset.id), {status:'received', receivedAt:Date.now()});
-            Utils.toast("Đã nhận việc! Hãy làm ngay.");
-        });
+            document.querySelectorAll('.btn-receive-task').forEach(b => b.onclick = async () => {
+                await updateDoc(doc(db, `${ROOT_PATH}/tasks`, b.dataset.id), {status:'received', receivedAt:Date.now()});
+                Utils.toast("Đã nhận việc! Hãy làm ngay.");
+            });
 
-        document.querySelectorAll('.btn-finish-task').forEach(b => b.onclick = () => {
-            Utils.modal("Báo Cáo Kết Quả", `
-                <p class="text-xs text-slate-500 mb-1">Ghi chú kết quả:</p>
-                <textarea id="task-note" class="w-full border p-2 rounded h-20" placeholder="Đã làm xong..."></textarea>
-            `, [{id:'btn-confirm-finish', text:'Gửi Báo Cáo'}]);
-            setTimeout(() => {
-                document.getElementById('btn-confirm-finish').onclick = async () => {
-                    const note = document.getElementById('task-note').value;
-                    await updateDoc(doc(db, `${ROOT_PATH}/tasks`, b.dataset.id), {status:'done', note: note, completedBy:user.name, completedAt:Date.now()});
-                    Utils.modal(null); Utils.toast("Đã báo cáo xong! (+Điểm)");
-                }
-            }, 100);
-        });
+            document.querySelectorAll('.btn-finish-task').forEach(b => b.onclick = () => {
+                Utils.modal("Báo Cáo Kết Quả", `
+                    <p class="text-xs text-slate-500 mb-1">Ghi chú kết quả:</p>
+                    <textarea id="task-note" class="w-full border p-2 rounded h-20" placeholder="Đã làm xong..."></textarea>
+                `, [{id:'btn-confirm-finish', text:'Gửi Báo Cáo'}]);
+                setTimeout(() => {
+                    document.getElementById('btn-confirm-finish').onclick = async () => {
+                        const note = document.getElementById('task-note').value;
+                        await updateDoc(doc(db, `${ROOT_PATH}/tasks`, b.dataset.id), {status:'done', note: note, completedBy:user.name, completedAt:Date.now()});
+                        Utils.modal(null); Utils.toast("Đã báo cáo xong! (+Điểm)");
+                    }
+                }, 100);
+            });
+        }, 0);
     },
 
     renderTeam: (data, user) => {
@@ -128,67 +134,66 @@ export const HR = {
             </div>`;
 
         // EVENTS CHUNG
-        document.getElementById('btn-checkin').onclick = async () => { if(confirm("Chấm công bây giờ?")) { await addDoc(collection(db, `${ROOT_PATH}/attendance`), { user:user.name, type:'CHECK_IN', time:Date.now() }); Utils.toast("✅ Đã điểm danh"); } };
-        document.getElementById('btn-logout').onclick = () => { if(confirm("Đăng xuất?")) { localStorage.removeItem('n5_modular_user'); location.reload(); } };
-        
-        // 1. XIN NGHỈ
-        document.getElementById('btn-leave').onclick = () => {
-             Utils.modal("Xin Nghỉ Phép", `<input id="leave-date" type="date" class="w-full border p-2 rounded mb-2"><textarea id="leave-reason" class="w-full border p-2 rounded" placeholder="Lý do..."></textarea>`, [{id:'submit-leave', text:'Gửi Đơn'}]);
-             setTimeout(()=>document.getElementById('submit-leave').onclick = async()=>{ await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), {user:user.name, type:'LEAVE', date:document.getElementById('leave-date').value, reason:document.getElementById('leave-reason').value, status:'pending', time:Date.now()}); Utils.modal(null); Utils.toast("Đã gửi đơn"); }, 100);
-        };
+        setTimeout(() => {
+            document.getElementById('btn-checkin').onclick = async () => { if(confirm("Chấm công bây giờ?")) { await addDoc(collection(db, `${ROOT_PATH}/attendance`), { user:user.name, type:'CHECK_IN', time:Date.now() }); Utils.toast("✅ Đã điểm danh"); } };
+            document.getElementById('btn-logout').onclick = () => { if(confirm("Đăng xuất?")) { localStorage.removeItem('n5_modular_user'); location.reload(); } };
+            
+            document.getElementById('btn-leave').onclick = () => {
+                 Utils.modal("Xin Nghỉ Phép", `<input id="leave-date" type="date" class="w-full border p-2 rounded mb-2"><textarea id="leave-reason" class="w-full border p-2 rounded" placeholder="Lý do..."></textarea>`, [{id:'submit-leave', text:'Gửi Đơn'}]);
+                 setTimeout(()=>document.getElementById('submit-leave').onclick = async()=>{ await addDoc(collection(db, `${ROOT_PATH}/hr_requests`), {user:user.name, type:'LEAVE', date:document.getElementById('leave-date').value, reason:document.getElementById('leave-reason').value, status:'pending', time:Date.now()}); Utils.modal(null); Utils.toast("Đã gửi đơn"); }, 100);
+            };
 
-        // 2. MUA HÀNG (ĐÃ FIX: Thêm sự kiện click)
-        document.getElementById('btn-buy').onclick = () => {
-            Utils.modal("Đề Xuất Mua Hàng", `
-                <input id="buy-item" class="w-full border p-2 rounded mb-2" placeholder="Tên hàng hóa (Cồn, bao bì...)">
-                <div class="flex gap-2">
-                    <input id="buy-qty" type="number" class="w-2/3 border p-2 rounded" placeholder="Số lượng">
-                    <input id="buy-unit" class="w-1/3 border p-2 rounded" placeholder="ĐVT">
-                </div>
-            `, [{id:'submit-buy', text:'Gửi Đề Xuất'}]);
-
-            setTimeout(() => {
-                document.getElementById('submit-buy').onclick = async () => {
-                    const item = document.getElementById('buy-item').value;
-                    const qty = document.getElementById('buy-qty').value;
-                    const unit = document.getElementById('buy-unit').value;
-                    if(!item || !qty) return Utils.toast("Thiếu thông tin!", "err");
-
-                    await addDoc(collection(db, `${ROOT_PATH}/buy_requests`), {
-                        user: user.name, item, qty, unit, status: 'pending', time: Date.now()
-                    });
-                    Utils.modal(null);
-                    Utils.toast("Đã gửi đề xuất mua hàng");
-                }
-            }, 100);
-        };
-
-        // 3. THƯỞNG PHẠT
-        if(isManager) {
-            document.querySelectorAll('.btn-punish').forEach(b => b.onclick = () => {
-                const isPhat = b.dataset.type === 'phat';
-                Utils.modal(isPhat ? "PHẠT NHÂN VIÊN" : "THƯỞNG NHÂN VIÊN", `
-                    <p class="text-sm font-bold text-slate-700 mb-2">Nhân viên: ${b.dataset.name}</p>
-                    <input id="punish-score" type="number" class="w-full border p-2 rounded mb-2 font-bold text-lg ${isPhat?'text-red-600':'text-green-600'}" value="${isPhat ? 5 : 5}">
-                    <input id="punish-reason" class="w-full border p-2 rounded" placeholder="Nhập lý do (Bắt buộc)...">
-                `, [{id:'submit-punish', text:'Xác Nhận', cls: isPhat ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}]);
+            document.getElementById('btn-buy').onclick = () => {
+                Utils.modal("Đề Xuất Mua Hàng", `
+                    <input id="buy-item" class="w-full border p-2 rounded mb-2" placeholder="Tên hàng hóa (Cồn, bao bì...)">
+                    <div class="flex gap-2">
+                        <input id="buy-qty" type="number" class="w-2/3 border p-2 rounded" placeholder="Số lượng">
+                        <input id="buy-unit" class="w-1/3 border p-2 rounded" placeholder="ĐVT">
+                    </div>
+                `, [{id:'submit-buy', text:'Gửi Đề Xuất'}]);
 
                 setTimeout(() => {
-                    document.getElementById('submit-punish').onclick = async () => {
-                        const pts = Number(document.getElementById('punish-score').value);
-                        const reason = document.getElementById('punish-reason').value;
-                        if(!reason) return Utils.toast("Cần nhập lý do!", "err");
-                        
-                        const emp = data.employees.find(e => e._id === b.dataset.id);
-                        const finalScore = (emp.score || 0) + (isPhat ? -pts : pts);
-                        
-                        await updateDoc(doc(db, `${ROOT_PATH}/employees`, b.dataset.id), { score: finalScore });
-                        await addDoc(collection(db, `${ROOT_PATH}/hr_logs`), { user: b.dataset.name, by: user.name, type: isPhat?'PUNISH':'BONUS', point: isPhat?-pts:pts, reason, time: Date.now() });
-                        
-                        Utils.modal(null); Utils.toast(`Đã cập nhật điểm`);
+                    document.getElementById('submit-buy').onclick = async () => {
+                        const item = document.getElementById('buy-item').value;
+                        const qty = document.getElementById('buy-qty').value;
+                        const unit = document.getElementById('buy-unit').value;
+                        if(!item || !qty) return Utils.toast("Thiếu thông tin!", "err");
+
+                        await addDoc(collection(db, `${ROOT_PATH}/buy_requests`), {
+                            user: user.name, item, qty, unit, status: 'pending', time: Date.now()
+                        });
+                        Utils.modal(null);
+                        Utils.toast("Đã gửi đề xuất mua hàng");
                     }
                 }, 100);
-            });
-        }
+            };
+
+            if(isManager) {
+                document.querySelectorAll('.btn-punish').forEach(b => b.onclick = () => {
+                    const isPhat = b.dataset.type === 'phat';
+                    Utils.modal(isPhat ? "PHẠT NHÂN VIÊN" : "THƯỞNG NHÂN VIÊN", `
+                        <p class="text-sm font-bold text-slate-700 mb-2">Nhân viên: ${b.dataset.name}</p>
+                        <input id="punish-score" type="number" class="w-full border p-2 rounded mb-2 font-bold text-lg ${isPhat?'text-red-600':'text-green-600'}" value="${isPhat ? 5 : 5}">
+                        <input id="punish-reason" class="w-full border p-2 rounded" placeholder="Nhập lý do (Bắt buộc)...">
+                    `, [{id:'submit-punish', text:'Xác Nhận', cls: isPhat ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}]);
+
+                    setTimeout(() => {
+                        document.getElementById('submit-punish').onclick = async () => {
+                            const pts = Number(document.getElementById('punish-score').value);
+                            const reason = document.getElementById('punish-reason').value;
+                            if(!reason) return Utils.toast("Cần nhập lý do!", "err");
+                            
+                            const emp = data.employees.find(e => e._id === b.dataset.id);
+                            const finalScore = (emp.score || 0) + (isPhat ? -pts : pts);
+                            
+                            await updateDoc(doc(db, `${ROOT_PATH}/employees`, b.dataset.id), { score: finalScore });
+                            await addDoc(collection(db, `${ROOT_PATH}/hr_logs`), { user: b.dataset.name, by: user.name, type: isPhat?'PUNISH':'BONUS', point: isPhat?-pts:pts, reason, time: Date.now() });
+                            
+                            Utils.modal(null); Utils.toast(`Đã cập nhật điểm`);
+                        }
+                    }, 100);
+                });
+            }
+        }, 0);
     }
 };
