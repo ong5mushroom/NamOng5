@@ -1,59 +1,41 @@
-import { db, collection, onSnapshot, query, orderBy, limit, ROOT_PATH } from './config.js'; // Nhớ import query, orderBy, limit
-import { Home } from './modules/home.js';
-import { SX } from './modules/sx.js'; 
-import { Chat } from './modules/chat.js';
+// ... các import cũ ...
 
 const App = {
     data: {
         houses: [],
         spawn_inventory: [],
         materials: [],
-        chat: [] 
+        chat: [],
+        users: [] // <--- 1. THÊM MẢNG USERS VÀO DATA
     },
     
-    currentTab: 'home',
-    currentUser: null, // Biến lưu user đăng nhập
+    // ...
 
     init: () => {
-        // --- 1. LẮNG NGHE DỮ LIỆU ---
-        
-        // Chat: Lấy 50 tin mới nhất
-        const qChat = query(collection(db, `${ROOT_PATH}/chat`), orderBy("time", "asc"), limit(50));
-        onSnapshot(qChat, (snap) => {
-            App.data.chat = snap.docs.map(d => ({...d.data(), senderId: String(d.data().senderId), id: d.id}));
-            if(App.currentTab === 'chat' || !document.getElementById('chat-layer').classList.contains('hidden')) {
-                Chat.render(App.data, App.currentUser);
-            }
-        });
+        // ... Các onSnapshot cũ (Chat, Kho, Nhà...) giữ nguyên ...
 
-        // Kho Phôi
-        onSnapshot(collection(db, `${ROOT_PATH}/spawn_inventory`), (snap) => {
-            App.data.spawn_inventory = snap.docs.map(d => ({...d.data(), _id: d.id}));
-            App.renderCurrentTab();
-        });
+        // --- 2. THÊM ĐOẠN NÀY ĐỂ LẤY DANH SÁCH USER ---
+        onSnapshot(collection(db, `${ROOT_PATH}/users`), (snap) => {
+            // Lấy dữ liệu và lưu vào biến chung
+            App.data.users = snap.docs.map(d => ({...d.data(), id: d.id}));
+            
+            console.log("Danh sách User tải về:", App.data.users); // Log để kiểm tra
 
-        // Nhà & Vật tư
-        onSnapshot(collection(db, `${ROOT_PATH}/houses`), (snap) => {
-            App.data.houses = snap.docs.map(d => ({...d.data(), _id: d.id}));
-            App.renderCurrentTab();
+            // Nếu đang mở Modal đăng nhập thì vẽ lại danh sách (nếu cần)
+            // Hoặc gọi hàm render Login nếu bạn tách riêng
+            App.renderLoginList(); 
         });
-        onSnapshot(collection(db, `${ROOT_PATH}/materials`), (snap) => {
-            App.data.materials = snap.docs.map(d => ({...d.data(), _id: d.id}));
-            App.renderCurrentTab();
-        });
-
-        // --- 2. LOGIC TAB ---
-        // (Giữ nguyên logic switchTab của bạn)
+        // ----------------------------------------------
     },
 
-    renderCurrentTab: () => {
-        if (App.currentTab === 'home') Home.render(App.data);
-        else if (App.currentTab === 'sx') SX.render(App.data);
-    }
+    // --- 3. THÊM HÀM VẼ LIST ĐĂNG NHẬP ---
+    renderLoginList: () => {
+        const select = document.getElementById('login-user-select'); // ID của thẻ <select> trong modal login
+        if (select) {
+            select.innerHTML = '<option value="">-- Chọn nhân viên --</option>' + 
+                App.data.users.map(u => `<option value="${u.id}">${u.name} (${u.role || 'Member'})</option>`).join('');
+        }
+    },
+
+    // ... (Giữ nguyên các phần còn lại)
 };
-
-// Giả lập login để test (hoặc lấy từ auth thật của bạn)
-App.currentUser = { id: "admin", name: "Admin" }; 
-App.init();
-
-export { App }; // Export để các module khác gọi nếu cần
