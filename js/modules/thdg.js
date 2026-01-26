@@ -5,44 +5,48 @@ import { Utils } from '../utils.js';
 export const THDG = {
     render: (data, user) => {
         const c = document.getElementById('view-th');
-        if(!c || c.classList.contains('hidden')) return;
+        if (!c || c.classList.contains('hidden')) return;
 
         try {
-            // 1. LẤY DỮ LIỆU AN TOÀN
-            // Nếu data chưa tải xong thì lấy mảng rỗng
-            const houses = data.houses || [];
-            const products = data.products || [];
-            const harvestLogs = data.harvest || [];
+            // 1. LẤY DỮ LIỆU AN TOÀN (Nếu chưa có thì dùng mảng rỗng)
+            const houses = Array.isArray(data.houses) ? data.houses : [];
+            const products = Array.isArray(data.products) ? data.products : [];
+            const harvestLogs = Array.isArray(data.harvest) ? data.harvest : [];
 
-            // 2. TÍNH TOÁN BÁO CÁO (Bỏ qua dòng lỗi)
+            // 2. TÍNH TOÁN BÁO CÁO (Bọc try-catch để không sập nếu data lỗi)
             const reportByHouse = {};
             harvestLogs.forEach(log => {
-                // Nếu bản ghi bị lỗi (null/undefined) thì bỏ qua ngay
-                if (!log) return; 
-
-                // Nếu thiếu tên nhà thì gom vào "Khác"
-                const area = log.area || "Khác"; 
-                
-                if (!reportByHouse[area]) reportByHouse[area] = 0;
-                
-                // Ép kiểu số an toàn
-                reportByHouse[area] += (Number(log.total) || 0);
+                try {
+                    if (!log) return; // Bỏ qua nếu null
+                    const area = log.area || "Khác"; // Nếu thiếu tên thì gom vào 'Khác'
+                    
+                    if (!reportByHouse[area]) reportByHouse[area] = 0;
+                    
+                    // Ép kiểu số an toàn, nếu lỗi thì tính là 0
+                    const val = Number(log.total);
+                    reportByHouse[area] += (isNaN(val) ? 0 : val);
+                } catch (e) {
+                    console.warn("Bỏ qua 1 dòng lỗi trong THDG");
+                }
             });
 
-            // Lọc danh sách sản phẩm (Bỏ qua sản phẩm lỗi)
+            // 3. LỌC SẢN PHẨM (Nấm Tươi - Group 1)
             const g1 = products.filter(p => p && String(p.group) === '1');
 
-            // 3. VẼ GIAO DIỆN
+            // 4. HTML GIAO DIỆN
             c.innerHTML = `
             <div class="space-y-4 pb-24">
                 <div class="glass p-4 bg-white">
                     <h4 class="font-bold text-slate-500 text-xs uppercase mb-3">Tổng hợp thu hoạch</h4>
                     <div class="space-y-2 max-h-40 overflow-y-auto">
-                        ${Object.keys(reportByHouse).length > 0 ? Object.keys(reportByHouse).map(area => `
-                            <div class="flex justify-between p-2 border-b border-slate-50 last:border-0">
-                                <span class="font-bold text-sm text-slate-700">${area}</span>
-                                <span class="font-black text-green-600">${reportByHouse[area].toLocaleString()} kg</span>
-                            </div>`).join('') : '<p class="text-center text-xs text-slate-300 italic">Chưa có dữ liệu</p>'}
+                        ${Object.keys(reportByHouse).length > 0 
+                            ? Object.keys(reportByHouse).map(area => `
+                                <div class="flex justify-between p-2 border-b border-slate-50 last:border-0">
+                                    <span class="font-bold text-sm text-slate-700">${area}</span>
+                                    <span class="font-black text-green-600">${reportByHouse[area].toLocaleString()} kg</span>
+                                </div>`).join('') 
+                            : '<p class="text-center text-xs text-slate-300 italic">Chưa có dữ liệu sạch</p>'
+                        }
                     </div>
                 </div>
 
@@ -83,30 +87,30 @@ export const THDG = {
                 </div>
             </div>`;
 
-            // 4. GẮN SỰ KIỆN
+            // 5. GẮN SỰ KIỆN
             setTimeout(() => {
                 const btnSave = document.getElementById('btn-save-th');
-                if(btnSave) {
-                    // Clone để xóa event cũ tránh bị double click
+                if (btnSave) {
                     const newBtn = btnSave.cloneNode(true);
                     btnSave.parentNode.replaceChild(newBtn, btnSave);
 
                     newBtn.onclick = async () => {
                         const area = document.getElementById('th-area').value;
-                        if(!area) return Utils.toast("Vui lòng chọn Nguồn thu!", "err");
+                        if (!area) return Utils.toast("Vui lòng chọn Nguồn thu!", "err");
                         
                         let d = {}, total = 0;
-                        products.forEach(p => { 
-                            if(!p || !p.code) return; // Bỏ qua sp lỗi
+                        // Duyệt mảng g1 thay vì products để an toàn hơn
+                        g1.forEach(p => { 
+                            if (!p || !p.code) return; 
                             const el = document.getElementById(`th-${p.code}`); 
-                            if(el && Number(el.value) > 0) { 
+                            if (el && Number(el.value) > 0) { 
                                 d[p.code] = Number(el.value); 
                                 total += Number(el.value);
                                 el.value = ''; 
                             } 
                         });
 
-                        if(total === 0) return Utils.toast("Chưa nhập số lượng!", "err");
+                        if (total === 0) return Utils.toast("Chưa nhập số lượng!", "err");
                         
                         await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { 
                             area, details: d, total, user: user.name, time: Date.now() 
@@ -116,9 +120,13 @@ export const THDG = {
                 }
             }, 100);
 
-        } catch (e) {
-            console.error(e);
-            c.innerHTML = `<div class="p-5 text-red-500">Lỗi THDG: ${e.message}</div>`;
+        } catch (globalErr) {
+            console.error(globalErr);
+            // Nếu lỗi quá nặng, hiện thông báo ra màn hình thay vì trắng xóa
+            c.innerHTML = `<div class="p-10 text-center text-red-500">
+                <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
+                <p>Lỗi hiển thị THDG: ${globalErr.message}</p>
+            </div>`;
         }
     }
 };
