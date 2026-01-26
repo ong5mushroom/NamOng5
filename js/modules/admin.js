@@ -1,5 +1,5 @@
-// Dùng ../config.js và ../utils.js
-import { ... } from '../config.js'; 
+// ĐƯỜNG DẪN: js/modules/admin.js
+import { addDoc, collection, db, ROOT_PATH } from '../config.js';
 import { Utils } from '../utils.js';
 
 export const Admin = {
@@ -21,19 +21,20 @@ export const Admin = {
         
         Utils.modal("Quản Trị Hệ Thống", html);
 
-        // Gắn sự kiện sau khi modal hiện
         setTimeout(() => {
-            document.getElementById('btn-export-th').onclick = () => Admin.exportCSV('harvest_logs', 'BaoCao_ThuHoach');
-            document.getElementById('btn-export-task').onclick = () => Admin.exportCSV('tasks', 'BaoCao_CongViec');
-            document.getElementById('btn-manage-staff').onclick = Admin.openAddStaff;
+            const btnExpTH = document.getElementById('btn-export-th');
+            if(btnExpTH) btnExpTH.onclick = () => Admin.exportCSV('harvest_logs', 'BaoCao_ThuHoach');
+            
+            const btnExpTask = document.getElementById('btn-export-task');
+            if(btnExpTask) btnExpTask.onclick = () => Admin.exportCSV('tasks', 'BaoCao_CongViec');
+            
+            const btnStaff = document.getElementById('btn-manage-staff');
+            if(btnStaff) btnStaff.onclick = Admin.openAddStaff;
         }, 100);
     },
 
     exportCSV: (collName, fileName) => {
         Utils.toast("Đang chuẩn bị file tải xuống...");
-        // Lưu ý: Đây là client-side export đơn giản. Dữ liệu lấy từ App.data (cần truyền vào nếu muốn full)
-        // Ở mức độ này ta thông báo giả lập hoặc cần truyền data vào hàm này.
-        // Để đơn giản ta tải file mẫu:
         const csvContent = "data:text/csv;charset=utf-8,Ngay,Nguoi,NoiDung\n" + new Date().toISOString() + ",Admin,Test Export";
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
