@@ -6,63 +6,52 @@ export const HR = {
         const c = document.getElementById('view-tasks');
         if (!c || c.classList.contains('hidden')) return;
 
-        // CHECK ADMIN
         const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
-        
         const tasks = Array.isArray(data.tasks) ? data.tasks : [];
         const employees = Array.isArray(data.employees) ? data.employees : [];
-
+        
         // Lọc việc: Admin thấy hết, NV chỉ thấy việc của mình
         const myTasks = isAdmin ? tasks : tasks.filter(t => t.to === user._id);
-        
-        // Sắp xếp: Việc mới nhất lên đầu
         myTasks.sort((a,b) => b.time - a.time);
+
+        // Hàm xóa/xong toàn cục
+        window.HR_Action = {
+            done: (id) => updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DONE' }),
+            del: (id) => { if(confirm("Xóa?")) deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id)); }
+        };
 
         c.innerHTML = `
         <div class="space-y-4 pb-24">
-            <h2 class="font-black text-blue-800 text-lg uppercase pl-1 border-l-4 border-blue-500">VIỆC CẦN LÀM</h2>
+            <h2 class="font-black text-slate-700 text-lg uppercase pl-1 border-l-4 border-blue-500">VIỆC CẦN LÀM</h2>
             
             ${isAdmin ? `
-            <div class="glass p-4 bg-blue-50/50 shadow-sm border border-blue-100">
-                <h3 class="font-bold text-blue-700 text-xs uppercase mb-2">Giao việc mới</h3>
-                <div class="space-y-2">
-                    <input id="t-title" placeholder="Nội dung công việc..." class="w-full p-3 rounded-xl border border-blue-200 text-sm font-bold shadow-sm">
-                    <div class="flex gap-2">
-                        <select id="t-to" class="w-1/2 p-2 rounded-lg border border-blue-200 text-sm">
-                            ${employees.map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
-                        </select>
-                        <button id="btn-add-task" class="flex-1 bg-blue-600 text-white rounded-lg font-bold text-xs shadow-md active:scale-95 transition">GIAO VIỆC NGAY</button>
-                    </div>
+            <div class="glass p-4 bg-white shadow-sm">
+                <h3 class="font-bold text-slate-500 text-xs uppercase mb-2">Giao việc</h3>
+                <input id="t-title" placeholder="Nội dung..." class="w-full p-2 rounded border mb-2 text-sm">
+                <div class="flex gap-2">
+                    <select id="t-to" class="w-1/2 p-2 rounded border text-sm">${employees.map(e => `<option value="${e._id}">${e.name}</option>`).join('')}</select>
+                    <button id="btn-add-task" class="flex-1 bg-blue-600 text-white rounded font-bold text-xs">GỬI</button>
                 </div>
             </div>` : ''}
 
-            <div class="space-y-3">
+            <div class="space-y-2">
                 ${myTasks.length ? myTasks.map(t => {
                     const isDone = t.status === 'DONE';
                     return `
-                    <div class="bg-white p-3 rounded-xl border-l-4 ${isDone ? 'border-green-500 opacity-60' : 'border-orange-500'} shadow-sm relative">
+                    <div class="bg-white p-3 rounded border-l-4 ${isDone ? 'border-green-500 opacity-60' : 'border-orange-500'} shadow-sm">
                         <div class="flex justify-between items-start">
-                            <h4 class="font-bold text-slate-700 text-sm ${isDone ? 'line-through' : ''}">${t.title}</h4>
-                            ${isAdmin ? `<button onclick="HR.delTask('${t.id}')" class="text-slate-300 hover:text-red-500 px-2"><i class="fas fa-trash-alt"></i></button>` : ''}
+                            <span class="font-bold text-sm ${isDone ? 'line-through' : ''}">${t.title}</span>
+                            ${isAdmin ? `<button onclick="window.HR_Action.del('${t.id}')" class="text-slate-300 hover:text-red-500 px-2"><i class="fas fa-trash"></i></button>` : ''}
                         </div>
-                        <div class="flex justify-between items-center mt-2 text-[10px] text-slate-500">
-                            <span>To: <b>${employees.find(e=>e._id===t.to)?.name || '...'}</b></span>
+                        <div class="flex justify-between mt-1 text-[10px] text-slate-400">
+                            <span>Cho: ${employees.find(e=>e._id===t.to)?.name || '...'}</span>
                             <span>${new Date(t.time).toLocaleDateString('vi-VN')}</span>
                         </div>
-                        ${!isDone && (t.to === user._id || isAdmin) ? `
-                            <button onclick="HR.doneTask('${t.id}')" class="mt-2 w-full py-1.5 bg-green-100 text-green-700 font-bold text-xs rounded hover:bg-green-200 transition">✔ HOÀN THÀNH</button>
-                        ` : ''}
-                        ${isDone ? `<div class="mt-1 text-[10px] font-bold text-green-600 text-right">Đã xong</div>` : ''}
+                        ${!isDone && (t.to === user._id || isAdmin) ? `<button onclick="window.HR_Action.done('${t.id}')" class="mt-2 w-full py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded">✔ XONG</button>` : ''}
                     </div>`;
-                }).join('') : `<div class="text-center text-slate-400 italic mt-10">Không có công việc nào</div>`}
+                }).join('') : '<div class="text-center text-slate-400 italic">Không có việc</div>'}
             </div>
         </div>`;
-
-        // Logic Global
-        window.HR = {
-            doneTask: (id) => updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DONE' }),
-            delTask: (id) => { if(confirm("Xóa việc này?")) deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id)); }
-        };
 
         setTimeout(() => {
             const btn = document.getElementById('btn-add-task');
@@ -71,17 +60,34 @@ export const HR = {
                 const to = document.getElementById('t-to').value;
                 if(title && to) {
                     await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title, to, by: user.name, status: 'PENDING', time: Date.now() });
-                    Utils.toast("Đã giao việc!");
-                    document.getElementById('t-title').value = '';
+                    Utils.toast("Đã giao!"); document.getElementById('t-title').value = '';
                 }
             };
         }, 100);
     },
 
-    renderTeam: (data) => {
-        // (Giữ nguyên phần render Team nếu bạn đã có, hoặc để trống nếu chưa cần)
+    renderTeam: (data, user) => {
         const c = document.getElementById('view-team');
-        if (!c) return;
-        c.innerHTML = '<div class="p-10 text-center text-slate-400">Tính năng đang cập nhật...</div>';
+        if (!c || c.classList.contains('hidden')) return;
+        
+        const employees = Array.isArray(data.employees) ? data.employees : [];
+        
+        c.innerHTML = `
+        <div class="space-y-4 pb-24">
+            <h2 class="font-black text-slate-700 text-lg uppercase pl-1 border-l-4 border-purple-500">NHÂN SỰ TEAM</h2>
+            <div class="space-y-2">
+                ${employees.map(e => `
+                <div class="bg-white p-3 rounded shadow-sm border border-slate-100 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-slate-700">${e.name}</div>
+                        <div class="text-xs text-slate-400">${e.role || 'Nhân viên'}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-black text-purple-600">${e.score || 0} đ</div>
+                        <div class="text-[9px] text-slate-400 uppercase">Điểm thi đua</div>
+                    </div>
+                </div>`).join('')}
+            </div>
+        </div>`;
     }
 };
