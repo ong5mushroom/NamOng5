@@ -16,3 +16,10 @@ export const auth = getAuth(appInstance);
 export const db = getFirestore(appInstance);
 export const ROOT_PATH = "artifacts/namong5_production/public/data"; 
 export { signInAnonymously, onAuthStateChanged, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, getDoc };
+// Tìm dòng import ... from "...firebase-firestore.js" và thêm 'increment' vào đó
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// ... (Các dòng giữa giữ nguyên)
+
+// Thêm increment vào dòng export cuối cùng
+export { signInAnonymously, onAuthStateChanged, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, getDoc, increment };
