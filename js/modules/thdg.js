@@ -2,24 +2,15 @@ import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc
 import { Utils } from '../utils.js';
 
 const COMPANY = { 
-    name: "CÔNG TY TNHH NẤM ÔNG 5", 
-    address: "Lạc Dương, Lâm Đồng", 
-    mst: "5801474272", 
-    hotline: "0899.49.0808",
-    slogan: "Trao sức khỏe, trọn yêu thương"
+    name: "CÔNG TY TNHH NẤM ÔNG 5", address: "thôn Đa Ra Hoa, Lạc Dương, Lâm Đồng", mst: "5801474272", hotline: "0899.49.0808", slogan: "Trao sức khỏe" 
 };
 
-// --- HÀM XÓA (Gắn vào window để tránh lỗi sự kiện) ---
+// --- FIX NÚT XÓA ---
 window.THDG_Fix = {
     delOne: async (id) => {
-        // Hỏi xác nhận trước khi xóa
-        if(confirm("⚠️ CẢNH BÁO ADMIN:\nXóa mã này sẽ mất toàn bộ lịch sử tồn kho.\nBạn có chắc chắn không?")) {
-            try {
-                await deleteDoc(doc(db, `${ROOT_PATH}/products`, id));
-                Utils.toast("Đã xóa mã sản phẩm!");
-            } catch (e) {
-                alert("Lỗi: " + e.message);
-            }
+        if(confirm("⚠️ ADMIN: Xóa mã này sẽ mất lịch sử tồn kho.\nTiếp tục?")) {
+            try { await deleteDoc(doc(db, `${ROOT_PATH}/products`, id)); Utils.toast("Đã xóa!"); } 
+            catch (e) { alert("Lỗi: " + e.message); }
         }
     }
 };
@@ -28,28 +19,24 @@ export const THDG = {
     render: (data, user) => {
         const c = document.getElementById('view-th');
         if (!c || c.classList.contains('hidden')) return;
-        
-        // Kiểm tra dữ liệu
-        if (!data) { c.innerHTML = '<div class="p-10 text-center">Đang tải...</div>'; return; }
+        if (!data) { c.innerHTML = '...'; return; }
 
         try {
             const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
             const products = Array.isArray(data.products) ? data.products : [];
             const logs = Array.isArray(data.harvest) ? data.harvest : [];
+            const ships = Array.isArray(data.shipping) ? data.shipping : [];
             
-            // Xử lý ngày tháng và logs
-            const todayStr = new Date().toDateString();
-            const todayLogs = (data.shipping || []).filter(s => new Date(s.time).toDateString() === todayStr);
-            const y = new Date(); y.setDate(y.getDate()-1);
-            const yShips = (data.shipping||[]).filter(s => new Date(s.time).toDateString() === y.toDateString());
-            const yHarvest = logs.filter(l => new Date(l.time).toDateString() === y.toDateString());
+            // --- XỬ LÝ NHẬT KÝ ĐẦY ĐỦ (20 dòng gần nhất) ---
+            const fullHarvestLogs = [...logs].sort((a,b) => b.time - a.time).slice(0, 20);
+            const fullShipLogs = [...ships].sort((a,b) => b.time - a.time).slice(0, 20);
+            
+            const todayLogs = ships.filter(s => new Date(s.time).toDateString() === new Date().toDateString());
 
-            // Phân loại sản phẩm
             const g1 = products.filter(p => p && String(p.group) === '1');
             const g2 = products.filter(p => p && String(p.group) === '2');
             const g3 = products.filter(p => p && String(p.group) === '3');
 
-            // Hàm vẽ dòng nhập liệu (Có nút Xóa)
             const renderRow = (p) => `
                 <div class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200">
                     <div class="flex items-center gap-1 overflow-hidden">
@@ -68,39 +55,53 @@ export const THDG = {
 
                 <div id="zone-harvest" class="animate-pop">
                     <div class="glass p-5 border-l-8 border-green-500 bg-green-50/40">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-black text-green-800 text-xs uppercase flex items-center gap-2"><i class="fas fa-warehouse text-lg"></i> NHẬP KHO</h3>
-                            ${isAdmin ? `<button id="btn-add-prod" class="bg-white border text-green-700 px-2 py-1 rounded text-[10px] font-bold shadow-sm">+ Mã SP</button>` : ''}
-                        </div>
+                        <div class="flex justify-between items-center mb-4"><h3 class="font-black text-green-800 text-xs uppercase flex items-center gap-2"><i class="fas fa-warehouse text-lg"></i> NHẬP KHO</h3>${isAdmin ? `<button id="btn-add-prod" class="bg-white border text-green-700 px-2 py-1 rounded text-[10px] font-bold shadow-sm">+ Mã SP</button>` : ''}</div>
                         <div class="space-y-3">
                             <div class="flex gap-2"><div class="w-1/3"><label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Ngày Thu</label><input type="date" id="h-date" class="w-full p-2 rounded border text-xs font-bold"></div><div class="flex-1"><label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Nguồn Thu</label><select id="h-area" class="w-full p-2 rounded border text-xs font-bold"><option value="">-- Chọn --</option>${(data.houses||[]).map(h => `<option value="${h.id}" data-name="${h.name}">${h.name}</option>`).join('')}<option value="MuaNgoai" data-name="Mua Ngoài">Mua Ngoài</option></select></div></div>
                             ${g1.length ? `<div class="bg-green-50 p-2 rounded border border-green-200"><div class="text-[10px] font-bold text-green-700 mb-1">Nấm Tươi</div><div class="grid grid-cols-2 gap-2">${g1.map(renderRow).join('')}</div></div>`:''}
                             ${g2.length ? `<div class="bg-orange-50 p-2 rounded border border-orange-200"><div class="text-[10px] font-bold text-orange-700 mb-1">Phụ Phẩm</div><div class="grid grid-cols-2 gap-2">${g2.map(renderRow).join('')}</div></div>`:''}
                             ${g3.length ? `<div class="bg-purple-50 p-2 rounded border border-purple-200"><div class="text-[10px] font-bold text-purple-700 mb-1">Sơ Chế</div><div class="grid grid-cols-2 gap-2">${g3.map(renderRow).join('')}</div></div>`:''}
                             <button id="btn-save-h" class="w-full py-3 bg-green-600 text-white rounded font-bold text-xs shadow-lg">LƯU KHO</button>
-                            <div class="mt-4 pt-2 border-t border-green-200"><span class="text-[9px] font-bold text-slate-400 uppercase">Hôm qua</span><div class="max-h-24 overflow-y-auto space-y-1 mt-1">${yHarvest.length ? yHarvest.map(l=>`<div class="flex justify-between text-[10px] bg-white p-1 rounded border"><span>${l.area}</span><span class="font-bold text-green-600">${l.total}kg</span></div>`).join('') : '<div class="text-[10px] text-slate-300 italic">Không có</div>'}</div></div>
+                            
+                            <div class="mt-4 pt-2 border-t border-green-200">
+                                <span class="text-[9px] font-bold text-slate-400 uppercase">Nhật ký nhập kho (Gần đây)</span>
+                                <div class="max-h-32 overflow-y-auto space-y-1 mt-1 bg-white rounded border border-green-100 p-1">
+                                    ${fullHarvestLogs.length ? fullHarvestLogs.map(l=>`
+                                        <div class="flex justify-between text-[10px] border-b border-dashed border-slate-100 pb-1 mb-1 last:border-0">
+                                            <div><span class="text-slate-400 mr-1">${new Date(l.time).toLocaleDateString('vi-VN').slice(0,5)}</span><span class="font-bold text-slate-600">${l.area}</span></div>
+                                            <span class="font-bold text-green-600">+${l.total}kg</span>
+                                        </div>`).join('') : '<div class="text-[10px] text-slate-300 italic text-center">Trống</div>'}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div id="zone-sell" class="hidden animate-pop">
                     <div class="glass p-5 border-l-8 border-orange-500 bg-orange-50/40">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-black text-orange-800 text-xs uppercase flex items-center gap-2"><i class="fas fa-truck text-lg"></i> XUẤT BÁN</h3>
-                            ${isAdmin ? `<button id="btn-rep-day" class="bg-white border text-orange-700 px-2 py-1 rounded text-[10px] font-bold">BC Ngày</button>` : ''}
-                        </div>
+                        <div class="flex justify-between items-center mb-4"><h3 class="font-black text-orange-800 text-xs uppercase flex items-center gap-2"><i class="fas fa-truck text-lg"></i> XUẤT BÁN</h3>${isAdmin ? `<button id="btn-rep-day" class="bg-white border text-orange-700 px-2 py-1 rounded text-[10px] font-bold">BC Ngày</button>` : ''}</div>
                         <div class="space-y-3 bg-white p-3 rounded shadow-sm border border-orange-100">
                             <div class="grid grid-cols-1 gap-2"><input id="s-cust" placeholder="Khách Hàng" class="w-full p-2 text-xs border rounded font-bold"><textarea id="s-note" placeholder="Ghi chú..." class="w-full p-2 text-xs border rounded h-10"></textarea></div>
                             <div class="bg-slate-50 p-2 rounded border border-slate-200"><div class="flex gap-2 mb-2"><select id="s-prod" class="flex-1 p-2 text-xs border rounded font-bold"><option value="">-- Chọn Nấm --</option>${products.map(p => `<option value="${p.code}" data-name="${p.name}" data-price="${p.price||0}">${p.name} (Tồn: ${p.stock||0})</option>`).join('')}</select></div><div class="flex gap-2 items-center"><input id="s-qty" type="number" placeholder="SL" class="w-16 p-2 text-xs border rounded text-center font-bold"><span class="text-xs">x</span><input id="s-price" type="number" placeholder="Giá" class="w-20 p-2 text-xs border rounded text-center"><button id="btn-add-cart" class="flex-1 bg-orange-500 text-white p-2 rounded font-bold text-xs">THÊM</button></div></div>
                             <div class="border-t pt-2"><div id="cart-list" class="space-y-1 mb-2 text-xs"></div><div class="flex justify-between text-sm font-black text-orange-800"><span>TỔNG:</span><span id="cart-total">0</span></div></div>
                         </div>
                         <div class="grid grid-cols-2 gap-2 mt-4"><button id="btn-save-sell" class="py-2 bg-orange-600 text-white rounded font-bold text-xs">LƯU & TRỪ KHO</button><button id="btn-print" class="py-2 bg-blue-600 text-white rounded font-bold text-xs">IN PHIẾU</button></div>
-                        <div class="mt-4 pt-2 border-t border-orange-200"><span class="text-[9px] font-bold text-slate-400 uppercase">Hôm qua</span><div class="max-h-24 overflow-y-auto space-y-1 mt-1">${yShips.length ? yShips.map(s=>`<div class="flex justify-between text-[10px] bg-white p-1 rounded border"><span>${s.customer}</span><span class="font-bold text-orange-600">${Number(s.total).toLocaleString()}đ</span></div>`).join('') : '<div class="text-[10px] text-slate-300 italic">Không có</div>'}</div></div>
+                        
+                        <div class="mt-4 pt-2 border-t border-orange-200">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase">Đơn hàng gần đây</span>
+                            <div class="max-h-32 overflow-y-auto space-y-1 mt-1 bg-white rounded border border-orange-100 p-1">
+                                ${fullShipLogs.length ? fullShipLogs.map(s=>`
+                                    <div class="flex justify-between text-[10px] border-b border-dashed border-slate-100 pb-1 mb-1 last:border-0">
+                                        <div><span class="text-slate-400 mr-1">${new Date(s.time).toLocaleDateString('vi-VN').slice(0,5)}</span><span class="font-bold text-slate-700">${s.customer}</span></div>
+                                        <span class="font-bold text-orange-600">${Number(s.total).toLocaleString()}đ</span>
+                                    </div>`).join('') : '<div class="text-[10px] text-slate-300 italic text-center">Trống</div>'}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>`;
 
-            // EVENT HANDLERS
+            // EVENTS
             setTimeout(() => {
                 const dateInput = document.getElementById('h-date'); if(dateInput) dateInput.valueAsDate = new Date();
                 const bIn=document.getElementById('btn-tab-in'), bOut=document.getElementById('btn-tab-out');
@@ -116,9 +117,9 @@ export const THDG = {
                     };
                     const btnRep = document.getElementById('btn-report-day');
                     if(btnRep) btnRep.onclick=()=>{
-                        if(!todayLogs.length)return Utils.toast("Không có đơn!","err");
+                        if(!todayLogs.length)return Utils.toast("Hôm nay chưa có đơn!","err");
                         let csv="Ngay,Khach,SP,SL,Gia,ThanhTien\n";todayLogs.forEach(l=>{const d=new Date(l.time).toLocaleDateString('vi-VN');l.items.forEach(i=>csv+=`${d},${l.customer},${i.name},${i.qty},${i.price},${i.qty*i.price}\n`)});
-                        const l=document.createElement("a");l.href=encodeURI("data:text/csv;charset=utf-8,"+csv);l.download="BC.csv";l.click();
+                        const l=document.createElement("a");l.href=encodeURI("data:text/csv;charset=utf-8,"+csv);l.download="BC_Ngay.csv";l.click();
                     };
                 }
 
@@ -150,4 +151,3 @@ export const THDG = {
         } catch (e) { c.innerHTML=`<div class="p-10 text-center text-red-500">LỖI: ${e.message}</div>`; }
     }
 };
-// --- HẾT FILE ---
