@@ -6,6 +6,9 @@ export const Chat = {
         const c = document.getElementById('chat-layer');
         if (!c || c.classList.contains('hidden')) return;
 
+        // --- FIX LỖI CRASH ---
+        if (!data || !data.chat) return;
+
         try {
             const msgs = Array.isArray(data.chat) ? data.chat : [];
             const content = document.getElementById('chat-msgs');
@@ -36,29 +39,26 @@ export const Chat = {
             
             setTimeout(() => { if(content) content.scrollTop = content.scrollHeight; }, 100);
 
-            // Event
+            // ... (Logic Gửi tin giữ nguyên)
             const sendBtn = document.querySelector('[data-action="sendChat"]');
             if(sendBtn && !sendBtn.dataset.bound) {
-                const newBtn = sendBtn.cloneNode(true);
-                sendBtn.parentNode.replaceChild(newBtn, sendBtn);
-                newBtn.dataset.bound = "true";
-
+                const n = sendBtn.cloneNode(true); sendBtn.parentNode.replaceChild(n, sendBtn); n.dataset.bound="true";
                 const handleSend = () => Chat.sendMessage(user);
-                newBtn.addEventListener('click', handleSend);
-                
+                n.addEventListener('click', handleSend);
                 const inp = document.getElementById('chat-input');
                 if(inp) inp.onkeydown = (e) => { if(e.key === 'Enter') handleSend(); };
             }
+
         } catch (e) { console.error(e); }
     },
 
     sendMessage: async (user) => {
+        // ... (Giữ nguyên)
         if (!user) return Utils.toast("Chưa đăng nhập!", "err");
         const inp = document.getElementById('chat-input');
         const text = inp.value.trim();
         if(!text) return;
         inp.value = ''; inp.focus();
-
         try {
             await addDoc(collection(db, `${ROOT_PATH}/chat`), { 
                 text: text, senderId: String(user._id || user.id), senderName: user.name, time: Date.now() 
