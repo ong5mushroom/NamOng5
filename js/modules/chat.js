@@ -8,35 +8,28 @@ export const Chat = {
         if (!c || c.classList.contains('hidden')) return;
 
         try {
-            // Safe Data
             const msgs = Array.isArray(data.chat) ? data.chat : [];
             const content = document.getElementById('chat-msgs');
-            
             if (!content) return;
 
             if (msgs.length === 0) {
                 content.innerHTML = `<div class="text-center mt-20 text-slate-400 font-bold opacity-60">Chưa có tin nhắn</div>`;
             } else {
-                // Map từng tin nhắn với try-catch
                 content.innerHTML = msgs.map((m) => {
                     try {
                         if (!m) return '';
-                        // Chuyển đổi an toàn về chuỗi
+                        // Chuyển đổi an toàn
                         const myId = user ? String(user._id || user.id) : "guest";
                         const senderId = m.senderId ? String(m.senderId) : "unknown";
                         const isMe = senderId === myId;
-                        
                         const timeStr = m.time ? new Date(m.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'}) : '';
 
                         return `
                         <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-3 w-full animate-pop">
-                            ${!isMe ? `<span class="text-[10px] text-slate-500 ml-2 mb-0.5 font-bold">${m.senderName || '...'}</span>` : ''}
-                            
-                            <div class="max-w-[80%] px-4 py-3 text-sm shadow-sm break-words leading-relaxed
-                                ${isMe ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-100'}">
+                            ${!isMe ? `<span class="text-[10px] text-slate-500 ml-2 mb-0.5 font-bold">${m.senderName || 'Người lạ'}</span>` : ''}
+                            <div class="max-w-[80%] px-4 py-3 text-sm shadow-sm break-words leading-relaxed ${isMe ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-100'}">
                                 ${m.text || '...'}
                             </div>
-                            
                             <span class="text-[9px] text-slate-400 px-1 mt-1 opacity-70">${timeStr}</span>
                         </div>`;
                     } catch { return ''; }
@@ -45,7 +38,7 @@ export const Chat = {
             
             setTimeout(() => { if(content) content.scrollTop = content.scrollHeight; }, 100);
 
-            // Event
+            // Event Gửi
             const sendBtn = document.querySelector('[data-action="sendChat"]');
             if(sendBtn && !sendBtn.dataset.bound) {
                 const newBtn = sendBtn.cloneNode(true);
@@ -58,11 +51,7 @@ export const Chat = {
                 const inp = document.getElementById('chat-input');
                 if(inp) inp.onkeydown = (e) => { if(e.key === 'Enter') handleSend(); };
             }
-
-        } catch (e) { 
-             console.error(e); 
-             // Không hiện lỗi ra UI để tránh xấu, chỉ log console
-        }
+        } catch (e) { console.error(e); }
     },
 
     sendMessage: async (user) => {
@@ -70,19 +59,12 @@ export const Chat = {
         const inp = document.getElementById('chat-input');
         const text = inp.value.trim();
         if(!text) return;
-
         inp.value = ''; inp.focus();
 
         try {
             await addDoc(collection(db, `${ROOT_PATH}/chat`), { 
-                text: text, 
-                senderId: String(user._id || user.id), 
-                senderName: user.name, 
-                time: Date.now() 
+                text: text, senderId: String(user._id || user.id), senderName: user.name, time: Date.now() 
             });
-        } catch (e) {
-            Utils.toast("Lỗi gửi tin!", "err");
-            inp.value = text;
-        }
+        } catch (e) { Utils.toast("Lỗi gửi tin!", "err"); inp.value = text; }
     }
 };
