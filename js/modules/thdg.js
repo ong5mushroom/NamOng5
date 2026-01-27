@@ -9,13 +9,14 @@ const COMPANY = {
     slogan: "Trao sức khỏe, trọn yêu thương"
 };
 
-// --- HÀM XÓA (Gắn vào window để tránh lỗi) ---
+// --- HÀM XÓA (Gắn vào window để tránh lỗi sự kiện) ---
 window.THDG_Fix = {
     delOne: async (id) => {
-        if(confirm("⚠️ ADMIN: Xóa mã sản phẩm này?\nDữ liệu tồn kho sẽ mất vĩnh viễn.")) {
+        // Hỏi xác nhận trước khi xóa
+        if(confirm("⚠️ CẢNH BÁO ADMIN:\nXóa mã này sẽ mất toàn bộ lịch sử tồn kho.\nBạn có chắc chắn không?")) {
             try {
                 await deleteDoc(doc(db, `${ROOT_PATH}/products`, id));
-                Utils.toast("Đã xóa xong!");
+                Utils.toast("Đã xóa mã sản phẩm!");
             } catch (e) {
                 alert("Lỗi: " + e.message);
             }
@@ -28,7 +29,7 @@ export const THDG = {
         const c = document.getElementById('view-th');
         if (!c || c.classList.contains('hidden')) return;
         
-        // An toàn dữ liệu
+        // Kiểm tra dữ liệu
         if (!data) { c.innerHTML = '<div class="p-10 text-center">Đang tải...</div>'; return; }
 
         try {
@@ -36,18 +37,19 @@ export const THDG = {
             const products = Array.isArray(data.products) ? data.products : [];
             const logs = Array.isArray(data.harvest) ? data.harvest : [];
             
-            // Ngày tháng
+            // Xử lý ngày tháng và logs
             const todayStr = new Date().toDateString();
             const todayLogs = (data.shipping || []).filter(s => new Date(s.time).toDateString() === todayStr);
             const y = new Date(); y.setDate(y.getDate()-1);
             const yShips = (data.shipping||[]).filter(s => new Date(s.time).toDateString() === y.toDateString());
             const yHarvest = logs.filter(l => new Date(l.time).toDateString() === y.toDateString());
 
+            // Phân loại sản phẩm
             const g1 = products.filter(p => p && String(p.group) === '1');
             const g2 = products.filter(p => p && String(p.group) === '2');
             const g3 = products.filter(p => p && String(p.group) === '3');
 
-            // Render dòng (Nút xóa gọi hàm window)
+            // Hàm vẽ dòng nhập liệu (Có nút Xóa)
             const renderRow = (p) => `
                 <div class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200">
                     <div class="flex items-center gap-1 overflow-hidden">
@@ -68,7 +70,7 @@ export const THDG = {
                     <div class="glass p-5 border-l-8 border-green-500 bg-green-50/40">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="font-black text-green-800 text-xs uppercase flex items-center gap-2"><i class="fas fa-warehouse text-lg"></i> NHẬP KHO</h3>
-                            ${isAdmin ? `<button id="btn-add-prod" class="bg-white border text-green-700 px-2 py-1 rounded text-[10px] font-bold">+ Mã SP</button>` : ''}
+                            ${isAdmin ? `<button id="btn-add-prod" class="bg-white border text-green-700 px-2 py-1 rounded text-[10px] font-bold shadow-sm">+ Mã SP</button>` : ''}
                         </div>
                         <div class="space-y-3">
                             <div class="flex gap-2"><div class="w-1/3"><label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Ngày Thu</label><input type="date" id="h-date" class="w-full p-2 rounded border text-xs font-bold"></div><div class="flex-1"><label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Nguồn Thu</label><select id="h-area" class="w-full p-2 rounded border text-xs font-bold"><option value="">-- Chọn --</option>${(data.houses||[]).map(h => `<option value="${h.id}" data-name="${h.name}">${h.name}</option>`).join('')}<option value="MuaNgoai" data-name="Mua Ngoài">Mua Ngoài</option></select></div></div>
@@ -98,7 +100,7 @@ export const THDG = {
                 </div>
             </div>`;
 
-            // EVENTS
+            // EVENT HANDLERS
             setTimeout(() => {
                 const dateInput = document.getElementById('h-date'); if(dateInput) dateInput.valueAsDate = new Date();
                 const bIn=document.getElementById('btn-tab-in'), bOut=document.getElementById('btn-tab-out');
@@ -148,3 +150,4 @@ export const THDG = {
         } catch (e) { c.innerHTML=`<div class="p-10 text-center text-red-500">LỖI: ${e.message}</div>`; }
     }
 };
+// --- HẾT FILE ---
