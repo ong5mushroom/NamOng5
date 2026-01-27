@@ -1,24 +1,28 @@
 import { collection, db, ROOT_PATH, updateDoc, doc, addDoc } from '../config.js';
 import { Utils } from '../utils.js';
 
-// --- HÀM DUYỆT ĐƠN (CÓ CHAT) ---
+// --- HÀM DUYỆT ĐƠN ---
 window.Home_Approve = {
     chat: async (msg) => { try { await addDoc(collection(db, `${ROOT_PATH}/chat`), {user:"HỆ THỐNG", message:msg, time:Date.now()}); } catch(e){} },
-    ok: async (id, type, reqUser) => {
-        if(confirm("Duyệt đơn này?")) {
+    
+    ok: async (id, type, reqUser, adminName) => {
+        if(confirm(`Duyệt đơn ${type} của ${reqUser}?`)) {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DONE' });
-            Utils.toast("Đã duyệt!"); window.Home_Approve.chat(`✅ Đã DUYỆT đơn ${type} của ${reqUser}`);
+            Utils.toast("✅ Đã duyệt!"); 
+            window.Home_Approve.chat(`✅ ${adminName} đã DUYỆT đơn ${type} của ${reqUser}`);
         }
     },
-    no: async (id, type, reqUser) => {
-        if(confirm("Từ chối?")) {
+    
+    no: async (id, type, reqUser, adminName) => {
+        if(confirm("Từ chối đơn này?")) {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'REJECT' });
-            Utils.toast("Đã từ chối!"); window.Home_Approve.chat(`❌ Đã TỪ CHỐI đơn ${type} của ${reqUser}`);
+            Utils.toast("❌ Đã từ chối!"); 
+            window.Home_Approve.chat(`❌ ${adminName} đã TỪ CHỐI đơn ${type} của ${reqUser}`);
         }
     },
-    // Nút Bật thông báo / Cài App
+    
     notify: () => { if("Notification" in window) Notification.requestPermission().then(p => alert(p==="granted"?"Đã bật!":"Đã chặn!")); else alert("Máy không hỗ trợ!"); },
-    install: () => { alert("Trên Android: Bấm 3 chấm -> Thêm vào màn hình chính.\nTrên iOS: Bấm Chia sẻ -> Thêm vào MH chính."); }
+    install: () => { alert("Android: Bấm 3 chấm -> Thêm vào màn hình chính.\niOS: Bấm Chia sẻ -> Thêm vào MH chính."); }
 };
 
 export const Home = {
@@ -26,38 +30,60 @@ export const Home = {
         const c = document.getElementById('view-home');
         if (!c || c.classList.contains('hidden')) return;
         
-        // Check quyền Admin (An toàn)
+        // CHECK QUYỀN ADMIN (Lỏng hơn để dễ bắt)
         const role = (user && user.role) ? user.role.toLowerCase() : "";
-        const isAdmin = ['admin', 'quản lý', 'giám đốc'].some(r => role.includes(r));
+        const isAdmin = ['admin', 'quản lý', 'quan ly', 'giám đốc', 'giam doc'].some(r => role.includes(r));
 
         const houses = Array.isArray(data.houses) ? data.houses : [];
         const tasks = Array.isArray(data.tasks) ? data.tasks : [];
         const harvest = Array.isArray(data.harvest) ? data.harvest : [];
 
-        // Lọc đơn chờ
+        // LỌC ĐƠN CHỜ DUYỆT (Bao gồm cả Chấm công, Xin nghỉ, Mua hàng)
         let pendingHTML = '';
         if(isAdmin) {
-            const pends = tasks.filter(t => t.status === 'PENDING' && ['LEAVE', 'BUY'].includes(t.type));
+            // Lọc các task PENDING thuộc loại: LEAVE, BUY, CHECKIN
+            const pends = tasks.filter(t => 
+                t.status === 'PENDING' && 
+                (['LEAVE', 'BUY', 'CHECKIN'].includes(t.type) || t.title.includes('Xin nghỉ') || t.title.includes('mua'))
+            );
+
             if(pends.length) {
                 pendingHTML = `
                 <div class="mb-4 animate-pop">
                     <div class="bg-red-50 border-l-4 border-red-500 p-3 shadow-sm rounded-r-lg">
                         <div class="flex justify-between items-center mb-2">
-                            <h3 class="font-black text-red-600 text-xs uppercase flex items-center gap-2"><i class="fas fa-bell animate-bounce"></i> CẦN DUYỆT (${pends.length})</h3>
+                            <h3 class="font-black text-red-600 text-xs uppercase flex items-center gap-2">
+                                <i class="fas fa-bell animate-bounce"></i> CẦN DUYỆT (${pends.length})
+                            </h3>
                         </div>
-                        <div class="space-y-2 max-h-40 overflow-y-auto pr-1">
-                            ${pends.map(t => `
+                        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            ${pends.map(t => {
+                                // Xác định loại đơn để hiển thị
+                                let typeLabel = 'Yêu cầu';
+                                if(t.type === 'CHECKIN') typeLabel = 'Chấm công';
+                                else if(t.type === 'LEAVE') typeLabel = 'Xin nghỉ';
+                                else if(t.type === 'BUY') typeLabel = 'Mua hàng';
+
+                                return `
                                 <div class="bg-white p-2 rounded border border-red-100 shadow-sm flex justify-between items-center">
-                                    <div><div class="text-[10px] font-bold text-slate-700">${t.by}</div><div class="text-xs font-bold text-red-500">${t.title}</div></div>
-                                    <div class="flex gap-1"><button onclick="window.Home_Approve.ok('${t.id}','${t.type}','${t.by}')" class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold">Duyệt</button><button onclick="window.Home_Approve.no('${t.id}','${t.type}','${t.by}')" class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] font-bold">Hủy</button></div>
-                                </div>`).join('')}
+                                    <div class="flex-1 pr-2">
+                                        <div class="text-[10px] font-bold text-slate-700"><i class="fas fa-user"></i> ${t.by} <span class="font-normal text-slate-400">(${typeLabel})</span></div>
+                                        <div class="text-xs font-bold text-red-500 truncate">${t.title}</div>
+                                        <div class="text-[9px] text-slate-400">${new Date(t.time).toLocaleDateString('vi-VN')}</div>
+                                    </div>
+                                    <div class="flex gap-1 shrink-0">
+                                        <button onclick="window.Home_Approve.ok('${t.id}','${typeLabel}','${t.by}', '${user.name}')" class="bg-green-100 text-green-700 px-2 py-1.5 rounded text-[10px] font-bold shadow-sm hover:bg-green-200 transition">Duyệt</button>
+                                        <button onclick="window.Home_Approve.no('${t.id}','${typeLabel}','${t.by}', '${user.name}')" class="bg-slate-100 text-slate-500 px-2 py-1.5 rounded text-[10px] font-bold shadow-sm hover:bg-slate-200 transition">Hủy</button>
+                                    </div>
+                                </div>`;
+                            }).join('')}
                         </div>
                     </div>
                 </div>`;
             }
         }
 
-        // Dashboard Data
+        // DASHBOARD
         const active = houses.filter(h => h.status === 'ACTIVE').length;
         const totalYield = harvest.reduce((a, b) => a + (Number(b.total)||0), 0);
         const houseA = houses.find(h => ['nhà a','kho a'].includes((h.name||'').toLowerCase().trim()));
@@ -65,10 +91,11 @@ export const Home = {
 
         c.innerHTML = `
         <div class="space-y-6 pb-24">
+            ${isAdmin ? `
             <div class="flex justify-end gap-2">
-                <button onclick="window.Home_Approve.notify()" class="bg-white border border-slate-200 text-slate-600 px-2 py-1 rounded-full text-[10px] font-bold shadow-sm"><i class="fas fa-bell"></i> Bật Thông Báo</button>
-                <button onclick="window.Home_Approve.install()" class="bg-blue-600 text-white px-2 py-1 rounded-full text-[10px] font-bold shadow-sm"><i class="fas fa-download"></i> Cài App</button>
-            </div>
+                <button onclick="window.Home_Approve.notify()" class="bg-white border border-slate-200 text-slate-600 px-3 py-1 rounded-full text-[10px] font-bold shadow-sm active:scale-95"><i class="fas fa-bell"></i> Thông báo</button>
+                <button onclick="window.Home_Approve.install()" class="bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-sm active:scale-95"><i class="fas fa-download"></i> Cài App</button>
+            </div>` : ''}
 
             ${pendingHTML}
 
