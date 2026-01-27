@@ -8,29 +8,19 @@ export const THDG = {
         if(!c || c.classList.contains('hidden')) return;
 
         try {
-            // 1. DATA SAFETY (Chống lỗi trắng màn hình)
+            // 1. DATA SAFE (Chống undefined)
             const houses = Array.isArray(data.houses) ? data.houses : [];
             const products = Array.isArray(data.products) ? data.products : [];
-            const shipping = Array.isArray(data.shipping) ? data.shipping : [];
-
-            // Sắp xếp nhà
-            const sorted = [...houses].sort((a,b) => {
-                const n1 = a.name || "";
-                const n2 = b.name || "";
-                return n1.localeCompare(n2, 'vi', {numeric:true});
-            });
             
-            // Phân loại 3 nhóm sản phẩm (Như bản gốc)
-            const g1 = products.filter(p => p && String(p.group) === '1'); // Nấm Tươi
-            const g2 = products.filter(p => p && String(p.group) === '2'); // Nấm Khô
-            const g3 = products.filter(p => p && String(p.group) === '3'); // Sơ Chế
+            // Sắp xếp nhà an toàn
+            const sorted = [...houses].sort((a,b) => (a.name||"").localeCompare(b.name||"", 'vi', {numeric:true}));
             
-            // Lịch sử xuất hàng 48h
-            const recentLogs = shipping
-                .filter(s => s && s.time && (Date.now() - s.time) < 172800000)
-                .sort((a,b) => b.time - a.time);
+            // Lọc sản phẩm an toàn (check p tồn tại trước khi check group)
+            const g1 = products.filter(p => p && String(p.group) === '1');
+            const g2 = products.filter(p => p && String(p.group) === '2');
+            const g3 = products.filter(p => p && String(p.group) === '3');
 
-            // 2. HTML GIAO DIỆN (Nguyên bản ZIP)
+            // 2. HTML GIAO DIỆN (Nguyên bản 3 màu)
             c.innerHTML = `
             <div class="space-y-4 pb-24">
                 <div class="flex gap-2 bg-white p-1.5 rounded-xl shadow-sm border border-slate-200">
@@ -47,9 +37,7 @@ export const THDG = {
                         <span class="font-black text-slate-700 uppercase flex items-center gap-2">
                             <i class="fas fa-warehouse text-green-600"></i> Nhập Kho
                         </span>
-                        <button id="btn-add-prod" class="text-xs bg-slate-100 px-3 py-1.5 rounded-lg text-blue-600 font-bold border border-blue-100 shadow-sm">
-                            + Mã Mới
-                        </button>
+                        <button id="btn-add-prod" class="text-xs bg-slate-100 px-3 py-1.5 rounded-lg text-blue-600 font-bold border border-blue-100 shadow-sm">+ Mã Mới</button>
                     </div>
 
                     <div class="space-y-4">
@@ -57,98 +45,50 @@ export const THDG = {
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Nguồn thu</label>
                             <select id="th-area" class="font-bold text-green-700 w-full p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none">
                                 <option value="">-- Chọn Nhà / Khu --</option>
-                                ${sorted.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}
-                                <option value="KhuCheBien">Khu Chế Biến</option>
+                                ${sorted.map(h => `<option value="${h.name}">${h.name}</option>`).join('')}
                                 <option value="ThuMuaNgoai">Thu Mua Ngoài</option>
                             </select>
                         </div>
 
                         ${g1.length ? `
                         <div class="bg-green-50 p-3 rounded-xl border border-green-100">
-                            <h4 class="text-[10px] font-bold text-green-700 uppercase mb-2 flex items-center gap-1"><i class="fas fa-leaf"></i> 1. Nấm Tươi (Kg)</h4>
+                            <h4 class="text-[10px] font-bold text-green-700 uppercase mb-2">1. Nấm Tươi (Kg)</h4>
                             <div class="grid grid-cols-3 gap-3">
-                                ${g1.map(p=>`
-                                    <div>
-                                        <label class="text-[9px] font-bold text-slate-500 block truncate text-center mb-1">${p.name}</label>
-                                        <input type="number" step="0.1" id="th-${p.code}" class="text-center font-bold text-sm w-full p-2 rounded-lg border border-slate-200 focus:border-green-500 text-green-700 bg-white" placeholder="0">
-                                    </div>`).join('')}
+                                ${g1.map(p => `<div><label class="text-[9px] font-bold text-slate-500 block truncate text-center mb-1">${p.name}</label><input type="number" step="0.1" id="th-${p.code}" class="text-center font-bold text-sm w-full p-2 rounded-lg border border-slate-200 text-green-700 bg-white" placeholder="0"></div>`).join('')}
                             </div>
                         </div>` : ''}
 
                         ${g2.length ? `
                         <div class="bg-orange-50 p-3 rounded-xl border border-orange-100">
-                            <h4 class="text-[10px] font-bold text-orange-700 uppercase mb-2 flex items-center gap-1"><i class="fas fa-sun"></i> 2. Nấm Khô (Kg)</h4>
+                            <h4 class="text-[10px] font-bold text-orange-700 uppercase mb-2">2. Nấm Khô (Kg)</h4>
                             <div class="grid grid-cols-3 gap-3">
-                                ${g2.map(p=>`
-                                    <div>
-                                        <label class="text-[9px] font-bold text-slate-500 block truncate text-center mb-1">${p.name}</label>
-                                        <input type="number" step="0.1" id="th-${p.code}" class="text-center font-bold text-sm w-full p-2 rounded-lg border border-slate-200 focus:border-orange-500 text-orange-700 bg-white" placeholder="0">
-                                    </div>`).join('')}
+                                ${g2.map(p => `<div><label class="text-[9px] font-bold text-slate-500 block truncate text-center mb-1">${p.name}</label><input type="number" step="0.1" id="th-${p.code}" class="text-center font-bold text-sm w-full p-2 rounded-lg border border-slate-200 text-orange-700 bg-white" placeholder="0"></div>`).join('')}
                             </div>
                         </div>` : ''}
 
                         ${g3.length ? `
                         <div class="bg-purple-50 p-3 rounded-xl border border-purple-100">
-                            <h4 class="text-[10px] font-bold text-purple-700 uppercase mb-2 flex items-center gap-1"><i class="fas fa-box-open"></i> 3. Sơ Chế / TP</h4>
+                            <h4 class="text-[10px] font-bold text-purple-700 uppercase mb-2">3. Sơ Chế / TP</h4>
                             <div class="grid grid-cols-3 gap-3">
-                                ${g3.map(p=>`
-                                    <div>
-                                        <label class="text-[9px] font-bold text-slate-500 block truncate text-center mb-1">${p.name}</label>
-                                        <input type="number" id="th-${p.code}" class="text-center font-bold text-sm w-full p-2 rounded-lg border border-slate-200 focus:border-purple-500 text-purple-700 bg-white" placeholder="0">
-                                    </div>`).join('')}
+                                ${g3.map(p => `<div><label class="text-[9px] font-bold text-slate-500 block truncate text-center mb-1">${p.name}</label><input type="number" step="0.1" id="th-${p.code}" class="text-center font-bold text-sm w-full p-2 rounded-lg border border-slate-200 text-purple-700 bg-white" placeholder="0"></div>`).join('')}
                             </div>
                         </div>` : ''}
 
-                        <button id="btn-save-th" class="w-full py-4 bg-green-600 text-white rounded-xl font-bold shadow-lg shadow-green-200 active:scale-95 transition mt-2">LƯU KHO</button>
+                        <button id="btn-save-th" class="w-full py-4 bg-green-600 text-white rounded-xl font-bold shadow-lg mt-2">LƯU KHO</button>
                     </div>
                 </div>
 
                 <div id="zone-th-out" class="hidden glass p-5 border-l-4 border-orange-500 animate-pop">
-                    <h4 class="font-black text-slate-700 uppercase mb-4 flex items-center gap-2">
-                        <i class="fas fa-shipping-fast text-orange-600"></i> Xuất Bán / Chuyển
-                    </h4>
+                    <h4 class="font-black text-slate-700 uppercase mb-4"><i class="fas fa-shipping-fast text-orange-600"></i> Xuất Bán</h4>
                     <div class="space-y-3">
-                        <input id="ship-cust" placeholder="Khách hàng / Đối tác" class="font-bold">
-                        
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Mã hàng</label>
-                                <select id="ship-type" class="w-full p-3 border rounded-xl bg-white font-bold text-slate-700">
-                                    <option value="">-- Chọn --</option>
-                                    <optgroup label="1. Nấm Tươi">${g1.map(p=>`<option value="${p.name}">${p.name}</option>`).join('')}</optgroup>
-                                    <optgroup label="2. Nấm Khô">${g2.map(p=>`<option value="${p.name}">${p.name}</option>`).join('')}</optgroup>
-                                    <optgroup label="3. Sơ Chế">${g3.map(p=>`<option value="${p.name}">${p.name}</option>`).join('')}</optgroup>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Số lượng</label>
-                                <input id="ship-qty" type="number" placeholder="0" class="font-bold text-lg text-orange-600">
-                            </div>
-                        </div>
-                        
-                        <textarea id="ship-note" placeholder="Ghi chú xuất hàng..." class="h-20"></textarea>
-                        
-                        <button id="btn-submit-ship" class="w-full py-4 bg-orange-600 text-white rounded-xl font-bold shadow-lg shadow-orange-200 active:scale-95 transition">XUẤT KHO</button>
-                    </div>
-
-                    <div class="mt-6 pt-4 border-t border-slate-200">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Nhật ký xuất (48h qua)</p>
-                        <div class="space-y-2 max-h-40 overflow-y-auto pr-1">
-                            ${recentLogs.length ? recentLogs.map(l=>`
-                                <div class="flex justify-between items-center text-xs p-3 bg-orange-50 rounded-lg border border-orange-100">
-                                    <div>
-                                        <div class="font-bold text-slate-700">${l.customer}</div>
-                                        <div class="text-[9px] text-slate-400">${new Date(l.time).toLocaleString('vi-VN')}</div>
-                                    </div>
-                                    <div class="font-black text-orange-600 text-sm">${l.qty} <span class="text-[10px] text-slate-500 font-normal">${l.type}</span></div>
-                                </div>
-                            `).join('') : '<div class="text-center text-xs text-slate-300 italic">Chưa có dữ liệu xuất</div>'}
-                        </div>
+                        <input id="ship-cust" placeholder="Khách hàng" class="font-bold">
+                        <input id="ship-qty" type="number" placeholder="Số lượng" class="font-bold text-lg text-orange-600">
+                        <button id="btn-submit-ship" class="w-full py-4 bg-orange-600 text-white rounded-xl font-bold shadow-lg">XUẤT KHO</button>
                     </div>
                 </div>
             </div>`;
 
-            // 3. GẮN SỰ KIỆN (Delay nhẹ để đảm bảo DOM render)
+            // 3. GẮN SỰ KIỆN
             setTimeout(() => {
                 // Tab
                 document.querySelectorAll('.btn-tab-th').forEach(btn => {
@@ -156,16 +96,11 @@ export const THDG = {
                         const target = btn.dataset.target;
                         document.getElementById('zone-th-in').classList.toggle('hidden', target !== 'in');
                         document.getElementById('zone-th-out').classList.toggle('hidden', target !== 'out');
-                        
-                        // Update Style
+                        // Update Style...
                         document.querySelectorAll('.btn-tab-th').forEach(b => {
-                            if(b === btn) {
-                                b.classList.add('bg-green-100', 'text-green-700', 'shadow-sm');
-                                b.classList.remove('text-slate-400', 'hover:bg-slate-50');
-                            } else {
-                                b.classList.remove('bg-green-100', 'text-green-700', 'shadow-sm');
-                                b.classList.add('text-slate-400', 'hover:bg-slate-50');
-                            }
+                            b.classList.toggle('bg-green-100', b === btn);
+                            b.classList.toggle('text-green-700', b === btn);
+                            b.classList.toggle('text-slate-400', b !== btn);
                         });
                     }
                 });
@@ -177,8 +112,7 @@ export const THDG = {
                     btnSave.parentNode.replaceChild(newBtn, btnSave);
                     newBtn.onclick = async () => {
                         const area = document.getElementById('th-area').value;
-                        if(!area) return Utils.toast("Vui lòng chọn Nguồn thu!", "err");
-                        
+                        if(!area) return Utils.toast("Chưa chọn Nguồn thu!", "err");
                         let d = {}, total = 0;
                         products.forEach(p => { 
                             if(!p || !p.code) return;
@@ -189,67 +123,46 @@ export const THDG = {
                                 el.value = ''; 
                             } 
                         });
-
-                        if(total === 0) return Utils.toast("Chưa nhập số lượng nào!", "err");
-                        
-                        await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { 
-                            area, details: d, total, user: user.name, time: Date.now() 
-                        });
-                        Utils.toast(`✅ Đã nhập kho: ${total} kg`);
+                        if(total === 0) return Utils.toast("Chưa nhập số lượng!", "err");
+                        await addDoc(collection(db, `${ROOT_PATH}/harvest_logs`), { area, details: d, total, user: user.name, time: Date.now() });
+                        Utils.toast(`✅ Đã nhập: ${total} kg`);
                     };
                 }
-
-                // Modal thêm sản phẩm mới
+                
+                // Add Product
                 const btnAddProd = document.getElementById('btn-add-prod');
                 if(btnAddProd) {
                     btnAddProd.onclick = () => {
                          Utils.modal("Thêm Mã Hàng Mới", `
-                            <div><label class="text-xs font-bold text-slate-500">Tên hiển thị</label><input id="new-prod-name" placeholder="VD: Nấm Mỡ AA" class="w-full p-2 border rounded font-bold"></div>
-                            <div><label class="text-xs font-bold text-slate-500">Mã hệ thống (ko dấu)</label><input id="new-prod-code" placeholder="VD: nam_mo_aa" class="w-full p-2 border rounded"></div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-500">Nhóm hàng</label>
-                                <select id="new-prod-group" class="w-full p-2 border rounded font-bold text-blue-600">
-                                    <option value="1">1. Nấm Tươi</option>
-                                    <option value="2">2. Nấm Khô</option>
-                                    <option value="3">3. Nấm Sơ Chế</option>
-                                </select>
-                            </div>`, [{id:'submit-new-prod', text:'Lưu Mã', cls:'bg-blue-600 text-white'}]);
-
+                            <div><label class="text-xs font-bold text-slate-500">Tên</label><input id="new-prod-name" class="w-full p-2 border rounded font-bold"></div>
+                            <div><label class="text-xs font-bold text-slate-500">Mã (ko dấu)</label><input id="new-prod-code" class="w-full p-2 border rounded"></div>
+                            <div><select id="new-prod-group" class="w-full p-2 border rounded"><option value="1">1. Tươi</option><option value="2">2. Khô</option><option value="3">3. Sơ Chế</option></select></div>`, 
+                            [{id:'submit-new-prod', text:'Lưu Mã', cls:'bg-blue-600 text-white'}]);
                         setTimeout(() => document.getElementById('submit-new-prod').onclick = async () => {
                             const n = document.getElementById('new-prod-name').value;
                             const c = document.getElementById('new-prod-code').value;
                             const g = document.getElementById('new-prod-group').value;
-                            if(n && c) { 
-                                await addDoc(collection(db, `${ROOT_PATH}/products`), { name:n, code:c, group:g }); 
-                                Utils.modal(null); Utils.toast("Đã thêm mã hàng mới"); 
-                            }
+                            if(n && c) { await addDoc(collection(db, `${ROOT_PATH}/products`), { name:n, code:c, group:g }); Utils.modal(null); Utils.toast("Đã thêm!"); }
                         }, 100);
                     }
                 }
-
+                
                 // Xuất kho
-                const btnShip = document.getElementById('btn-submit-ship');
-                if(btnShip) {
-                    btnShip.onclick = async () => {
-                        const c = document.getElementById('ship-cust').value;
-                        const t = document.getElementById('ship-type').value;
-                        const q = Number(document.getElementById('ship-qty').value);
-                        const n = document.getElementById('ship-note').value;
-                        if(!c || !t || !q) return Utils.toast("Thiếu thông tin xuất hàng!", "err");
-                        await addDoc(collection(db, `${ROOT_PATH}/shipping`), { 
-                            customer: c, type: t, qty: q, note: n, user: user.name, time: Date.now() 
-                        });
-                        document.getElementById('ship-cust').value = '';
-                        document.getElementById('ship-qty').value = '';
-                        document.getElementById('ship-note').value = '';
-                        Utils.toast("🚚 Đã xuất kho thành công!");
-                    };
-                }
+                 const btnShip = document.getElementById('btn-submit-ship');
+                 if(btnShip) {
+                     btnShip.onclick = async () => {
+                         const c = document.getElementById('ship-cust').value;
+                         const q = document.getElementById('ship-qty').value;
+                         if(!c || !q) return Utils.toast("Thiếu thông tin!", "err");
+                         await addDoc(collection(db, `${ROOT_PATH}/shipping`), { customer: c, qty: Number(q), user: user.name, time: Date.now() });
+                         Utils.toast("🚚 Đã xuất!");
+                     }
+                 }
+
             }, 100);
 
         } catch (e) {
-            console.error(e);
-            c.innerHTML = `<div class="p-4 text-red-500 text-center">Lỗi hiển thị THDG: ${e.message}</div>`;
+            c.innerHTML = `<div class="p-4 text-red-500 text-center">Lỗi THDG: ${e.message}</div>`;
         }
     }
 };
