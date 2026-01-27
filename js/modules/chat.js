@@ -18,7 +18,6 @@ export const Chat = {
                 content.innerHTML = msgs.map((m) => {
                     try {
                         if (!m) return '';
-                        // Chuyển đổi an toàn
                         const myId = user ? String(user._id || user.id) : "guest";
                         const senderId = m.senderId ? String(m.senderId) : "unknown";
                         const isMe = senderId === myId;
@@ -26,7 +25,7 @@ export const Chat = {
 
                         return `
                         <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-3 w-full animate-pop">
-                            ${!isMe ? `<span class="text-[10px] text-slate-500 ml-2 mb-0.5 font-bold">${m.senderName || 'Người lạ'}</span>` : ''}
+                            ${!isMe ? `<span class="text-[10px] text-slate-500 ml-2 mb-0.5 font-bold">${m.senderName || '...'}</span>` : ''}
                             <div class="max-w-[80%] px-4 py-3 text-sm shadow-sm break-words leading-relaxed ${isMe ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-100'}">
                                 ${m.text || '...'}
                             </div>
@@ -38,7 +37,7 @@ export const Chat = {
             
             setTimeout(() => { if(content) content.scrollTop = content.scrollHeight; }, 100);
 
-            // Event Gửi
+            // Event
             const sendBtn = document.querySelector('[data-action="sendChat"]');
             if(sendBtn && !sendBtn.dataset.bound) {
                 const newBtn = sendBtn.cloneNode(true);
