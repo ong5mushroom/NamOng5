@@ -1,25 +1,28 @@
 import { collection, db, ROOT_PATH, updateDoc, doc, addDoc } from '../config.js';
 import { Utils } from '../utils.js';
 
-// --- HÀM DUYỆT ĐƠN (CÓ CHAT) ---
+// --- HÀM DUYỆT ĐƠN (CÓ CHAT LOG) ---
 window.Home_Action = {
-    // Hàm phụ trợ để chat
+    // Hàm phụ trợ chat
     logChat: async (msg) => {
         try { await addDoc(collection(db, `${ROOT_PATH}/chat`), { user: "HỆ THỐNG", message: msg, time: Date.now() }); } catch(e){}
     },
 
     approve: async (id, type, requester, adminName) => {
-        if(confirm(`Duyệt yêu cầu ${type === 'LEAVE' ? 'Xin nghỉ' : 'Mua hàng'} này?`)) {
+        const typeName = type === 'LEAVE' ? 'Xin nghỉ' : (type === 'BUY' ? 'Mua hàng' : 'Yêu cầu');
+        if(confirm(`Duyệt đơn ${typeName} của ${requester}?`)) {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DONE' });
-            Utils.toast("Đã duyệt thành công!");
-            window.Home_Action.logChat(`✅ ${adminName} đã DUYỆT đơn ${type==='LEAVE'?'xin nghỉ':'mua hàng'} của ${requester}`);
+            Utils.toast("✅ Đã duyệt!");
+            window.Home_Action.logChat(`✅ ${adminName} đã DUYỆT đơn ${typeName} của ${requester}`);
         }
     },
+    
     reject: async (id, type, requester, adminName) => {
-        if(confirm("Từ chối yêu cầu này?")) {
+        const typeName = type === 'LEAVE' ? 'Xin nghỉ' : (type === 'BUY' ? 'Mua hàng' : 'Yêu cầu');
+        if(confirm(`Từ chối đơn này?`)) {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'REJECT' });
-            Utils.toast("Đã từ chối!");
-            window.Home_Action.logChat(`❌ ${adminName} đã TỪ CHỐI đơn ${type==='LEAVE'?'xin nghỉ':'mua hàng'} của ${requester}`);
+            Utils.toast("❌ Đã từ chối!");
+            window.Home_Action.logChat(`❌ ${adminName} đã TỪ CHỐI đơn ${typeName} của ${requester}`);
         }
     }
 };
@@ -29,43 +32,62 @@ export const Home = {
         const c = document.getElementById('view-home');
         if (!c || c.classList.contains('hidden')) return;
         
-        const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
+        // --- 1. KIỂM TRA QUYỀN ADMIN (CHẶT CHẼ HƠN) ---
+        const userRole = (user && user.role) ? user.role.toLowerCase().trim() : "";
+        // Chấp nhận các từ khóa: admin, quản lý, quan ly, giám đốc, giam doc
+        const isAdmin = ['admin', 'quản lý', 'quan ly', 'giám đốc', 'giam doc'].some(r => userRole.includes(r));
+
         const houses = Array.isArray(data.houses) ? data.houses : [];
         const harvest = Array.isArray(data.harvest) ? data.harvest : [];
         const tasks = Array.isArray(data.tasks) ? data.tasks : [];
 
-        // 1. LỌC ĐƠN CHỜ DUYỆT
+        // --- 2. LỌC ĐƠN CẦN DUYỆT ---
         let pendingHTML = '';
-        if(isAdmin) {
-            const pendingReqs = tasks.filter(t => t.status === 'PENDING' && ['LEAVE', 'BUY'].includes(t.type));
-            if(pendingReqs.length > 0) {
+        
+        if (isAdmin) {
+            // Lọc các task có trạng thái PENDING và type là LEAVE hoặc BUY
+            // Hoặc task cũ chưa có type nhưng title chứa "Xin nghỉ" hoặc "mua"
+            const pendingReqs = tasks.filter(t => {
+                const isPending = t.status === 'PENDING';
+                const isTypeReq = ['LEAVE', 'BUY'].includes(t.type);
+                // Fallback cho data cũ: check title nếu ko có type
+                const isTitleReq = !t.type && (t.title.toLowerCase().includes('xin nghỉ') || t.title.toLowerCase().includes('mua'));
+                
+                return isPending && (isTypeReq || isTitleReq);
+            });
+
+            if (pendingReqs.length > 0) {
                 pendingHTML = `
                 <div class="mb-4 animate-pop">
                     <div class="bg-red-50 border-l-4 border-red-500 p-3 shadow-sm rounded-r-lg">
                         <h3 class="font-black text-red-600 text-xs uppercase mb-2 flex items-center gap-2">
                             <i class="fas fa-bell animate-bounce"></i> CẦN DUYỆT GẤP (${pendingReqs.length})
                         </h3>
-                        <div class="space-y-2">
-                            ${pendingReqs.map(t => `
+                        <div class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                            ${pendingReqs.map(t => {
+                                // Xác định loại nếu thiếu type
+                                const safeType = t.type || (t.title.toLowerCase().includes('mua') ? 'BUY' : 'LEAVE');
+                                
+                                return `
                                 <div class="bg-white p-2 rounded border border-red-100 shadow-sm flex justify-between items-center">
                                     <div>
-                                        <div class="text-[10px] font-bold text-slate-700">${t.by}</div>
+                                        <div class="text-[10px] font-bold text-slate-700"><i class="fas fa-user-circle"></i> ${t.by || 'Ẩn danh'}</div>
                                         <div class="text-xs font-bold text-red-500">${t.title}</div>
                                         <div class="text-[9px] text-slate-400">${new Date(t.time).toLocaleDateString('vi-VN')}</div>
                                     </div>
                                     <div class="flex gap-1">
-                                        <button onclick="window.Home_Action.approve('${t.id}', '${t.type}', '${t.by}', '${user.name}')" class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold shadow-sm">Duyệt</button>
-                                        <button onclick="window.Home_Action.reject('${t.id}', '${t.type}', '${t.by}', '${user.name}')" class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] font-bold shadow-sm">Hủy</button>
+                                        <button onclick="window.Home_Action.approve('${t.id}', '${safeType}', '${t.by}', '${user.name}')" class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold shadow-sm hover:bg-green-200 transition">Duyệt</button>
+                                        <button onclick="window.Home_Action.reject('${t.id}', '${safeType}', '${t.by}', '${user.name}')" class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] font-bold shadow-sm hover:bg-slate-200 transition">Hủy</button>
                                     </div>
-                                </div>
-                            `).join('')}
+                                </div>`;
+                            }).join('')}
                         </div>
                     </div>
                 </div>`;
             }
         }
         
-        // 2. DATA CŨ
+        // --- 3. DỮ LIỆU TỔNG QUAN (GIỮ NGUYÊN) ---
         const active = houses.filter(h => h.status === 'ACTIVE').length;
         const totalYield = harvest.reduce((acc, h) => acc + (Number(h.total)||0), 0);
         const houseA = houses.find(h => ['nhà a','kho a','kho phôi'].includes((h.name||'').trim().toLowerCase()));
@@ -73,6 +95,7 @@ export const Home = {
 
         c.innerHTML = `
         <div class="space-y-6 pb-24">
+            
             ${pendingHTML}
 
             <div class="grid grid-cols-2 gap-3">
