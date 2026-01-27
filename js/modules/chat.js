@@ -6,9 +6,6 @@ export const Chat = {
         const c = document.getElementById('chat-layer');
         if (!c || c.classList.contains('hidden')) return;
 
-        // --- FIX LỖI CRASH ---
-        if (!data || !data.chat) return;
-
         try {
             const msgs = Array.isArray(data.chat) ? data.chat : [];
             const content = document.getElementById('chat-msgs');
@@ -24,22 +21,15 @@ export const Chat = {
                         const senderId = m.senderId ? String(m.senderId) : "unknown";
                         const isMe = senderId === myId;
                         const timeStr = m.time ? new Date(m.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'}) : '';
-
-                        return `
-                        <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-3 w-full animate-pop">
-                            ${!isMe ? `<span class="text-[10px] text-slate-500 ml-2 mb-0.5 font-bold">${m.senderName || '...'}</span>` : ''}
-                            <div class="max-w-[80%] px-4 py-3 text-sm shadow-sm break-words leading-relaxed ${isMe ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-100'}">
-                                ${m.text || '...'}
-                            </div>
-                            <span class="text-[9px] text-slate-400 px-1 mt-1 opacity-70">${timeStr}</span>
-                        </div>`;
+                        return `<div class="flex flex-col ${isMe?'items-end':'items-start'} mb-3 w-full animate-pop">
+                            ${!isMe?`<span class="text-[10px] text-slate-500 ml-2 mb-0.5 font-bold">${m.senderName||'...'}</span>`:''}
+                            <div class="max-w-[80%] px-4 py-3 text-sm shadow-sm break-words leading-relaxed ${isMe?'bg-blue-600 text-white rounded-2xl rounded-tr-sm':'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-100'}">${m.text||'...'}</div>
+                            <span class="text-[9px] text-slate-400 px-1 mt-1 opacity-70">${timeStr}</span></div>`;
                     } catch { return ''; }
                 }).join('');
             }
-            
             setTimeout(() => { if(content) content.scrollTop = content.scrollHeight; }, 100);
 
-            // ... (Logic Gửi tin giữ nguyên)
             const sendBtn = document.querySelector('[data-action="sendChat"]');
             if(sendBtn && !sendBtn.dataset.bound) {
                 const n = sendBtn.cloneNode(true); sendBtn.parentNode.replaceChild(n, sendBtn); n.dataset.bound="true";
@@ -48,21 +38,15 @@ export const Chat = {
                 const inp = document.getElementById('chat-input');
                 if(inp) inp.onkeydown = (e) => { if(e.key === 'Enter') handleSend(); };
             }
-
         } catch (e) { console.error(e); }
     },
 
     sendMessage: async (user) => {
-        // ... (Giữ nguyên)
         if (!user) return Utils.toast("Chưa đăng nhập!", "err");
         const inp = document.getElementById('chat-input');
         const text = inp.value.trim();
         if(!text) return;
         inp.value = ''; inp.focus();
-        try {
-            await addDoc(collection(db, `${ROOT_PATH}/chat`), { 
-                text: text, senderId: String(user._id || user.id), senderName: user.name, time: Date.now() 
-            });
-        } catch (e) { Utils.toast("Lỗi gửi tin!", "err"); inp.value = text; }
+        try { await addDoc(collection(db, `${ROOT_PATH}/chat`), { text: text, senderId: String(user._id || user.id), senderName: user.name, time: Date.now() }); } catch (e) { Utils.toast("Lỗi gửi!", "err"); }
     }
 };
