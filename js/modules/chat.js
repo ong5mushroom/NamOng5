@@ -1,4 +1,3 @@
-// ĐƯỜNG DẪN: js/modules/chat.js
 import { addDoc, collection, db, ROOT_PATH } from '../config.js';
 import { Utils } from '../utils.js';
 
