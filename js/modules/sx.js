@@ -6,120 +6,132 @@ export const SX = {
         const c = document.getElementById('view-sx');
         if (!c || c.classList.contains('hidden')) return;
 
-        // --- FIX LỖI CRASH: Nếu data chưa tải xong, dừng ngay ---
-        if (!data || !data.houses) {
-            c.innerHTML = '<div class="text-center p-10 text-slate-400">Đang tải dữ liệu SX...</div>';
-            return;
-        }
+        // Data Safe
+        const houses = Array.isArray(data.houses) ? data.houses : [];
+        const inventory = Array.isArray(data.spawn_inventory) ? data.spawn_inventory : [];
+        const isAdmin = user && ['Giám đốc', 'Quản lý', 'Admin'].includes(user.role);
+        
+        // Tìm Nhà A (Kho Tổng)
+        const houseA = houses.find(h => h.name === 'Nhà A');
+        const tonKhoA = houseA ? (Number(houseA.batchQty) || 0) : 0;
+        const sortedInv = [...inventory].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-        try {
-            // Data Safe
-            const houses = Array.isArray(data.houses) ? data.houses : [];
-            const inventory = Array.isArray(data.spawn_inventory) ? data.spawn_inventory : [];
-            const isAdmin = user && ['Giám đốc', 'Quản lý'].includes(user.role);
-
-            // Tìm Nhà A (Kho Tổng)
-            const houseA = houses.find(h => h.name === 'Nhà A');
-            const tonKhoA = houseA ? (Number(houseA.batchQty) || 0) : 0;
-            const sortedInv = [...inventory].sort((a,b) => new Date(b.date) - new Date(a.date));
-
-            c.innerHTML = `
+        c.innerHTML = `
             <div class="space-y-6 pb-24">
-                <div class="glass p-5 border-l-4 border-purple-500">
-                    <div class="flex justify-between items-start mb-4">
+                <div class="glass p-5 border-l-4 border-purple-500 relative overflow-hidden bg-white shadow-md">
+                    <div class="flex justify-between items-start mb-4 relative z-10">
                         <div>
-                            <h3 class="font-black text-purple-700 text-xs mb-1">KHO PHÔI GIỐNG (NHÀ A)</h3>
-                            <div class="text-3xl font-black text-slate-700">${tonKhoA.toLocaleString()}</div>
+                            <h3 class="font-black text-purple-700 uppercase text-xs mb-1">KHO PHÔI GIỐNG (NHÀ A)</h3>
+                            <div class="text-3xl font-black text-slate-700">${tonKhoA.toLocaleString()} <span class="text-sm text-slate-400 font-normal">bịch</span></div>
                         </div>
-                        <i class="fas fa-warehouse text-2xl text-purple-300"></i>
+                        <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><i class="fas fa-warehouse text-xl"></i></div>
                     </div>
-                    ${houseA ? `
-                    <button id="btn-imp-a" class="w-full py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg" data-id="${houseA.id}" data-qty="${tonKhoA}">+ NHẬP PHÔI VÀO KHO A</button>
-                    ` : '<div class="text-red-500 text-xs font-bold">Chưa tạo Nhà A</div>'}
                     
-                    <div class="mt-4 pt-2 border-t border-slate-100">
-                        <div class="flex justify-between mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">Lịch sử nhập</span><button id="btn-log-spawn" class="text-[9px] bg-slate-100 p-1 rounded">Sổ cái</button></div>
-                        <div class="space-y-1 text-xs opacity-70">${sortedInv.slice(0,3).map(i=>`<div>${i.date}: ${i.code} (+${i.qty})</div>`).join('')}</div>
+                    ${houseA ? `
+                    <button id="btn-import-a" class="w-full py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg shadow-purple-200 active:scale-95 transition relative z-10" data-id="${houseA.id}" data-qty="${tonKhoA}">
+                        <i class="fas fa-plus-circle mr-1"></i> NHẬP PHÔI VÀO KHO A
+                    </button>` : '<div class="text-red-500 text-xs font-bold bg-red-50 p-2 rounded">Chưa tạo Nhà A</div>'}
+                    
+                    <div class="mt-4 pt-3 border-t border-purple-100">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Lịch sử nhập gần nhất</span>
+                        <div class="space-y-1 mt-1 text-xs opacity-80 max-h-24 overflow-y-auto">
+                            ${sortedInv.slice(0, 5).map(i => `<div class="flex justify-between border-b border-slate-100 pb-1"><span>${i.date}: ${i.strain || i.code}</span><span class="font-bold text-purple-700">+${i.qty}</span></div>`).join('')}
+                        </div>
                     </div>
                 </div>
 
                 <div>
-                    <div class="flex justify-between items-center mb-3 px-1">
-                        <h3 class="font-bold text-slate-500 text-xs">CÁC NHÀ SẢN XUẤT</h3>
-                        ${isAdmin ? '<button id="btn-add-house" class="bg-white border text-blue-600 px-3 py-1 rounded text-xs font-bold">+ Nhà</button>' : ''}
+                    <div class="flex justify-between items-center px-1 mb-3">
+                        <h3 class="font-black text-slate-500 uppercase text-xs">CÁC NHÀ SẢN XUẤT</h3>
+                        ${isAdmin ? '<button id="btn-add-house-sx" class="bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition"><i class="fas fa-plus"></i> Thêm Nhà</button>' : ''}
                     </div>
+
                     <div class="space-y-3">
                         ${houses.filter(h => h.name !== 'Nhà A').map(h => {
-                            const active = h.status === 'ACTIVE';
+                            const isActive = h.status === 'ACTIVE';
                             return `
-                            <div class="glass p-4 border-l-4 ${active?'border-green-500':'border-slate-300'}">
-                                <div class="flex justify-between mb-2">
-                                    <span class="font-black text-slate-700">${h.name}</span>
+                            <div class="glass p-4 border-l-4 ${isActive ? 'border-green-500' : 'border-slate-300'} relative animate-pop bg-white shadow-sm">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="font-black text-lg text-slate-700 flex items-center gap-2"><i class="fas fa-home text-slate-400"></i> ${h.name}</span>
                                     <div class="flex items-center gap-2">
-                                        <span class="text-[9px] px-2 py-1 rounded font-bold ${active?'bg-green-100 text-green-700':'bg-slate-100'}">${active?'RUN':'TRỐNG'}</span>
-                                        ${isAdmin ? `<button class="text-red-400 btn-del" data-id="${h.id}"><i class="fas fa-trash"></i></button>` : ''}
+                                        <span class="text-[9px] font-bold px-2 py-1 rounded ${isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}">${isActive ? 'ĐANG CHẠY' : 'TRỐNG'}</span>
+                                        ${isAdmin ? `<button class="w-6 h-6 rounded bg-red-50 text-red-500 flex items-center justify-center btn-del-house active:scale-90 transition" data-id="${h.id}" data-name="${h.name}"><i class="fas fa-trash-alt text-[10px]"></i></button>` : ''}
                                     </div>
                                 </div>
-                                ${active ? 
-                                    `<div class="grid grid-cols-2 gap-2 mb-3"><div class="bg-slate-50 p-2 rounded"><span class="text-[9px] text-slate-400 block">Lô</span><span class="font-bold text-sm">${h.currentBatch}</span></div><div class="bg-slate-50 p-2 rounded"><span class="text-[9px] text-slate-400 block">SL</span><span class="font-bold text-sm">${h.batchQty}</span></div></div><button class="w-full py-2 bg-orange-100 text-orange-700 rounded-lg text-xs font-bold btn-end" data-id="${h.id}" data-name="${h.name}">KẾT THÚC LÔ</button>` : 
-                                    `<button class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg btn-start" data-id="${h.id}" data-name="${h.name}">LẤY TỪ KHO A</button>`
-                                }
+                                
+                                ${isActive ? `
+                                    <div class="grid grid-cols-2 gap-2 mb-3">
+                                        <div class="bg-slate-50 p-2 rounded border"><span class="text-[9px] text-slate-400 uppercase block">Lô SX</span><span class="font-bold text-sm text-slate-800 truncate">${h.currentBatch || '-'}</span></div>
+                                        <div class="bg-slate-50 p-2 rounded border"><span class="text-[9px] text-slate-400 uppercase block">Số Lượng</span><span class="font-bold text-sm text-slate-800">${h.batchQty || 0}</span></div>
+                                    </div>
+                                    <button class="w-full py-2 bg-orange-100 text-orange-700 rounded-lg text-xs font-bold btn-end active:scale-95 transition" data-id="${h.id}" data-name="${h.name}">KẾT THÚC LÔ</button>
+                                ` : `
+                                    <button class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 btn-start-batch active:scale-95 transition" data-id="${h.id}" data-name="${h.name}"><i class="fas fa-box-open mr-1"></i> LẤY TỪ KHO A</button>
+                                `}
                             </div>`;
                         }).join('')}
                     </div>
                 </div>
             </div>`;
 
-            // EVENTS (Viết gọn để tránh lỗi cú pháp)
-            setTimeout(() => {
-                const btnAdd = document.getElementById('btn-add-house');
-                if(btnAdd) {
-                    const n = btnAdd.cloneNode(true); btnAdd.parentNode.replaceChild(n, btnAdd);
-                    n.onclick = () => { Utils.modal("Thêm Nhà", `<input id="n-h" class="w-full p-2 border mb-2" placeholder="Tên Nhà">`, [{id:'s-h', text:'Lưu'}]); setTimeout(()=>document.getElementById('s-h').onclick=async()=>{const v=document.getElementById('n-h').value; if(v){await addDoc(collection(db, `${ROOT_PATH}/houses`),{name:v, status:'EMPTY', created:Date.now()}); Utils.modal(null);} },100); }
+        // 2. GẮN SỰ KIỆN
+        setTimeout(() => {
+            // A. Thêm Nhà
+            const btnAdd = document.getElementById('btn-add-house-sx');
+            if(btnAdd) {
+                const n = btnAdd.cloneNode(true); btnAdd.parentNode.replaceChild(n, btnAdd);
+                n.onclick = () => {
+                    Utils.modal("Thêm Nhà Mới", `<input id="n-h" class="w-full p-3 border rounded-xl mb-2 font-bold uppercase" placeholder="Tên Nhà (VD: Nhà 1)">`, [{id:'s-h', text:'Tạo Ngay'}]);
+                    setTimeout(()=>document.getElementById('s-h').onclick=async()=>{
+                        const val = document.getElementById('n-h').value.trim();
+                        if(val) { await addDoc(collection(db, `${ROOT_PATH}/houses`), {name:val, status:'EMPTY', created:Date.now()}); Utils.modal(null); Utils.toast("Đã thêm nhà!"); }
+                    },100);
                 }
+            }
 
-                const btnImpA = document.getElementById('btn-import-a');
-                if(btnImpA) {
-                    const n = btnImpA.cloneNode(true); btnImpA.parentNode.replaceChild(n, btnImpA);
-                    n.onclick = () => {
-                        Utils.modal("Nhập Kho A", `<input id="i-c" placeholder="Tên Giống" class="w-full p-2 border mb-2"><input id="i-d" type="date" class="w-full p-2 border mb-2"><input id="i-q" type="number" placeholder="Số lượng" class="w-full p-2 border font-bold">`, [{id:'s-i', text:'Lưu', cls:'bg-purple-600 text-white'}]);
-                        setTimeout(()=>document.getElementById('s-i').onclick=async()=>{
-                            const c=document.getElementById('i-c').value, d=document.getElementById('i-d').value, q=Number(document.getElementById('i-q').value);
-                            if(c&&d&&q){
-                                await addDoc(collection(db, `${ROOT_PATH}/spawn_inventory`), {code:c, date:d, qty:q, inputDate:new Date().toISOString()});
-                                await updateDoc(doc(db, `${ROOT_PATH}/houses`, houseA.id), {batchQty: tonKhoA+q});
-                                Utils.modal(null); Utils.toast("Đã nhập kho A");
-                            }
-                        },100);
-                    }
+            // B. Nhập Kho A (Đủ 3 trường)
+            const btnImpA = document.getElementById('btn-import-a');
+            if(btnImpA) {
+                const n = btnImpA.cloneNode(true); btnImpA.parentNode.replaceChild(n, btnImpA);
+                n.onclick = () => {
+                    Utils.modal("NHẬP KHO A", 
+                        `<label class="text-[10px] font-bold text-slate-500 uppercase">Tên Giống</label><input id="i-c" class="w-full p-2 border rounded-lg mb-2 font-bold" placeholder="VD: Nấm Mỡ Thái">
+                         <label class="text-[10px] font-bold text-slate-500 uppercase">Ngày Cấy</label><input id="i-d" type="date" class="w-full p-2 border rounded-lg mb-2">
+                         <label class="text-[10px] font-bold text-slate-500 uppercase">Số Lượng</label><input id="i-q" type="number" class="w-full p-2 border rounded-lg font-bold text-purple-600 text-lg" placeholder="0">`, 
+                        [{id:'s-i', text:'XÁC NHẬN NHẬP', cls:'bg-purple-600 text-white'}]
+                    );
+                    setTimeout(()=>document.getElementById('s-i').onclick=async()=>{
+                        const c=document.getElementById('i-c').value, d=document.getElementById('i-d').value, q=Number(document.getElementById('i-q').value);
+                        if(c&&d&&q) {
+                            await addDoc(collection(db, `${ROOT_PATH}/spawn_inventory`), {strain:c, code:c, date:d, qty:q, inputDate:new Date().toISOString()});
+                            const curQty = Number(btnImpA.dataset.qty) || 0;
+                            await updateDoc(doc(db, `${ROOT_PATH}/houses`, houseA.id), {batchQty: curQty + q});
+                            Utils.modal(null); Utils.toast(`Đã nhập ${q} bịch vào Kho A`);
+                        } else Utils.toast("Thiếu thông tin!", "err");
+                    },100);
                 }
+            }
 
-                document.querySelectorAll('.btn-start').forEach(b => {
-                    b.onclick = () => {
-                        if(tonKhoA <= 0) return Utils.toast("Kho A hết hàng!", "err");
-                        Utils.modal(`Lấy cho ${b.dataset.name}`, `<div class="mb-2 text-xs">Kho A còn: ${tonKhoA}</div><input id="t-q" type="number" placeholder="SL lấy" class="w-full p-2 border mb-2"><input id="t-d" type="date" class="w-full p-2 border">`, [{id:'s-t', text:'Xác nhận'}]);
-                        setTimeout(()=>document.getElementById('s-t').onclick=async()=>{
-                            const q=Number(document.getElementById('t-q').value), d=document.getElementById('t-d').value;
-                            if(q>0 && q<=tonKhoA && d) {
-                                await updateDoc(doc(db, `${ROOT_PATH}/houses`, houseA.id), {batchQty: tonKhoA-q});
-                                await updateDoc(doc(db, `${ROOT_PATH}/houses`, b.dataset.id), {status:'ACTIVE', currentBatch:'Từ Kho A', batchQty:q, startDate:d});
-                                Utils.modal(null); Utils.toast("Đã chuyển!");
-                            }
-                        },100);
-                    }
-                });
+            // C. Lấy từ A -> Nhà SX
+            document.querySelectorAll('.btn-start-batch').forEach(b => {
+                b.onclick = () => {
+                    if(tonKhoA <= 0) return Utils.toast("Kho A hết hàng!", "err");
+                    Utils.modal(`Cấp cho ${b.dataset.name}`, `<div class="mb-2 text-xs bg-purple-50 p-2 rounded text-purple-700 font-bold border border-purple-100">Kho A còn: ${tonKhoA.toLocaleString()} bịch</div><input id="t-q" type="number" placeholder="Số lượng lấy" class="w-full p-3 border rounded-xl mb-2 font-bold"><input id="t-d" type="date" class="w-full p-3 border rounded-xl">`, [{id:'s-t', text:'XUẤT KHO A -> VÀO LÔ'}]);
+                    setTimeout(()=>document.getElementById('s-t').onclick=async()=>{
+                        const q=Number(document.getElementById('t-q').value), d=document.getElementById('t-d').value;
+                        if(q>0 && q<=tonKhoA && d) {
+                            await updateDoc(doc(db, `${ROOT_PATH}/houses`, houseA.id), {batchQty: tonKhoA-q});
+                            await updateDoc(doc(db, `${ROOT_PATH}/houses`, b.dataset.id), {status:'ACTIVE', currentBatch:'Từ Kho A', batchQty:q, startDate:d});
+                            Utils.modal(null); Utils.toast("Đã chuyển thành công!");
+                        } else Utils.toast("Số lượng không hợp lệ!", "err");
+                    },100);
+                }
+            });
 
-                document.querySelectorAll('.btn-end').forEach(b => b.onclick = () => { if(confirm("Kết thúc lô?")) updateDoc(doc(db, `${ROOT_PATH}/houses`, b.dataset.id), {status:'EMPTY', batchQty:0, currentBatch:''}); });
-                document.querySelectorAll('.btn-del').forEach(b => b.onclick = () => { if(confirm("Xóa nhà?")) deleteDoc(doc(db, `${ROOT_PATH}/houses`, b.dataset.id)); });
-                
-                // Nút sổ cái (ghi lẻ)
-                const btnLog = document.getElementById('btn-import-spawn');
-                if(btnLog) btnLog.onclick = () => { Utils.modal("Ghi Sổ Lẻ", `<input id="l-c" placeholder="Mã" class="w-full p-2 border mb-2"><input id="l-q" type="number" placeholder="SL" class="w-full p-2 border">`, [{id:'s-l', text:'Lưu'}]); setTimeout(()=>document.getElementById('s-l').onclick=async()=>{const c=document.getElementById('l-c').value, q=Number(document.getElementById('l-q').value); if(c&&q){await addDoc(collection(db, `${ROOT_PATH}/spawn_inventory`), {code:c, qty:q, date:new Date().toISOString()}); Utils.modal(null);}},100); }
+            // D. Xóa / Kết thúc
+            document.querySelectorAll('.btn-del-house').forEach(b => b.onclick = () => { if(confirm(`Xóa vĩnh viễn ${b.dataset.name}?`)) deleteDoc(doc(db, `${ROOT_PATH}/houses`, b.dataset.id)); });
+            document.querySelectorAll('.btn-end').forEach(b => b.onclick = () => { if(confirm("Kết thúc lô này?")) updateDoc(doc(db, `${ROOT_PATH}/houses`, b.dataset.id), {status:'EMPTY', batchQty:0, currentBatch:''}); });
 
-            }, 100);
-
-        } catch (e) {
-            c.innerHTML = `<div class="text-red-500 p-10 text-center">Lỗi hiển thị SX: ${e.message}</div>`;
-        }
+        }, 100);
     }
 };
