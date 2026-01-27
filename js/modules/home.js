@@ -1,18 +1,25 @@
-import { collection, db, ROOT_PATH, updateDoc, doc } from '../config.js';
+import { collection, db, ROOT_PATH, updateDoc, doc, addDoc } from '../config.js';
 import { Utils } from '../utils.js';
 
-// --- HÀM DUYỆT ĐƠN NHANH TẠI HOME ---
+// --- HÀM DUYỆT ĐƠN (CÓ CHAT) ---
 window.Home_Action = {
-    approve: async (id, type) => {
+    // Hàm phụ trợ để chat
+    logChat: async (msg) => {
+        try { await addDoc(collection(db, `${ROOT_PATH}/chat`), { user: "HỆ THỐNG", message: msg, time: Date.now() }); } catch(e){}
+    },
+
+    approve: async (id, type, requester, adminName) => {
         if(confirm(`Duyệt yêu cầu ${type === 'LEAVE' ? 'Xin nghỉ' : 'Mua hàng'} này?`)) {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DONE' });
             Utils.toast("Đã duyệt thành công!");
+            window.Home_Action.logChat(`✅ ${adminName} đã DUYỆT đơn ${type==='LEAVE'?'xin nghỉ':'mua hàng'} của ${requester}`);
         }
     },
-    reject: async (id) => {
+    reject: async (id, type, requester, adminName) => {
         if(confirm("Từ chối yêu cầu này?")) {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'REJECT' });
             Utils.toast("Đã từ chối!");
+            window.Home_Action.logChat(`❌ ${adminName} đã TỪ CHỐI đơn ${type==='LEAVE'?'xin nghỉ':'mua hàng'} của ${requester}`);
         }
     }
 };
@@ -27,7 +34,7 @@ export const Home = {
         const harvest = Array.isArray(data.harvest) ? data.harvest : [];
         const tasks = Array.isArray(data.tasks) ? data.tasks : [];
 
-        // 1. LỌC ĐƠN CHỜ DUYỆT (Chỉ Admin thấy)
+        // 1. LỌC ĐƠN CHỜ DUYỆT
         let pendingHTML = '';
         if(isAdmin) {
             const pendingReqs = tasks.filter(t => t.status === 'PENDING' && ['LEAVE', 'BUY'].includes(t.type));
@@ -47,8 +54,8 @@ export const Home = {
                                         <div class="text-[9px] text-slate-400">${new Date(t.time).toLocaleDateString('vi-VN')}</div>
                                     </div>
                                     <div class="flex gap-1">
-                                        <button onclick="window.Home_Action.approve('${t.id}', '${t.type}')" class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold">Duyệt</button>
-                                        <button onclick="window.Home_Action.reject('${t.id}')" class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] font-bold">Hủy</button>
+                                        <button onclick="window.Home_Action.approve('${t.id}', '${t.type}', '${t.by}', '${user.name}')" class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold shadow-sm">Duyệt</button>
+                                        <button onclick="window.Home_Action.reject('${t.id}', '${t.type}', '${t.by}', '${user.name}')" class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] font-bold shadow-sm">Hủy</button>
                                     </div>
                                 </div>
                             `).join('')}
@@ -58,7 +65,7 @@ export const Home = {
             }
         }
         
-        // 2. TÍNH TOÁN DATA CŨ
+        // 2. DATA CŨ
         const active = houses.filter(h => h.status === 'ACTIVE').length;
         const totalYield = harvest.reduce((acc, h) => acc + (Number(h.total)||0), 0);
         const houseA = houses.find(h => ['nhà a','kho a','kho phôi'].includes((h.name||'').trim().toLowerCase()));
@@ -78,10 +85,7 @@ export const Home = {
                     <div class="text-2xl font-black text-blue-600">${active} <span class="text-xs text-slate-400 font-normal">nhà</span></div>
                 </div>
                 <div class="col-span-2 glass p-4 bg-purple-50 shadow-sm border-l-4 border-purple-500 flex justify-between items-center">
-                    <div>
-                        <span class="text-[10px] text-purple-500 font-bold uppercase block mb-1">TỔNG KHO PHÔI (NHÀ A)</span>
-                        <div class="text-3xl font-black text-purple-700">${spawnStock.toLocaleString()} <span class="text-xs text-purple-400 font-normal">bịch</span></div>
-                    </div>
+                    <div><span class="text-[10px] text-purple-500 font-bold uppercase block mb-1">TỔNG KHO PHÔI (NHÀ A)</span><div class="text-3xl font-black text-purple-700">${spawnStock.toLocaleString()} <span class="text-xs text-purple-400 font-normal">bịch</span></div></div>
                     <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shadow-sm"><i class="fas fa-warehouse text-xl"></i></div>
                 </div>
             </div>
