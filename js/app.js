@@ -8,32 +8,27 @@ import { auth, db, collection, onSnapshot, signInAnonymously, ROOT_PATH } from '
 import { Utils } from './utils.js';
 
 const App = {
-    // KHỞI TẠO DỮ LIỆU RỖNG NGAY TỪ ĐẦU (QUAN TRỌNG)
-    data: { 
-        houses: [], users: [], tasks: [], employees: [], 
-        chat: [], spawn_inventory: [], products: [], 
-        harvest: [], shipping: [] 
-    },
+    data: { houses: [], users: [], tasks: [], employees: [], chat: [], spawn_inventory: [], products: [], harvest: [], shipping: [] },
     user: JSON.parse(localStorage.getItem('n5_modular_user')) || null,
     currentTab: 'home',
 
     init: async () => {
-        console.log("App Starting...");
-        try { await signInAnonymously(auth); } catch (e) { console.error(e); }
+        console.log("App V3 Starting...");
+        try { await signInAnonymously(auth); } catch (e) { console.error("Auth Err:", e); }
         App.listenData();
         App.checkLoginState();
         App.bindEvents();
     },
 
     listenData: () => {
-        // 1. Tải nhân viên
+        // 1. Nhân viên
         onSnapshot(collection(db, `${ROOT_PATH}/employees`), (snap) => {
             App.data.employees = snap.docs.map(d => ({...d.data(), _id: d.id}));
             App.data.users = App.data.employees; 
             App.renderLoginList();
         });
 
-        // 2. Tải dữ liệu chính (Chỉ khi đã login)
+        // 2. Dữ liệu chính
         if (App.user) {
             const cols = ['houses', 'tasks', 'chat', 'spawn_inventory', 'products', 'harvest_logs', 'shipping'];
             cols.forEach(key => {
@@ -41,12 +36,15 @@ const App = {
                 onSnapshot(collection(db, `${ROOT_PATH}/${key}`), (snap) => {
                     let docs = snap.docs.map(d => ({...d.data(), id: d.id}));
                     if(dataKey === 'chat') docs.sort((a,b) => a.time - b.time);
-                    
-                    // Cập nhật vào kho dữ liệu chung
                     App.data[dataKey] = docs;
                     
-                    // Vẽ lại màn hình ngay lập tức (Live Update)
+                    // Render lại ngay khi có dữ liệu mới
                     if(App.currentTab) App.renderActiveTab();
+                    
+                    // Nếu chat đang mở thì render chat luôn
+                    if(!document.getElementById('chat-layer').classList.contains('hidden')) {
+                        Chat.render(App.data, App.user);
+                    }
                 });
             });
         }
@@ -54,10 +52,7 @@ const App = {
 
     renderLoginList: () => {
         const el = document.getElementById('login-user');
-        if (el && App.data.users.length) {
-            el.innerHTML = '<option value="">-- Chọn nhân viên --</option>' + 
-                App.data.users.map(u => `<option value="${u._id}">${u.name}</option>`).join('');
-        }
+        if (el && App.data.users.length) el.innerHTML = '<option value="">-- Chọn nhân viên --</option>' + App.data.users.map(u => `<option value="${u._id}">${u.name}</option>`).join('');
     },
 
     checkLoginState: () => {
@@ -65,8 +60,7 @@ const App = {
             document.getElementById('login-overlay').classList.add('hidden');
             document.getElementById('head-user').innerText = App.user.name;
             document.getElementById('head-role').innerText = App.user.role;
-            const role = (App.user.role || '').toLowerCase();
-            if(['admin', 'quản lý', 'giám đốc'].some(r => role.includes(r))) {
+            if(['admin', 'quản lý', 'giám đốc'].some(r => (App.user.role||'').toLowerCase().includes(r))) {
                 document.getElementById('btn-settings').classList.remove('hidden');
             }
             App.switchTab('home');
@@ -80,15 +74,14 @@ const App = {
         const pin = document.getElementById('login-pin').value;
         const u = App.data.users.find(u => u._id === id);
         if (u && String(u.pin) === String(pin)) {
-            App.user = u; 
-            localStorage.setItem('n5_modular_user', JSON.stringify(u)); 
-            location.reload();
-        } else Utils.toast("Sai thông tin!", "err");
+            App.user = u; localStorage.setItem('n5_modular_user', JSON.stringify(u)); location.reload();
+        } else Utils.toast("Sai mã PIN!", "err");
     },
 
     switchTab: (tab) => {
         document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
         document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'text-blue-600'));
+        
         const view = document.getElementById(`view-${tab}`);
         if(view) {
             view.classList.remove('hidden');
@@ -101,26 +94,26 @@ const App = {
 
     renderActiveTab: () => {
         if(!App.user) return;
-        // BỌC TRY-CATCH ĐỂ APP KHÔNG BAO GIỜ CHẾT
         try {
-            // Luôn đảm bảo data tồn tại trước khi truyền
-            const safeData = App.data || {}; 
-            
-            if(App.currentTab === 'home') Home.render(safeData, true);
-            if(App.currentTab === 'tasks') HR.renderTasks(safeData, App.user);
-            if(App.currentTab === 'team') HR.renderTeam(safeData, App.user);
-            if(App.currentTab === 'sx') SX.render(safeData, App.user);
-            if(App.currentTab === 'thdg') THDG.render(safeData, App.user);
-            Chat.render(safeData, App.user);
-        } catch (e) { 
-            console.error("Render Error:", e); 
-        }
+            const d = App.data;
+            if(App.currentTab === 'home') Home.render(d, true);
+            if(App.currentTab === 'tasks') HR.renderTasks(d, App.user);
+            if(App.currentTab === 'team') HR.renderTeam(d, App.user);
+            if(App.currentTab === 'sx') SX.render(d, App.user); // Truyền user để check quyền
+            if(App.currentTab === 'thdg') THDG.render(d, App.user);
+        } catch (e) { console.error("Render Tab Err:", e); }
     },
 
     bindEvents: () => {
         document.getElementById('login-btn').onclick = App.login;
         document.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => App.switchTab(b.dataset.tab));
-        document.getElementById('btn-chat').onclick = () => document.getElementById('chat-layer').classList.remove('hidden');
+        
+        // --- SỬA LỖI CHAT TRẮNG TẠI ĐÂY ---
+        document.getElementById('btn-chat').onclick = () => {
+            document.getElementById('chat-layer').classList.remove('hidden');
+            Chat.render(App.data, App.user); // Gọi render ngay khi mở
+        };
+        
         document.querySelector('[data-action="closeChat"]').onclick = () => document.getElementById('chat-layer').classList.add('hidden');
         document.getElementById('btn-settings').onclick = Admin.openSettings;
     }
