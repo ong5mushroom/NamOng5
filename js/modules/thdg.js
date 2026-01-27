@@ -1,20 +1,32 @@
 import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc } from '../config.js';
 import { Utils } from '../utils.js';
 
-const COMPANY = { name: "CÔNG TY TNHH NẤM ÔNG 5", address: "Thôn Đa Ra Hoa, Lạc Dương, tỉnh Lâm Đồng", mst: "5801474272", điện thoại: "03.789.777.68", hotline: "0899.49.0808", slogan: '"Trao sức khỏe, trọn yêu thương"' };
+// --- KHAI BÁO THÔNG TIN CÔNG TY (CHUẨN) ---
+const COMPANY = { 
+    name: "CÔNG TY TNHH NẤM ÔNG 5", 
+    address: "Thôn Đa Ra Hoa, xã Lạc Dương, Tỉnh Lâm Đồng", 
+    mst: "5801474272", 
+    hotline: "0899.49.0808", 
+    slogan: "Trao sức khỏe, trọn yêu thương" 
+};
 
 export const THDG = {
     render: (data, user) => {
         const c = document.getElementById('view-th');
         if (!c || c.classList.contains('hidden')) return;
-        if (!data) { c.innerHTML = '<div class="p-10 text-center text-slate-400">Đang tải...</div>'; return; }
+        
+        // Check dữ liệu an toàn
+        if (!data) { 
+            c.innerHTML = '<div class="p-10 text-center text-slate-400">Đang tải dữ liệu...</div>'; 
+            return; 
+        }
 
         try {
             const houses = Array.isArray(data.houses) ? data.houses : [];
             const products = Array.isArray(data.products) ? data.products : [];
+            const logs = Array.isArray(data.harvest) ? data.harvest : [];
             const todayStr = new Date().toDateString();
             const todayLogs = (data.shipping || []).filter(s => new Date(s.time).toDateString() === todayStr);
-            const logs = Array.isArray(data.harvest) ? data.harvest : [];
             
             // Lọc hôm qua
             const y = new Date(); y.setDate(y.getDate()-1);
@@ -26,12 +38,12 @@ export const THDG = {
             const g2 = products.filter(p => p && String(p.group) === '2');
             const g3 = products.filter(p => p && String(p.group) === '3');
 
-            // --- HÀM TẠO DÒNG NHẬP LIỆU (CÓ NÚT XÓA) ---
+            // Hàm tạo dòng nhập liệu (Có nút Xóa)
             const renderInputRow = (p) => `
                 <div class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200">
                     <div class="flex items-center gap-1 overflow-hidden">
                         <button onclick="THDG.delProd('${p._id}', '${p.name}')" class="text-red-300 hover:text-red-500 w-5 h-5 flex items-center justify-center rounded-full active:bg-red-50"><i class="fas fa-times text-[10px]"></i></button>
-                        <span class="text-[10px] font-bold text-slate-600 truncate w-16" title="${p.name}">${p.name}</span>
+                        <span class="text-[10px] font-bold text-slate-600 truncate w-20" title="${p.name}">${p.name}</span>
                     </div>
                     <input type="number" step="0.1" id="in-${p.code}" class="w-16 p-1 text-center font-bold text-slate-700 border border-slate-300 rounded outline-none text-xs focus:border-green-500" placeholder="0">
                 </div>`;
@@ -45,7 +57,10 @@ export const THDG = {
 
                 <div id="zone-harvest" class="animate-pop">
                     <div class="glass p-5 border-l-8 border-green-500 bg-green-50/40">
-                        <div class="flex justify-between items-center mb-4"><h3 class="font-black text-green-800 text-xs flex items-center gap-2"><i class="fas fa-warehouse text-lg"></i> NHẬP KHO</h3><button id="btn-add-prod" class="bg-white border text-green-700 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm hover:bg-green-50">+ Mã SP</button></div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-black text-green-800 text-xs flex items-center gap-2"><i class="fas fa-warehouse text-lg"></i> NHẬP KHO</h3>
+                            <button id="btn-add-prod" class="bg-white border text-green-700 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm hover:bg-green-50">+ Mã SP</button>
+                        </div>
                         <div class="space-y-3">
                             <div class="flex gap-2">
                                 <div class="w-1/3"><label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Ngày Thu</label><input type="date" id="h-date" class="w-full p-2 rounded-lg border text-xs font-bold"></div>
@@ -60,7 +75,7 @@ export const THDG = {
                             
                             <div class="mt-4 pt-2 border-t border-green-200">
                                 <span class="text-[9px] font-bold text-slate-400 uppercase">Hôm qua (${y.getDate()}/${y.getMonth()+1})</span>
-                                <div class="max-h-24 overflow-y-auto space-y-1 mt-1">${yHarvest.length ? yHarvest.map(l=>`<div class="flex justify-between text-[10px] bg-white p-1 rounded border"><span>${l.area}</span><span class="font-bold text-green-600">${l.total}kg</span></div>`).join('') : '<div class="text-[10px] text-slate-300 italic">Không có</div>'}</div>
+                                <div class="max-h-24 overflow-y-auto space-y-1 mt-1">${yHarvest.length ? yHarvest.map(l=>`<div class="flex justify-between text-[10px] bg-white p-1 rounded border"><span>${l.area}</span><span class="font-bold text-green-600">${l.total}kg</span></div>`).join('') : '<div class="text-[10px] text-slate-300 italic">Không có dữ liệu</div>'}</div>
                             </div>
                         </div>
                     </div>
@@ -68,7 +83,10 @@ export const THDG = {
 
                 <div id="zone-sell" class="hidden animate-pop">
                     <div class="glass p-5 border-l-8 border-orange-500 bg-orange-50/40">
-                        <div class="flex justify-between items-center mb-4"><h3 class="font-black text-orange-800 text-xs flex items-center gap-2"><i class="fas fa-truck text-lg"></i> XUẤT BÁN</h3><button id="btn-rep-day" class="bg-white border text-orange-700 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm">BC Ngày</button></div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-black text-orange-800 text-xs flex items-center gap-2"><i class="fas fa-truck text-lg"></i> XUẤT BÁN</h3>
+                            <button id="btn-rep-day" class="bg-white border text-orange-700 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm">BC Ngày</button>
+                        </div>
                         <div class="space-y-3 bg-white p-3 rounded-xl shadow-sm border border-orange-100">
                             <div class="grid grid-cols-1 gap-2"><input id="s-cust" placeholder="Khách Hàng" class="w-full p-2 text-xs border rounded font-bold"><textarea id="s-note" placeholder="Ghi chú..." class="w-full p-2 text-xs border rounded h-10"></textarea></div>
                             <div class="bg-slate-50 p-2 rounded border border-slate-200">
@@ -79,24 +97,24 @@ export const THDG = {
                         </div>
                         <div class="grid grid-cols-2 gap-2 mt-4"><button id="btn-save-sell" class="py-2 bg-orange-600 text-white rounded font-bold text-xs shadow">LƯU & TRỪ KHO</button><button id="btn-print" class="py-2 bg-blue-600 text-white rounded font-bold text-xs shadow">IN PHIẾU</button></div>
                         
-                        <div class="mt-4 pt-2 border-t border-orange-200"><span class="text-[9px] font-bold text-slate-400 uppercase">Đơn hôm qua</span><div class="max-h-24 overflow-y-auto space-y-1 mt-1">${yShips.length ? yShips.map(s=>`<div class="flex justify-between text-[10px] bg-white p-1 rounded border"><span>${s.customer}</span><span class="font-bold text-orange-600">${Number(s.total).toLocaleString()}đ</span></div>`).join('') : '<div class="text-[10px] text-slate-300 italic">Không có</div>'}</div></div>
+                        <div class="mt-4 pt-2 border-t border-orange-200"><span class="text-[9px] font-bold text-slate-400 uppercase">Đơn hôm qua</span><div class="max-h-24 overflow-y-auto space-y-1 mt-1">${yShips.length ? yShips.map(s=>`<div class="flex justify-between text-[10px] bg-white p-1 rounded border"><span>${s.customer}</span><span class="font-bold text-orange-600">${Number(s.total).toLocaleString()}đ</span></div>`).join('') : '<div class="text-[10px] text-slate-300 italic">Không có đơn</div>'}</div></div>
                     </div>
                 </div>
             </div>`;
 
-            // GLOBAL DELETE PROD
+            // Global Del
             window.THDG = {
                 delProd: (id, name) => {
-                    if(confirm(`Xóa mã hàng "${name}"?\nTồn kho của mã này cũng sẽ mất.`)) {
-                        deleteDoc(doc(db, `${ROOT_PATH}/products`, id));
-                    }
+                    if(confirm(`Xóa mã hàng "${name}"?`)) deleteDoc(doc(db, `${ROOT_PATH}/products`, id));
                 }
             };
 
-            // LOGIC CART & EVENTS (Giữ nguyên logic cũ)
+            // Logic Cart & Events
             let cart = [];
             const updateCart = () => {
-                document.getElementById('cart-list').innerHTML = cart.map((i,idx)=>`<div class="flex justify-between items-center bg-slate-50 p-1 rounded border"><span class="font-bold text-slate-700">${i.name}</span><div class="flex items-center gap-2"><span>${i.qty}x${Number(i.price).toLocaleString()}</span><span class="font-black text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button class="text-red-400" onclick="document.getElementById('dc-${idx}').click()">x</button><button id="dc-${idx}" class="hidden"></button></div></div>`).join('');
+                const el = document.getElementById('cart-list');
+                if(!el) return;
+                el.innerHTML = cart.map((i,idx)=>`<div class="flex justify-between items-center bg-slate-50 p-1 rounded border"><span class="font-bold text-slate-700">${i.name}</span><div class="flex items-center gap-2"><span>${i.qty}x${Number(i.price).toLocaleString()}</span><span class="font-black text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button class="text-red-400" onclick="document.getElementById('dc-${idx}').click()">x</button><button id="dc-${idx}" class="hidden"></button></div></div>`).join('');
                 document.getElementById('cart-total').innerText = cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString();
                 cart.forEach((_,i)=>document.getElementById(`dc-${i}`).onclick=()=>{cart.splice(i,1);updateCart();});
             };
