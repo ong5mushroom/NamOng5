@@ -1,16 +1,14 @@
 import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc } from '../config.js';
 import { Utils } from '../utils.js';
 
-const COMPANY = { 
-    name: "CÔNG TY TNHH NẤM ÔNG 5", address: "thôn Đa Ra Hoa, Lạc Dương, Lâm Đồng", mst: "5801474272", hotline: "0899.49.0808", slogan: "Trao sức khỏe" 
-};
-
-// --- FIX NÚT XÓA ---
-window.THDG_Fix = {
-    delOne: async (id) => {
-        if(confirm("⚠️ ADMIN: Xóa mã này sẽ mất lịch sử tồn kho.\nTiếp tục?")) {
-            try { await deleteDoc(doc(db, `${ROOT_PATH}/products`, id)); Utils.toast("Đã xóa!"); } 
-            catch (e) { alert("Lỗi: " + e.message); }
+// --- HÀM XÓA TOÀN CỤC (CỐ ĐỊNH) ---
+window.deleteProduct = async (id) => {
+    if (confirm("⚠️ ADMIN: Bạn có chắc chắn muốn xóa mã này?")) {
+        try {
+            await deleteDoc(doc(db, `${ROOT_PATH}/products`, id));
+            Utils.toast("Đã xóa thành công!");
+        } catch (e) {
+            alert("Lỗi: " + e.message);
         }
     }
 };
@@ -24,15 +22,15 @@ export const THDG = {
         try {
             const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
             const products = Array.isArray(data.products) ? data.products : [];
+            const houses = Array.isArray(data.houses) ? data.houses : [];
+            
+            // Xử lý Logs
             const logs = Array.isArray(data.harvest) ? data.harvest : [];
             const ships = Array.isArray(data.shipping) ? data.shipping : [];
-            
-            // --- XỬ LÝ NHẬT KÝ ĐẦY ĐỦ (20 dòng gần nhất) ---
-            const fullHarvestLogs = [...logs].sort((a,b) => b.time - a.time).slice(0, 20);
-            const fullShipLogs = [...ships].sort((a,b) => b.time - a.time).slice(0, 20);
-            
-            const todayLogs = ships.filter(s => new Date(s.time).toDateString() === new Date().toDateString());
+            const sortedHarvest = [...logs].sort((a,b) => b.time - a.time).slice(0, 20);
+            const sortedShips = [...ships].sort((a,b) => b.time - a.time).slice(0, 20);
 
+            // Phân nhóm
             const g1 = products.filter(p => p && String(p.group) === '1');
             const g2 = products.filter(p => p && String(p.group) === '2');
             const g3 = products.filter(p => p && String(p.group) === '3');
@@ -40,7 +38,7 @@ export const THDG = {
             const renderRow = (p) => `
                 <div class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200">
                     <div class="flex items-center gap-1 overflow-hidden">
-                        ${isAdmin ? `<button onclick="window.THDG_Fix.delOne('${p._id}')" class="text-red-300 hover:text-red-600 px-1 font-bold">✕</button>` : ''}
+                        ${isAdmin ? `<button onclick="window.deleteProduct('${p._id}')" class="text-red-400 hover:text-red-600 px-1 font-bold">✕</button>` : ''}
                         <span class="text-[10px] font-bold text-slate-600 truncate w-20" title="${p.name}">${p.name}</span>
                     </div>
                     <input type="number" step="0.1" id="in-${p.code}" class="w-16 p-1 text-center font-bold text-slate-700 border border-slate-300 rounded text-xs" placeholder="0">
@@ -57,21 +55,15 @@ export const THDG = {
                     <div class="glass p-5 border-l-8 border-green-500 bg-green-50/40">
                         <div class="flex justify-between items-center mb-4"><h3 class="font-black text-green-800 text-xs uppercase flex items-center gap-2"><i class="fas fa-warehouse text-lg"></i> NHẬP KHO</h3>${isAdmin ? `<button id="btn-add-prod" class="bg-white border text-green-700 px-2 py-1 rounded text-[10px] font-bold shadow-sm">+ Mã SP</button>` : ''}</div>
                         <div class="space-y-3">
-                            <div class="flex gap-2"><div class="w-1/3"><label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Ngày Thu</label><input type="date" id="h-date" class="w-full p-2 rounded border text-xs font-bold"></div><div class="flex-1"><label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Nguồn Thu</label><select id="h-area" class="w-full p-2 rounded border text-xs font-bold"><option value="">-- Chọn --</option>${(data.houses||[]).map(h => `<option value="${h.id}" data-name="${h.name}">${h.name}</option>`).join('')}<option value="MuaNgoai" data-name="Mua Ngoài">Mua Ngoài</option></select></div></div>
+                            <div class="flex gap-2"><div class="w-1/3"><label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Ngày Thu</label><input type="date" id="h-date" class="w-full p-2 rounded border text-xs font-bold"></div><div class="flex-1"><label class="text-[9px] font-bold text-slate-500 uppercase ml-1">Nguồn Thu</label><select id="h-area" class="w-full p-2 rounded border text-xs font-bold"><option value="">-- Chọn --</option>${houses.map(h => `<option value="${h.id}" data-name="${h.name}">${h.name}</option>`).join('')}<option value="MuaNgoai" data-name="Mua Ngoài">Mua Ngoài</option></select></div></div>
                             ${g1.length ? `<div class="bg-green-50 p-2 rounded border border-green-200"><div class="text-[10px] font-bold text-green-700 mb-1">Nấm Tươi</div><div class="grid grid-cols-2 gap-2">${g1.map(renderRow).join('')}</div></div>`:''}
                             ${g2.length ? `<div class="bg-orange-50 p-2 rounded border border-orange-200"><div class="text-[10px] font-bold text-orange-700 mb-1">Phụ Phẩm</div><div class="grid grid-cols-2 gap-2">${g2.map(renderRow).join('')}</div></div>`:''}
                             ${g3.length ? `<div class="bg-purple-50 p-2 rounded border border-purple-200"><div class="text-[10px] font-bold text-purple-700 mb-1">Sơ Chế</div><div class="grid grid-cols-2 gap-2">${g3.map(renderRow).join('')}</div></div>`:''}
                             <button id="btn-save-h" class="w-full py-3 bg-green-600 text-white rounded font-bold text-xs shadow-lg">LƯU KHO</button>
                             
                             <div class="mt-4 pt-2 border-t border-green-200">
-                                <span class="text-[9px] font-bold text-slate-400 uppercase">Nhật ký nhập kho (Gần đây)</span>
-                                <div class="max-h-32 overflow-y-auto space-y-1 mt-1 bg-white rounded border border-green-100 p-1">
-                                    ${fullHarvestLogs.length ? fullHarvestLogs.map(l=>`
-                                        <div class="flex justify-between text-[10px] border-b border-dashed border-slate-100 pb-1 mb-1 last:border-0">
-                                            <div><span class="text-slate-400 mr-1">${new Date(l.time).toLocaleDateString('vi-VN').slice(0,5)}</span><span class="font-bold text-slate-600">${l.area}</span></div>
-                                            <span class="font-bold text-green-600">+${l.total}kg</span>
-                                        </div>`).join('') : '<div class="text-[10px] text-slate-300 italic text-center">Trống</div>'}
-                                </div>
+                                <span class="text-[9px] font-bold text-slate-400 uppercase">Nhật ký nhập (20 dòng)</span>
+                                <div class="max-h-32 overflow-y-auto space-y-1 mt-1 bg-white p-1 rounded border">${sortedHarvest.map(l=>`<div class="flex justify-between text-[10px] border-b border-dashed pb-1 mb-1"><span>${new Date(l.time).toLocaleDateString('vi-VN').slice(0,5)} - ${l.area}</span><span class="font-bold text-green-600">+${l.total}kg</span></div>`).join('')}</div>
                             </div>
                         </div>
                     </div>
@@ -86,22 +78,12 @@ export const THDG = {
                             <div class="border-t pt-2"><div id="cart-list" class="space-y-1 mb-2 text-xs"></div><div class="flex justify-between text-sm font-black text-orange-800"><span>TỔNG:</span><span id="cart-total">0</span></div></div>
                         </div>
                         <div class="grid grid-cols-2 gap-2 mt-4"><button id="btn-save-sell" class="py-2 bg-orange-600 text-white rounded font-bold text-xs">LƯU & TRỪ KHO</button><button id="btn-print" class="py-2 bg-blue-600 text-white rounded font-bold text-xs">IN PHIẾU</button></div>
-                        
-                        <div class="mt-4 pt-2 border-t border-orange-200">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase">Đơn hàng gần đây</span>
-                            <div class="max-h-32 overflow-y-auto space-y-1 mt-1 bg-white rounded border border-orange-100 p-1">
-                                ${fullShipLogs.length ? fullShipLogs.map(s=>`
-                                    <div class="flex justify-between text-[10px] border-b border-dashed border-slate-100 pb-1 mb-1 last:border-0">
-                                        <div><span class="text-slate-400 mr-1">${new Date(s.time).toLocaleDateString('vi-VN').slice(0,5)}</span><span class="font-bold text-slate-700">${s.customer}</span></div>
-                                        <span class="font-bold text-orange-600">${Number(s.total).toLocaleString()}đ</span>
-                                    </div>`).join('') : '<div class="text-[10px] text-slate-300 italic text-center">Trống</div>'}
-                            </div>
-                        </div>
+                        <div class="mt-4 pt-2 border-t border-orange-200"><span class="text-[9px] font-bold text-slate-400 uppercase">Đơn gần đây</span><div class="max-h-32 overflow-y-auto space-y-1 mt-1 bg-white p-1 rounded border">${sortedShips.map(s=>`<div class="flex justify-between text-[10px] border-b border-dashed pb-1 mb-1"><span>${s.customer}</span><span class="font-bold text-orange-600">${Number(s.total).toLocaleString()}đ</span></div>`).join('')}</div></div>
                     </div>
                 </div>
             </div>`;
 
-            // EVENTS
+            // EVENTS (Giữ nguyên)
             setTimeout(() => {
                 const dateInput = document.getElementById('h-date'); if(dateInput) dateInput.valueAsDate = new Date();
                 const bIn=document.getElementById('btn-tab-in'), bOut=document.getElementById('btn-tab-out');
@@ -117,7 +99,8 @@ export const THDG = {
                     };
                     const btnRep = document.getElementById('btn-report-day');
                     if(btnRep) btnRep.onclick=()=>{
-                        if(!todayLogs.length)return Utils.toast("Hôm nay chưa có đơn!","err");
+                        const todayLogs = (data.shipping || []).filter(s => new Date(s.time).toDateString() === new Date().toDateString());
+                        if(!todayLogs.length)return Utils.toast("Chưa có đơn hôm nay!","err");
                         let csv="Ngay,Khach,SP,SL,Gia,ThanhTien\n";todayLogs.forEach(l=>{const d=new Date(l.time).toLocaleDateString('vi-VN');l.items.forEach(i=>csv+=`${d},${l.customer},${i.name},${i.qty},${i.price},${i.qty*i.price}\n`)});
                         const l=document.createElement("a");l.href=encodeURI("data:text/csv;charset=utf-8,"+csv);l.download="BC_Ngay.csv";l.click();
                     };
@@ -138,12 +121,7 @@ export const THDG = {
 
                 document.getElementById('btn-add-cart').onclick=()=>{const s=document.getElementById('s-prod'),c=s.value,n=s.options[s.selectedIndex].getAttribute('data-name'),q=Number(document.getElementById('s-qty').value),p=Number(document.getElementById('s-price').value);if(c&&q>0){cart.push({code:c,name:n,qty:q,price:p});updateCart();document.getElementById('s-qty').value='';}};
                 document.getElementById('btn-save-sell').onclick=async()=>{const cust=document.getElementById('s-cust').value;if(!cust||!cart.length)return Utils.toast("Thiếu tên/giỏ!","err");const batch=db.batch();batch.set(doc(collection(db,`${ROOT_PATH}/shipping`)),{customer:cust,items:cart,total:cart.reduce((a,b)=>a+b.qty*b.price,0),note:document.getElementById('s-note').value,user:user.name,time:Date.now()});cart.forEach(i=>{const p=products.find(x=>x.code===i.code);if(p)batch.update(doc(db,`${ROOT_PATH}/products`,p._id),{stock:increment(-i.qty)});});await batch.commit();Utils.toast("Đã xuất kho!");cart=[];updateCart();};
-                document.getElementById('btn-print').onclick=()=>{
-                    if(!cart.length)return Utils.toast("Giỏ trống!","err");
-                    const w=window.open('','','height=600,width=500');
-                    w.document.write(`<html><head><title>PHIEU</title><style>body{font-family:monospace;padding:10px;font-size:12px}.c{text-align:center}.r{text-align:right}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px dashed #000;padding:5px 0}</style></head><body><div class="c"><h3>${COMPANY.name}</h3><p>${COMPANY.address}</p><p>Hotline:${COMPANY.hotline}</p><br><h2>PHIẾU BÁN HÀNG</h2></div><p>Khách: ${document.getElementById('s-cust').value}</p><p>NV: ${user.name}</p><table><tr><th align="left">SP</th><th class="c">SL</th><th class="r">Đơn giá</th><th class="r">Tiền</th></tr>${cart.map(i=>`<tr><td>${i.name}</td><td class="c">${i.qty}</td><td class="r">${i.price.toLocaleString()}</td><td class="r">${(i.qty*i.price).toLocaleString()}</td></tr>`).join('')}<tr><td colspan="3" class="r"><b>TỔNG:</b></td><td class="r"><b>${cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()}</b></td></tr></table><div class="c" style="margin-top:20px">Cảm ơn quý khách!</div></body></html>`);
-                    w.document.close();setTimeout(()=>w.print(),500);
-                };
+                document.getElementById('btn-print').onclick=()=>{if(!cart.length)return Utils.toast("Giỏ trống!","err");const w=window.open('','','height=600,width=500');w.document.write(`<html><head><title>PHIEU</title><style>body{font-family:monospace;padding:10px;font-size:12px}.c{text-align:center}.r{text-align:right}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px dashed #000;padding:5px 0}</style></head><body><div class="c"><h3>${COMPANY.name}</h3><p>Hotline:${COMPANY.hotline}</p><br><h2>HÓA ĐƠN</h2></div><p>Khách:${document.getElementById('s-cust').value}</p><table><tr><th>SP</th><th>SL</th><th class="r">Tiền</th></tr>${cart.map(i=>`<tr><td>${i.name}</td><td class="c">${i.qty}</td><td class="r">${(i.qty*i.price).toLocaleString()}</td></tr>`).join('')}<tr><td colspan="3" class="r"><b>TỔNG:${cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()}</b></td></tr></table></body></html>`);w.document.close();w.print();};
 
                 let cart=[]; const updateCart=()=>{const el=document.getElementById('cart-list');if(el){el.innerHTML=cart.map((i,idx)=>`<div class="flex justify-between items-center bg-slate-50 p-1 border"><span>${i.name}</span><div class="flex gap-2"><span>${i.qty}x${Number(i.price).toLocaleString()}</span><span class="font-bold text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button class="text-red-400" onclick="document.getElementById('dc-${idx}').click()">x</button><button id="dc-${idx}" class="hidden"></button></div></div>`).join('');document.getElementById('cart-total').innerText=cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString();cart.forEach((_,i)=>document.getElementById(`dc-${i}`).onclick=()=>{cart.splice(i,1);updateCart();});}};
             }, 200);
