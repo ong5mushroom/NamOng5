@@ -2,11 +2,11 @@ import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc
 import { Utils } from '../utils.js';
 
 window.SX_Action = {
-    // Xóa Log -> Trừ lại kho
+    // 1. Xóa Log -> Trừ lại kho
     delLog: async (id, qty, houseId) => {
         if(confirm(`⚠️ Xóa lô ${qty} bịch? (Kho A sẽ bị trừ đi)`)) {
             try {
-                const batch = writeBatch(db); // Dùng writeBatch
+                const batch = writeBatch(db);
                 batch.delete(doc(db, `${ROOT_PATH}/supplies`, id));
                 if(houseId) batch.update(doc(db, `${ROOT_PATH}/houses`, houseId), { batchQty: increment(-Number(qty)) });
                 await batch.commit();
@@ -14,14 +14,14 @@ window.SX_Action = {
             } catch(e) { alert(e.message); }
         }
     },
-    // Reset kho về 0
+    // 2. Reset kho về 0
     reset0: async (hid) => {
         if(confirm("⚠️ Đưa số lượng về 0?")) {
             await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { batchQty: 0 });
             Utils.toast("Đã Reset!");
         }
     },
-    // Sửa tay
+    // 3. Sửa tay
     adjust: async (hid) => {
         const v = prompt("Nhập số (+/-):");
         if(v) {
@@ -29,6 +29,22 @@ window.SX_Action = {
             await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { batchQty: increment(n) });
             await addDoc(collection(db, `${ROOT_PATH}/supplies`), { type:'ADJUST', to:hid, qty:n, user:'Admin', time:Date.now() });
             Utils.toast("Đã sửa!");
+        }
+    },
+    // 4. THÊM NHÀ MỚI (NEW)
+    addHouse: async () => {
+        const name = prompt("Nhập tên nhà mới (VD: Nhà 5, Nhà 6...):");
+        if(name) {
+            try {
+                await addDoc(collection(db, `${ROOT_PATH}/houses`), {
+                    name: name,
+                    status: 'EMPTY', // Trạng thái ban đầu là Trống
+                    batchQty: 0,
+                    currentBatch: '',
+                    startDate: Date.now()
+                });
+                Utils.toast(`✅ Đã thêm ${name}!`);
+            } catch(e) { alert("Lỗi: " + e.message); }
         }
     }
 };
@@ -39,12 +55,12 @@ export const SX = {
         if (!c || c.classList.contains('hidden')) return;
 
         const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
-        const houses = Array.isArray(data.houses) ? data.houses : [];
+        // Sắp xếp nhà theo tên (A-Z) để dễ nhìn
+        const houses = (Array.isArray(data.houses) ? data.houses : []).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
         const supplies = Array.isArray(data.supplies) ? data.supplies : [];
         
-        const houseA = houses.find(h => ['nhà a','kho a'].includes((h.name||'').toLowerCase()));
+        const houseA = houses.find(h => ['nhà a','kho a', 'kho phôi'].includes((h.name||'').toLowerCase()));
         const logsA = supplies.filter(s => houseA && s.to === houseA.id).sort((a,b)=>b.time-a.time);
-        // Lấy danh sách mã giống duy nhất từ lịch sử nhập
         const uniqueCodes = [...new Set(logsA.filter(l => l.type === 'IMPORT').map(l => l.code).filter(Boolean))];
 
         c.innerHTML = `
@@ -74,10 +90,27 @@ export const SX = {
                 <div class="mt-3 max-h-40 overflow-y-auto space-y-1 bg-white p-2 rounded border shadow-inner">
                     ${logsA.map(l => `<div class="flex justify-between items-center text-[10px] border-b border-dashed pb-1"><div><span class="font-bold text-slate-700 block">${l.code||'--'}</span><span class="text-slate-400">${new Date(l.time).toLocaleDateString('vi-VN')} - ${l.type}</span></div><div class="flex gap-2"><span class="font-black ${l.qty>0?'text-purple-600':'text-red-500'}">${l.qty>0?'+':''}${Number(l.qty).toLocaleString()}</span>${isAdmin && l.type==='IMPORT'?`<button onclick="window.SX_Action.delLog('${l._id}',${l.qty},'${houseA.id}')" class="text-red-400 font-bold px-1">×</button>`:''}</div></div>`).join('')}
                 </div>
-            </div>` : '<div class="text-center p-4 text-red-500">Chưa có Nhà A</div>'}
+            </div>` : '<div class="text-center p-4 text-red-500">Chưa có Nhà A (Vui lòng thêm nhà tên "Kho A")</div>'}
 
-            <div class="grid grid-cols-1 gap-3">
-                ${houses.filter(h => h.id !== (houseA?.id)).map(h => `<div class="glass p-3 border-l-4 ${h.status==='ACTIVE'?'border-green-500':'border-slate-300'} bg-white shadow-sm flex justify-between items-center"><div><div class="font-bold text-slate-700">${h.name}</div><div class="text-[10px] text-slate-400">Lô: <b>${h.currentBatch||'--'}</b></div></div><div class="text-right"><span class="text-[10px] font-bold px-2 py-1 rounded ${h.status==='ACTIVE'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'}">${h.status==='ACTIVE'?h.batchQty+' bịch':'TRỐNG'}</span>${isAdmin?`<div class="mt-1"><button onclick="window.SX_Action.adjust('${h.id}')" class="text-[9px] text-blue-500 underline">Sửa</button></div>`:''}</div></div>`).join('')}
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-500 text-xs uppercase px-1">TIẾN ĐỘ CÁC NHÀ KHÁC</h3>
+                    ${isAdmin ? `<button onclick="window.SX_Action.addHouse()" class="bg-blue-600 text-white px-2 py-1 rounded text-[10px] font-bold shadow active:scale-95">+ THÊM NHÀ</button>` : ''}
+                </div>
+                
+                <div class="grid grid-cols-1 gap-3">
+                    ${houses.filter(h => h.id !== (houseA?.id)).map(h => {
+                        const isActive = h.status === 'ACTIVE';
+                        return `
+                        <div class="glass p-3 border-l-4 ${isActive?'border-green-500':'border-slate-300'} bg-white shadow-sm flex justify-between items-center">
+                            <div><div class="font-bold text-slate-700">${h.name}</div><div class="text-[10px] text-slate-400 mt-0.5">Lô: <b class="text-slate-600">${isActive ? h.currentBatch : '---'}</b> - ${h.batchQty} bịch</div></div>
+                            <div class="text-right">
+                                <span class="text-[10px] font-bold px-2 py-1 rounded ${isActive?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'}">${isActive?'RUNNING':'TRỐNG'}</span>
+                                ${isAdmin ? `<div class="mt-1"><button onclick="window.SX_Action.adjust('${h.id}')" class="text-[9px] text-blue-500 underline">Sửa</button></div>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
             </div>
         </div>`;
 
