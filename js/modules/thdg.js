@@ -1,11 +1,21 @@
 import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc } from '../config.js';
 import { Utils } from '../utils.js';
 
-// --- HÀM XÓA TOÀN CỤC (CỐ ĐỊNH) ---
+const COMPANY = { 
+    name: "CÔNG TY TNHH NẤM ÔNG 5", address: "Thôn Đa Ra Hoa, Lạc Dương, Lâm Đồng", mst: "5801474272", hotline: "0899.49.0808", slogan: "Trao sức khỏe" 
+};
+
+// --- HÀM XÓA TOÀN CỤC (CỐ ĐỊNH & CẬP NHẬT UI NGAY LẬP TỨC) ---
 window.deleteProduct = async (id) => {
     if (confirm("⚠️ ADMIN: Bạn có chắc chắn muốn xóa mã này?")) {
         try {
+            // 1. Xóa trong database
             await deleteDoc(doc(db, `${ROOT_PATH}/products`, id));
+            
+            // 2. Xóa ngay dòng đó trên màn hình (FIX LỖI HIỂN THỊ)
+            const rowElement = document.getElementById(`row-${id}`);
+            if (rowElement) rowElement.remove();
+
             Utils.toast("Đã xóa thành công!");
         } catch (e) {
             alert("Lỗi: " + e.message);
@@ -35,8 +45,9 @@ export const THDG = {
             const g2 = products.filter(p => p && String(p.group) === '2');
             const g3 = products.filter(p => p && String(p.group) === '3');
 
+            // Render Row: THÊM ID CHO DÒNG ĐỂ XÓA ĐƯỢC
             const renderRow = (p) => `
-                <div class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200">
+                <div id="row-${p._id}" class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200">
                     <div class="flex items-center gap-1 overflow-hidden">
                         ${isAdmin ? `<button onclick="window.deleteProduct('${p._id}')" class="text-red-400 hover:text-red-600 px-1 font-bold">✕</button>` : ''}
                         <span class="text-[10px] font-bold text-slate-600 truncate w-20" title="${p.name}">${p.name}</span>
@@ -83,7 +94,7 @@ export const THDG = {
                 </div>
             </div>`;
 
-            // EVENTS (Giữ nguyên)
+            // EVENTS
             setTimeout(() => {
                 const dateInput = document.getElementById('h-date'); if(dateInput) dateInput.valueAsDate = new Date();
                 const bIn=document.getElementById('btn-tab-in'), bOut=document.getElementById('btn-tab-out');
