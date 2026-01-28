@@ -1,6 +1,7 @@
 import { addDoc, collection, db, ROOT_PATH, updateDoc, doc, deleteDoc, increment, writeBatch } from '../config.js';
 import { Utils } from '../utils.js';
 
+// --- HỆ THỐNG XỬ LÝ (CHAT, ĐIỂM, DUYỆT) ---
 window.HR_Action = {
     chat: async (user, msg, isSystem = false) => {
         try { await addDoc(collection(db, `${ROOT_PATH}/chat`), { user, message: msg, time: Date.now(), type: isSystem ? 'NOTIFY' : 'CHAT' }); } catch(e) {}
@@ -33,6 +34,7 @@ window.HR_Action = {
 
 export const HR = {
     renderTasks: (data, user) => { const c = document.getElementById('view-tasks'); if(c && !c.classList.contains('hidden')) HR.renderTasks_Logic(data, user, c); },
+    
     renderTasks_Logic: (data, user, c) => {
         const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
         const tasks = Array.isArray(data.tasks) ? data.tasks : [];
