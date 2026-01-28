@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
     getFirestore, collection, onSnapshot, addDoc, updateDoc, 
-    doc, deleteDoc, getDoc, increment 
+    doc, deleteDoc, getDoc, increment, writeBatch, getDocs, query, where 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const fbConfig = { 
@@ -19,5 +19,9 @@ export const auth = getAuth(appInstance);
 export const db = getFirestore(appInstance);
 export const ROOT_PATH = "artifacts/namong5_production/public/data";
 
-// Xuất khẩu các hàm cần thiết cho các modules khác
-export { signInAnonymously, onAuthStateChanged, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, getDoc, increment };
+// Xuất khẩu đầy đủ công cụ cho các module khác dùng
+export { 
+    signInAnonymously, onAuthStateChanged, 
+    collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, getDoc, increment, 
+    writeBatch, getDocs, query, where 
+};
