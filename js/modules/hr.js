@@ -1,11 +1,25 @@
 import { addDoc, collection, db, ROOT_PATH, updateDoc, doc, deleteDoc, increment, writeBatch, getDocs, query, where } from '../config.js';
 import { Utils } from '../utils.js';
 
-// --- 1. HỆ THỐNG XỬ LÝ LOGIC (Action) ---
+// --- 1. HỆ THỐNG XỬ LÝ (Action) ---
 window.HR_Action = {
     // Chat & Log
     chat: async (user, msg, isSystem = false) => {
         try {
+            // 1. Hiện ngay lập tức (Optimistic UI) để không phải chờ
+            const chatBox = document.getElementById('chat-list');
+            if (chatBox) {
+                const tempHTML = `
+                    <div class="flex flex-col ${isSystem ? 'items-center' : 'items-end'} animate-fade-in-up">
+                        <div class="max-w-[80%] ${isSystem ? 'bg-gray-200 text-gray-500' : 'bg-blue-500 text-white rounded-br-none'} px-3 py-2 rounded-xl shadow-sm text-xs relative opacity-70">
+                            ${isSystem ? '' : `<div class="font-bold text-blue-100 text-[9px] mb-0.5">${user}</div>`}
+                            ${msg} <i class="fas fa-spinner fa-spin text-[8px] ml-1"></i>
+                        </div>
+                    </div>`;
+                chatBox.insertAdjacentHTML('afterbegin', tempHTML); // Thêm vào đầu (do flex-col-reverse)
+            }
+
+            // 2. Gửi lên Server
             await addDoc(collection(db, `${ROOT_PATH}/chat`), {
                 user: user,
                 message: msg,
@@ -51,7 +65,6 @@ window.HR_Action = {
 
     // Thao tác Task (Việc làm)
     task: {
-        // Xóa việc: Xóa xong ẩn luôn dòng đó để không cần reload
         del: async (id) => {
             if (confirm("Bạn chắc chắn muốn xóa việc này?")) {
                 try {
@@ -62,24 +75,19 @@ window.HR_Action = {
                 } catch (e) { alert(e.message); }
             }
         },
-        // Nhận việc
         accept: async (id, t, u) => {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DOING' });
             window.HR_Action.chat("TIẾN ĐỘ", `💪 ${u} đã NHẬN: "${decodeURIComponent(t)}"`, true);
         },
-        // Báo cáo xong (Tính điểm: 10 / Tổng đầu việc trong ngày)
         finish: async (id, t, u, uid) => {
             try {
-                // 1. Lấy việc trong ngày
                 const start = new Date(); start.setHours(0,0,0,0);
                 const q = query(collection(db, `${ROOT_PATH}/tasks`), where("to", "==", uid), where("time", ">=", start.getTime()));
                 const snap = await getDocs(q);
                 
-                // 2. Tính điểm
                 const count = snap.docs.filter(d => d.data().type === 'TASK').length || 1;
                 const points = Math.round((10 / count) * 10) / 10;
 
-                // 3. Cập nhật
                 const batch = writeBatch(db);
                 batch.update(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DONE' });
                 batch.update(doc(db, `${ROOT_PATH}/employees`, uid), { score: increment(points) });
@@ -104,7 +112,6 @@ export const HR = {
         const employees = Array.isArray(data.employees) ? data.employees : [];
         const houses = Array.isArray(data.houses) ? data.houses : [];
 
-        // HTML Khung Giao Việc
         const adminForm = isAdmin ? `
             <div class="bg-white p-4 rounded-xl shadow-sm border border-blue-100 mb-4">
                 <h3 class="font-black text-blue-600 text-xs uppercase mb-3"><i class="fas fa-paper-plane"></i> GIAO VIỆC NHANH</h3>
@@ -132,7 +139,6 @@ export const HR = {
                 </div>
             </div>`;
 
-        // Logic Render Danh sách việc
         const renderList = () => {
             const fid = document.getElementById('filter-emp').value;
             let list = tasks.filter(t => !t.type || t.type === 'TASK');
@@ -171,7 +177,6 @@ export const HR = {
             }).join('') : '<div class="text-center text-slate-300 italic text-xs py-10">Chưa có công việc</div>';
         };
 
-        // Gắn sự kiện (Expanded để tránh lỗi cú pháp)
         setTimeout(() => {
             renderList();
             const dIn = document.getElementById('t-date');
@@ -231,18 +236,20 @@ export const HR = {
         const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
         const tasks = Array.isArray(data.tasks) ? data.tasks : [];
         const employees = (Array.isArray(data.employees) ? data.employees : []).sort((a, b) => (b.score || 0) - (a.score || 0));
-        const chats = Array.isArray(data.chat) ? data.chat.sort((a, b) => b.time - a.time).slice(0, 30) : [];
+        
+        // SẮP XẾP CHAT: Mới nhất nằm dưới cùng (Logic đảo ngược cho flex-col-reverse)
+        const chats = Array.isArray(data.chat) ? data.chat.sort((a, b) => b.time - a.time).slice(0, 50) : [];
         
         const pending = tasks.filter(t => t.status === 'PENDING' && ['LEAVE', 'BUY', 'CHECKIN'].includes(t.type));
         const top3 = employees.slice(0, 3);
 
-        // Tạo HTML Top 3
+        // HTML Top 3
         let top3HTML = '';
         if (top3[1]) top3HTML += `<div class="flex flex-col items-center"><div class="w-10 h-10 rounded-full border-2 border-slate-300 bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-xs shadow-sm mb-1">${top3[1].name.charAt(0)}</div><div class="h-16 w-14 bg-slate-200 rounded-t-lg flex flex-col justify-end pb-2 border-t-4 border-slate-400"><span class="text-[10px] font-bold text-slate-600">${top3[1].score}đ</span><span class="text-[20px]">🥈</span></div><div class="text-[9px] font-bold text-slate-500 mt-1 truncate w-14">${top3[1].name}</div></div>`;
         if (top3[0]) top3HTML += `<div class="flex flex-col items-center z-10"><div class="w-12 h-12 rounded-full border-2 border-yellow-400 bg-yellow-100 flex items-center justify-center font-bold text-yellow-600 text-sm shadow-md mb-1 relative">${top3[0].name.charAt(0)}<i class="fas fa-crown absolute -top-3 text-yellow-500 text-xs animate-bounce"></i></div><div class="h-20 w-16 bg-yellow-100 rounded-t-lg flex flex-col justify-end pb-2 border-t-4 border-yellow-400 shadow-lg"><span class="text-xs font-black text-yellow-700">${top3[0].score}đ</span><span class="text-[24px]">🥇</span></div><div class="text-[10px] font-bold text-yellow-700 mt-1 truncate w-16">${top3[0].name}</div></div>`;
         if (top3[2]) top3HTML += `<div class="flex flex-col items-center"><div class="w-10 h-10 rounded-full border-2 border-orange-300 bg-orange-50 flex items-center justify-center font-bold text-orange-600 text-xs shadow-sm mb-1">${top3[2].name.charAt(0)}</div><div class="h-12 w-14 bg-orange-100 rounded-t-lg flex flex-col justify-end pb-2 border-t-4 border-orange-400"><span class="text-[10px] font-bold text-orange-700">${top3[2].score}đ</span><span class="text-[20px]">🥉</span></div><div class="text-[9px] font-bold text-slate-500 mt-1 truncate w-14">${top3[2].name}</div></div>`;
 
-        // Tạo HTML Duyệt Đơn
+        // HTML Duyệt Đơn
         let pendingHTML = '';
         if (isAdmin && pending.length) {
             pendingHTML = `
@@ -253,7 +260,7 @@ export const HR = {
                         <div class="bg-white p-3 rounded-lg shadow-sm border border-red-100 flex justify-between items-center">
                             <div><div class="text-[10px] font-bold text-slate-500">${t.by} • ${t.type}</div><div class="text-xs font-bold text-slate-800 line-clamp-1">${t.title}</div></div>
                             <div class="flex gap-2">
-                                <button onclick="window.HR_Action.approve('${t.id}','${encodeURIComponent(t.title)}','${t.by}','${user.name}',true)" class="bg-green-100 text-green-700 w-8 h-8 rounded-full font-bold flex items-center justify-center">✓</button>
+                                <button onclick="window.HR_Approve.approve('${t.id}','${encodeURIComponent(t.title)}','${t.by}','${user.name}',true)" class="bg-green-100 text-green-700 w-8 h-8 rounded-full font-bold flex items-center justify-center">✓</button>
                                 <button onclick="window.HR_Approve.approve('${t.id}','${encodeURIComponent(t.title)}','${t.by}','${user.name}',false)" class="bg-red-100 text-red-700 w-8 h-8 rounded-full font-bold flex items-center justify-center">✕</button>
                             </div>
                         </div>`).join('')}
@@ -282,7 +289,7 @@ export const HR = {
 
             <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm h-80 flex flex-col">
                 <div class="bg-slate-100 p-2 border-b font-bold text-xs text-slate-600 uppercase">💬 THẢO LUẬN TEAM</div>
-                <div class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 flex flex-col-reverse">
+                <div id="chat-list" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 flex flex-col-reverse">
                     ${chats.map(msg => {
                         const isMe = msg.user === user.name;
                         const isSys = msg.type === 'NOTIFY';
@@ -316,7 +323,7 @@ export const HR = {
             const sendReq = async (t, type) => { await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title: t, to: 'ADMIN', by: user.name, type, status: 'PENDING', time: Date.now() }); Utils.toast("Đã gửi!"); window.HR_Action.chat(user.name, `📝 Yêu cầu: ${t}`, true); };
             const b1 = document.getElementById('btn-checkin'); if (b1) b1.onclick = () => { if (confirm("Xác nhận chấm công?")) sendReq("Đã chấm công", "CHECKIN"); };
             const b2 = document.getElementById('btn-leave'); if (b2) b2.onclick = () => { Utils.modal("Xin Nghỉ", `<div class="space-y-2"><div><label class="text-[10px] font-bold text-slate-500">Lý do</label><input id="l-r" class="w-full p-2 border rounded text-xs"></div><div class="flex gap-2"><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Từ ngày</label><input type="date" id="l-d" class="w-full p-2 border rounded text-xs"></div><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Số ngày</label><input type="number" id="l-n" class="w-full p-2 border rounded text-xs" value="1"></div></div></div>`, [{ id: 's-ok', text: 'Gửi' }]); setTimeout(() => { document.getElementById('l-d').valueAsDate = new Date(); document.getElementById('s-ok').onclick = () => { const r = document.getElementById('l-r').value, d = document.getElementById('l-d').value, n = document.getElementById('l-n').value; if (r && d && n) { sendReq(`Nghỉ ${n} ngày (từ ${new Date(d).toLocaleDateString('vi-VN')}): ${r}`, "LEAVE"); Utils.modal(null); } else alert("Thiếu tin!"); } }, 100) };
-            const b3 = document.getElementById('btn-buy'); if (b3) b3.onclick = () => { Utils.modal("Mua Hàng", `<div class="space-y-2"><div><label class="text-[10px] font-bold text-slate-500">Tên món</label><input id="b-n" class="w-full p-2 border rounded text-xs"></div><div class="flex gap-2"><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">SL</label><input type="number" id="b-q" class="w-full p-2 border rounded text-xs" value="1"></div><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Cần ngày</label><input type="date" id="b-d" class="w-full p-2 border rounded text-xs"></div></div></div>`, [{ id: 's-ok', text: 'Gửi' }]); setTimeout(() => { document.getElementById('b-d').valueAsDate = new Date(); document.getElementById('s-ok').onclick = () => { const n = document.getElementById('b-n').value, q = document.getElementById('b-q').value, d = document.getElementById('b-d').value; if (n && q && d) { sendReq(`Mua ${q} ${n} (cần ${new Date(d).toLocaleDateString('vi-VN')})`, "BUY"); Utils.modal(null); } else alert("Thiếu tin!"); } }, 100) };
+            const b3 = document.getElementById('btn-buy'); if (b3) b3.onclick = () => { Utils.modal("Mua Hàng", `<div class="space-y-2"><div><label class="text-[10px] font-bold text-slate-500">Tên món</label><input id="b-n" class="w-full p-2 border rounded text-xs"></div><div class="flex gap-2"><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">SL</label><input type="number" id="b-q" class="w-full p-2 border rounded text-xs" value="1"></div><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Cần ngày</label><input type="date" id="b-d" class="w-full p-2 border rounded text-xs"></div></div></div>`, [{ id: 's-ok', text: 'Gửi' }]); setTimeout(() => { document.getElementById('b-d').valueAsDate = new Date(); document.getElementById('s-ok').onclick = () => { const n = document.getElementById('b-n').value, q = document.getElementById('b-q').value, d = document.getElementById('b-d').value; if (n && q && d) { sendReq(`Mua ${q} ${n} (Cần ngày ${new Date(d).toLocaleDateString('vi-VN')})`, "BUY"); Utils.modal(null); } else alert("Thiếu tin!"); } }, 100) };
             
             const sendChat = async () => { const m = document.getElementById('chat-msg').value; if (m.trim()) { await window.HR_Action.chat(user.name, m); document.getElementById('chat-msg').value = ''; } };
             document.getElementById('chat-send').onclick = sendChat;
