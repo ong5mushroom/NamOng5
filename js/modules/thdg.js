@@ -1,11 +1,10 @@
 import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc, writeBatch, getDocs } from '../config.js';
 import { Utils } from '../utils.js';
 
-// Thông tin công ty để in hóa đơn
+// Thông tin hóa đơn (Đã kiểm tra kỹ dấu phẩy)
 const COMPANY_INFO = {
-    name: "CÔNG TY TNHH NẤM ÔNG 5",
-    address: "Thôn Đa Ra Hoa, xã Lạc Dương, tỉnh Lâm Đồng",
-    phone: "03 789 777 68"
+    name: "NẤM ÔNG 5",
+    address: "Đà Lạt, Lâm Đồng",
     hotline: "0899.49.0808",
     web: "ong5mushroom.com"
 };
@@ -13,7 +12,10 @@ const COMPANY_INFO = {
 window.THDG_Action = {
     delOne: async (id, name) => {
         if(confirm(`Xóa mã "${name}"?`)) {
-            try { await deleteDoc(doc(db, `${ROOT_PATH}/products`, id)); Utils.toast("Đã xóa!"); } catch(e){alert(e.message)}
+            try { 
+                await deleteDoc(doc(db, `${ROOT_PATH}/products`, id)); 
+                Utils.toast("Đã xóa!"); 
+            } catch(e) { alert(e.message); }
         }
     },
     resetAll: async () => {
@@ -35,22 +37,24 @@ export const THDG = {
         if (!c || c.classList.contains('hidden')) return;
 
         const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
+        // Sắp xếp danh sách
         const products = (Array.isArray(data.products) ? data.products : []).sort((a,b) => (a.name||'').localeCompare(b.name||''));
         
+        // Phân nhóm
         const groups = {
             '1': { title: '🍄 NẤM TƯƠI', color: 'green', items: products.filter(p => String(p.group) === '1') },
             '2': { title: '🍂 PHỤ PHẨM', color: 'orange', items: products.filter(p => String(p.group) === '2') },
             '3': { title: '🏭 SƠ CHẾ', color: 'purple', items: products.filter(p => String(p.group) === '3') }
         };
 
-        // Render dòng nhập liệu (Compact Mode: Nhỏ gọn để xếp 2 cột)
+        // Render từng dòng (2 cột)
         const renderRow = (p, color) => `
             <div class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200 shadow-sm">
                 <div class="flex items-center gap-1 overflow-hidden">
                     ${isAdmin ? `<button onclick="window.THDG_Action.delOne('${p._id}', '${p.name}')" class="text-red-400 hover:text-red-600 font-bold px-1 text-xs">×</button>` : ''}
-                    <span class="text-[11px] font-bold text-slate-700 truncate w-20" title="${p.name}">${p.name}</span>
+                    <span class="text-[11px] font-bold text-slate-700 truncate w-24" title="${p.name}">${p.name}</span>
                 </div>
-                <input type="number" step="0.1" id="in-${p.code}" class="w-14 p-1 text-center font-bold text-slate-700 border border-slate-200 rounded text-xs outline-none focus:border-${color}-500 focus:bg-${color}-50 transition" placeholder="0">
+                <input type="number" step="0.1" id="in-${p.code}" class="w-16 p-1 text-center font-bold text-slate-700 border border-slate-200 rounded text-xs outline-none focus:border-${color}-500 focus:bg-${color}-50 transition" placeholder="0">
             </div>`;
 
         c.innerHTML = `
@@ -124,17 +128,24 @@ export const THDG = {
             const di = document.getElementById('h-date'); if(di) di.valueAsDate = new Date();
             const bIn = document.getElementById('btn-tab-in'), bOut = document.getElementById('btn-tab-out');
             
-            bIn.onclick=()=>{
-                document.getElementById('zone-harvest').classList.remove('hidden');document.getElementById('zone-sell').classList.add('hidden');
-                bIn.className = "flex-1 py-2 rounded-lg font-bold text-xs bg-white text-green-700 shadow-sm transition";
-                bOut.className = "flex-1 py-2 rounded-lg font-bold text-xs text-slate-500 hover:text-slate-700 transition";
+            // Chuyển Tab
+            const switchTab = (isIn) => {
+                const zIn = document.getElementById('zone-harvest');
+                const zOut = document.getElementById('zone-sell');
+                if(isIn) {
+                    zIn.classList.remove('hidden'); zOut.classList.add('hidden');
+                    bIn.className = "flex-1 py-2 rounded-lg font-bold text-xs bg-white text-green-700 shadow-sm transition";
+                    bOut.className = "flex-1 py-2 rounded-lg font-bold text-xs text-slate-500 hover:text-slate-700 transition";
+                } else {
+                    zIn.classList.add('hidden'); zOut.classList.remove('hidden');
+                    bOut.className = "flex-1 py-2 rounded-lg font-bold text-xs bg-white text-orange-600 shadow-sm transition";
+                    bIn.className = "flex-1 py-2 rounded-lg font-bold text-xs text-slate-500 hover:text-slate-700 transition";
+                }
             };
-            bOut.onclick=()=>{
-                document.getElementById('zone-harvest').classList.add('hidden');document.getElementById('zone-sell').classList.remove('hidden');
-                bOut.className = "flex-1 py-2 rounded-lg font-bold text-xs bg-white text-orange-600 shadow-sm transition";
-                bIn.className = "flex-1 py-2 rounded-lg font-bold text-xs text-slate-500 hover:text-slate-700 transition";
-            };
+            bIn.onclick = () => switchTab(true);
+            bOut.onclick = () => switchTab(false);
 
+            // Thêm mã mới
             if(isAdmin) {
                 const btnAdd = document.getElementById('btn-add');
                 if(btnAdd) btnAdd.onclick = () => {
@@ -149,11 +160,14 @@ export const THDG = {
                 }
             }
 
+            // Lưu nhập kho
             document.getElementById('btn-save-h').onclick = async () => {
                 const aid = document.getElementById('h-area').value; const dVal = document.getElementById('h-date').value;
                 if(!dVal || !aid) return Utils.toast("Thiếu ngày hoặc nguồn!", "err");
+                
                 const batch = writeBatch(db); 
                 let hasData = false; let totalKg = 0; let details = {};
+                
                 products.forEach(p => {
                     const el = document.getElementById(`in-${p.code}`);
                     if(el && Number(el.value) > 0) {
@@ -162,6 +176,7 @@ export const THDG = {
                         details[p.code] = q; totalKg += q; el.value = ''; hasData = true;
                     }
                 });
+                
                 if(hasData) {
                     const aname = document.getElementById('h-area').options[document.getElementById('h-area').selectedIndex].getAttribute('data-name');
                     batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {area: aname, details, total: totalKg, user: user.name, time: new Date(dVal).setHours(12)});
@@ -171,7 +186,7 @@ export const THDG = {
                 } else { Utils.toast("Chưa nhập số!", "err"); }
             };
             
-            // --- LOGIC GIỎ HÀNG & IN ẤN ---
+            // Giỏ hàng
             let cart=[]; 
             const upC=()=>{
                 document.getElementById('cart-list').innerHTML=cart.map((i,x)=>`
@@ -188,7 +203,7 @@ export const THDG = {
                 if(s.value){cart.push({code:s.value,name:s.options[s.selectedIndex].getAttribute('data-name'),qty:Number(document.getElementById('s-qty').value),price:Number(document.getElementById('s-price').value)}); upC(); document.getElementById('s-qty').value='';}
             };
 
-            // NÚT IN HÓA ĐƠN
+            // In hóa đơn
             document.getElementById('btn-print').onclick = () => {
                 const cust = document.getElementById('s-cust').value;
                 if(!cart.length) return Utils.toast("Giỏ hàng trống!", "err");
@@ -242,7 +257,7 @@ export const THDG = {
                 w.print();
             };
 
-            // NÚT LƯU & TRỪ KHO
+            // Lưu & Trừ kho
             document.getElementById('btn-save-sell').onclick=async()=>{
                 if(cart.length){
                     const batch=writeBatch(db); 
