@@ -1,4 +1,4 @@
-import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc, getDocs } from '../config.js';
+import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc } from '../config.js';
 import { Utils } from '../utils.js';
 
 // --- HÀM QUẢN LÝ SẢN PHẨM ---
@@ -10,18 +10,27 @@ window.THDG_Action = {
             catch(e) { alert(e.message); }
         }
     },
-    // Xóa sạch làm lại (RESET)
+    // Xóa sạch làm lại (RESET) - Đã sửa lỗi
     resetAll: async () => {
-        const code = prompt("⚠️ CẢNH BÁO QUAN TRỌNG!\n\nBạn đang yêu cầu XÓA SẠCH toàn bộ danh sách sản phẩm hiện có.\nHành động này không thể phục hồi.\n\nNhập chữ 'OK' để đồng ý xóa:");
+        // Lấy danh sách từ biến toàn cục đã lưu lúc render
+        const products = window._CURRENT_PRODUCTS || [];
+        
+        if (products.length === 0) return Utils.toast("Danh sách đang trống!");
+
+        const code = prompt(`⚠️ CẢNH BÁO NGUY HIỂM!\n\nBạn đang xóa ${products.length} mã sản phẩm.\nHành động này KHÔNG THỂ phục hồi.\n\nNhập chữ 'OK' để xóa sạch:`);
+        
         if (code === 'OK') {
             try {
-                // Lấy tất cả sản phẩm và xóa từng cái
-                const snapshot = await getDocs(collection(db, `${ROOT_PATH}/products`));
+                // Xóa từng dòng (Dùng Batch để an toàn hơn nếu danh sách < 500)
                 const batch = db.batch();
-                snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                products.forEach(p => {
+                    batch.delete(doc(db, `${ROOT_PATH}/products`, p._id));
+                });
                 await batch.commit();
-                Utils.toast("✅ Đã xóa sạch danh sách sản phẩm!");
-            } catch (e) { alert("Lỗi: " + e.message); }
+                Utils.toast("✅ Đã xóa sạch danh sách!");
+            } catch (e) { 
+                alert("Lỗi: " + e.message); 
+            }
         }
     }
 };
@@ -34,8 +43,9 @@ export const THDG = {
 
         const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
         
-        // 1. SẮP XẾP DANH SÁCH (Quan trọng để không bị lỗi hiển thị lại)
+        // 1. SẮP XẾP & LƯU BIẾN TOÀN CỤC (Để dùng cho nút Reset)
         const products = (Array.isArray(data.products) ? data.products : []).sort((a,b) => (a.name||'').localeCompare(b.name||''));
+        window._CURRENT_PRODUCTS = products; // Lưu lại để nút Reset dùng
         
         // 2. PHÂN NHÓM CỐ ĐỊNH
         const groups = {
@@ -66,7 +76,7 @@ export const THDG = {
                         <h3 class="font-black text-green-800 text-xs uppercase"><i class="fas fa-warehouse"></i> NHẬP KHO</h3>
                         ${isAdmin ? `
                         <div class="flex gap-2">
-                            <button onclick="window.THDG_Action.resetAll()" class="bg-red-100 text-red-600 px-2 py-1 rounded text-[10px] font-bold border border-red-200">RESET ALL</button>
+                            <button onclick="window.THDG_Action.resetAll()" class="bg-red-100 text-red-600 px-2 py-1 rounded text-[10px] font-bold border border-red-200 shadow-sm">RESET ALL</button>
                             <button id="btn-add" class="bg-white border border-green-600 text-green-700 px-2 py-1 rounded text-[10px] font-bold shadow-sm">+ MÃ SP</button>
                         </div>` : ''}
                     </div>
@@ -117,7 +127,7 @@ export const THDG = {
             bIn.onclick=()=>{document.getElementById('zone-harvest').classList.remove('hidden');document.getElementById('zone-sell').classList.add('hidden');bIn.classList.add('bg-green-600','text-white');bIn.classList.remove('text-slate-500');bOut.classList.remove('bg-orange-600','text-white');};
             bOut.onclick=()=>{document.getElementById('zone-harvest').classList.add('hidden');document.getElementById('zone-sell').classList.remove('hidden');bOut.classList.add('bg-orange-600','text-white');bIn.classList.remove('bg-green-600','text-white');};
 
-            // Logic Thêm Mã (Modal)
+            // Logic Thêm Mã
             if(isAdmin) {
                 const btnAdd = document.getElementById('btn-add');
                 if(btnAdd) btnAdd.onclick = () => {
@@ -162,7 +172,6 @@ export const THDG = {
                 
                 if(hasData) {
                     const aname = document.getElementById('h-area').options[document.getElementById('h-area').selectedIndex].getAttribute('data-name');
-                    // Lưu log nhập
                     batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {area: aname, time: new Date(dVal).setHours(12), user: user.name, total: totalKg});
                     await batch.commit();
                     Utils.toast(`Đã lưu ${totalKg}kg vào kho!`);
