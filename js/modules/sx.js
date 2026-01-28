@@ -1,161 +1,144 @@
-import { db, doc, updateDoc, addDoc, deleteDoc, collection, ROOT_PATH, increment } from '../config.js';
+import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, deleteDoc, increment } from '../config.js';
 import { Utils } from '../utils.js';
+
+// --- HÀM XÓA LÔ (NHẬT KÝ NHẬP) - TỰ ĐỘNG TRỪ KHO A ---
+window.SX_DelLog = async (id, qty, houseId) => {
+    // 1. Hỏi: Có muốn trừ kho A không?
+    if (confirm(`⚠️ CẢNH BÁO:\nBạn muốn xóa lô nhập ${qty} phôi này?\n(Kho A sẽ tự động bị TRỪ ${qty} bịch)`)) {
+        try {
+            const batch = db.batch();
+            
+            // Xóa log nhập
+            batch.delete(doc(db, `${ROOT_PATH}/supplies`, id));
+            
+            // Trừ lại số lượng ở Kho A
+            if (houseId) {
+                batch.update(doc(db, `${ROOT_PATH}/houses`, houseId), { batchQty: increment(-Number(qty)) });
+            }
+
+            await batch.commit();
+            Utils.toast(`✅ Đã xóa và trừ ${qty} bịch ở Kho A`);
+        } catch (e) {
+            alert("Lỗi: " + e.message);
+        }
+    }
+};
 
 export const SX = {
     render: (data, user) => {
         const c = document.getElementById('view-sx');
         if (!c || c.classList.contains('hidden')) return;
 
+        const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
         const houses = Array.isArray(data.houses) ? data.houses : [];
-        const inventory = Array.isArray(data.spawn_inventory) ? data.spawn_inventory : [];
         const supplies = Array.isArray(data.supplies) ? data.supplies : [];
-        const isAdmin = user && ['Admin', 'Quản lý', 'Giám đốc'].some(r => (user.role||'').includes(r));
 
-        const houseA = houses.find(h => {
-            const n = (h.name || "").trim().toLowerCase();
-            return n === 'nhà a' || n === 'nha a' || n === 'kho a' || n === 'kho phôi';
-        });
-        const tonKhoA = houseA ? (Number(houseA.batchQty) || 0) : 0;
-        const activeHouses = houses.filter(h => h.id !== (houseA ? houseA.id : ''));
-        const sortedInv = [...inventory].sort((a,b) => new Date(b.inputDate||0) - new Date(a.inputDate||0));
-
-        const genCode = (s, d) => {
-            if (!s || !d) return "";
-            const [y, m, day] = d.split('-'); 
-            return `${s.toUpperCase()}-${day}${m}${y.slice(-2)}`;
-        };
+        // Tìm Kho A (Nơi chứa phôi)
+        const houseA = houses.find(h => ['nhà a', 'kho a', 'kho phôi'].includes((h.name||'').trim().toLowerCase()));
+        
+        // Lọc lịch sử nhập của Kho A
+        const logsA = supplies.filter(s => s.to === (houseA ? houseA.id : ''));
+        logsA.sort((a,b) => b.time - a.time); // Mới nhất lên đầu
 
         c.innerHTML = `
-            <div class="space-y-5 pb-24">
-                
-                <div class="glass p-4 border-l-8 border-green-500 bg-green-50/50">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-black text-green-700 uppercase text-xs flex items-center gap-2"><i class="fas fa-warehouse text-lg"></i> KHO PHÔI A</h3>
-                        <div class="text-right"><div class="text-2xl font-black text-slate-700">${tonKhoA.toLocaleString()}</div><div class="text-[9px] text-slate-400 font-bold uppercase">Tổng Bịch</div></div>
+        <div class="space-y-6 pb-24">
+            ${houseA ? `
+            <div class="glass p-5 border-l-8 border-purple-500 bg-purple-50/40">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-black text-purple-800 text-xs uppercase flex items-center gap-2"><i class="fas fa-cubes text-lg"></i> KHO PHÔI (NHÀ A)</h3>
+                    <div class="text-right">
+                        <span class="text-[9px] text-purple-400 block font-bold">Tồn kho hiện tại</span>
+                        <span class="text-2xl font-black text-purple-700">${(houseA.batchQty || 0).toLocaleString()}</span>
                     </div>
-                    <div class="bg-white p-3 rounded-xl border border-green-200 mb-3 shadow-sm">
-                        <div class="grid grid-cols-2 gap-2 mb-2">
-                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">Giống</label><input id="in-strain" placeholder="049" class="w-full p-2 rounded border border-green-200 text-sm font-bold uppercase" oninput="SX.preview()"></div>
-                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">Ngày</label><input id="in-date" type="date" class="w-full p-2 rounded border border-green-200 text-sm" onchange="SX.preview()"></div>
-                        </div>
-                        <div class="flex gap-2 items-end mb-2">
-                            <div class="flex-1"><label class="text-[9px] font-bold text-slate-400 uppercase">Mã Lô</label><div id="preview-code" class="w-full p-2 rounded bg-slate-100 text-green-700 font-black text-sm border border-slate-200">...</div></div>
-                            <div class="w-1/3"><label class="text-[9px] font-bold text-slate-400 uppercase">SL Nhập</label><input id="in-qty" type="number" placeholder="0" class="w-full p-2 rounded border border-green-200 text-sm font-bold text-center text-green-700"></div>
-                        </div>
-                        ${houseA ? `<button id="btn-in-a" class="w-full py-2 bg-green-600 text-white rounded font-bold text-xs shadow-md active:scale-95 transition">NHẬP KHO</button>` : '<div class="text-red-500 text-xs font-bold bg-red-50 p-2 text-center">⚠ Cần tạo Nhà A</div>'}
-                    </div>
-                    <div class="space-y-1 max-h-32 overflow-y-auto pr-1">
-                        ${sortedInv.map(i => `<div class="flex justify-between items-center text-xs bg-white p-2 rounded border border-green-100"><div><span class="font-black text-green-800 block">${i.batchCode||i.code}</span><span class="text-[9px] text-slate-400">${i.inputDate ? new Date(i.inputDate).toLocaleDateString('vi-VN') : '-'}</span></div><div class="flex items-center gap-2"><span class="font-bold text-slate-600">+${i.qty}</span>${isAdmin?`<button class="text-red-300 hover:text-red-500" onclick="SX.delInv('${i.id}')"><i class="fas fa-times"></i></button>`:''}</div></div>`).join('')}
-                    </div>
-                </div>
-
-                <div class="glass p-4 border-l-8 border-orange-500 bg-orange-50/50">
-                    <h3 class="font-black text-orange-700 uppercase text-xs mb-3 flex items-center gap-2"><i class="fas fa-truck-loading text-lg"></i> XUẤT PHÔI -> CÁC NHÀ</h3>
-                    <div class="bg-white p-3 rounded-xl border border-orange-200 shadow-sm">
-                        <div class="mb-2">
-                            <label class="text-[9px] font-bold text-slate-400 uppercase">Chọn Lô Phôi</label>
-                            <select id="out-batch" class="w-full p-2 rounded border border-orange-200 text-sm font-bold text-slate-700 outline-none"><option value="">-- Chọn Mã Lô --</option>${sortedInv.map(i => `<option value="${i.batchCode||i.code}">${i.batchCode||i.code} (Nhập: ${i.qty})</option>`).join('')}</select>
-                        </div>
-                        <div class="flex gap-2 mb-3">
-                            <div class="flex-1"><label class="text-[9px] font-bold text-slate-400 uppercase">Đến Nhà</label><select id="out-house" class="w-full p-2 rounded border border-orange-200 text-sm font-bold"><option value="">-- Chọn Nhà --</option>${activeHouses.map(h => `<option value="${h.id}" data-cur="${h.currentBatch||''}">${h.name} (${h.status==='ACTIVE'?'Đang chạy':'Trống'})</option>`).join('')}</select></div>
-                            <div class="w-1/3"><label class="text-[9px] font-bold text-slate-400 uppercase">SL Xuất</label><input id="out-qty" type="number" max="${tonKhoA}" class="w-full p-2 rounded border border-orange-200 text-sm font-bold text-center text-orange-700"></div>
-                        </div>
-                        <button id="btn-out-a" class="w-full py-2 bg-orange-600 text-white rounded font-bold text-xs shadow-md active:scale-95 transition">XUẤT & CỘNG DỒN</button>
-                    </div>
-                    <div class="text-[10px] text-red-500 italic mt-2 text-center" id="stock-warning"></div>
-                </div>
-
-                <div class="glass p-4 border-l-8 border-yellow-400 bg-yellow-50/50">
-                    <h3 class="font-black text-yellow-700 uppercase text-xs mb-3 flex items-center gap-2"><i class="fas fa-tools text-lg"></i> KHO VẬT TƯ</h3>
-                    <div class="flex gap-2 mb-3">
-                        <input id="mat-n" placeholder="Tên VT" class="flex-1 p-2 rounded border border-yellow-200 text-xs"><input id="mat-q" type="number" placeholder="SL" class="w-16 p-2 rounded border border-yellow-200 text-xs text-center"><button id="btn-add-mat" class="bg-yellow-500 text-white px-3 rounded font-bold text-xs shadow-sm">+</button>
-                    </div>
-                    <div class="bg-white p-2 rounded border border-yellow-100 max-h-32 overflow-y-auto">${supplies.map(s => `<div class="flex justify-between text-xs border-b last:border-0 border-slate-50 pb-1 pt-1"><span class="font-bold text-slate-700">${s.name}</span><div class="flex items-center gap-2"><span class="font-black text-yellow-600">${s.qty}</span>${isAdmin?`<button class="text-red-400" onclick="SX.delM('${s.id}')">x</button>`:''}</div></div>`).join('')}</div>
                 </div>
 
                 ${isAdmin ? `
-                <div class="border-t pt-4">
-                    <div class="flex justify-between items-center mb-2"><h4 class="text-xs font-bold text-slate-400 uppercase">Quản lý & Dọn Vụ</h4><button id="btn-add-h" class="text-[10px] bg-slate-200 px-2 py-1 rounded font-bold">Thêm Nhà</button></div>
-                    <div class="grid grid-cols-1 gap-2">
-                        ${houses.map(h => `
-                            <div class="bg-white p-2 rounded border flex justify-between items-center shadow-sm">
-                                <div>
-                                    <span class="text-[10px] font-bold ${h.id === (houseA?.id) ?'text-purple-600':''}">${h.name}</span>
-                                    <span class="text-[9px] ml-1 ${h.status==='ACTIVE'?'text-green-500':'text-slate-300'}">${h.status==='ACTIVE'?'(Đang chạy)':'(Trống)'}</span>
-                                </div>
-                                <div class="flex gap-2">
-                                    ${h.status === 'ACTIVE' && h.id !== (houseA?.id) ? `<button class="text-[9px] bg-orange-100 text-orange-600 px-2 py-1 rounded font-bold border border-orange-200" onclick="SX.endBatch('${h.id}', '${h.name}')">KẾT THÚC VỤ</button>` : ''}
-                                    <button class="text-red-300 hover:text-red-500 px-2" onclick="SX.delHouse('${h.id}', '${h.name}')"><i class="fas fa-trash-alt"></i></button>
-                                </div>
-                            </div>
-                        `).join('')}
+                <div class="bg-white p-3 rounded-xl shadow-sm border border-purple-100 mb-3">
+                    <div class="flex gap-2 mb-2">
+                        <input type="date" id="imp-date" class="w-1/3 p-2 rounded-lg border text-xs font-bold bg-slate-50">
+                        <input type="text" id="imp-source" placeholder="Nguồn nhập (VD: Lò ông Bảy)" class="flex-1 p-2 rounded-lg border text-xs font-bold bg-slate-50">
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="number" id="imp-qty" placeholder="Số lượng bịch" class="flex-1 p-2 rounded-lg border text-xs font-bold text-center bg-slate-50">
+                        <button id="btn-imp" class="bg-purple-600 text-white px-4 rounded-lg font-bold text-xs shadow-md active:scale-95 transition">NHẬP KHO</button>
                     </div>
                 </div>` : ''}
 
-            </div>`;
+                <div>
+                    <h4 class="font-bold text-slate-400 text-[10px] uppercase mb-1">Lịch sử nhập phôi (Gần nhất)</h4>
+                    <div class="max-h-40 overflow-y-auto space-y-1 bg-white p-2 rounded-lg border border-purple-100 shadow-inner">
+                        ${logsA.length ? logsA.map(l => `
+                            <div class="flex justify-between items-center text-[10px] border-b border-dashed border-slate-100 pb-1 mb-1 last:border-0">
+                                <div>
+                                    <div class="font-bold text-slate-600">${new Date(l.time).toLocaleDateString('vi-VN')}</div>
+                                    <div class="text-slate-400 italic">${l.source || 'Nguồn ngoài'}</div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-black text-purple-600 text-xs">+${Number(l.qty).toLocaleString()}</span>
+                                    ${isAdmin ? `<button onclick="window.SX_DelLog('${l._id}', ${l.qty}, '${houseA.id}')" class="text-red-300 hover:text-red-500 font-bold text-lg leading-none" title="Xóa & Trừ kho">×</button>` : ''}
+                                </div>
+                            </div>
+                        `).join('') : '<div class="text-center text-slate-300 italic text-[10px]">Chưa có dữ liệu nhập</div>'}
+                    </div>
+                </div>
+            </div>` : '<div class="p-4 text-center text-red-500 bg-red-50 rounded">Chưa tạo "Nhà A" trong hệ thống!</div>'}
 
-        // GLOBAL HELPER
-        window.SX = {
-            ...window.SX,
-            preview: () => { const s=document.getElementById('in-strain').value, d=document.getElementById('in-date').value; document.getElementById('preview-code').innerText = (s&&d)?genCode(s,d):"..."; },
-            delInv: (id) => { if(confirm("Xóa log?")) deleteDoc(doc(db, `${ROOT_PATH}/spawn_inventory`, id)); },
-            delM: (id) => { if(confirm("Xóa VT?")) deleteDoc(doc(db, `${ROOT_PATH}/supplies`, id)); },
-            delHouse: (id, name) => { if(confirm(`Xóa nhà ${name}?`)) deleteDoc(doc(db, `${ROOT_PATH}/houses`, id)); },
-            
-            // --- HÀM KẾT THÚC VỤ (QUAN TRỌNG) ---
-            endBatch: (id, name) => {
-                if(confirm(`Bạn có chắc chắn muốn KẾT THÚC VỤ tại ${name}?\n\n- Trạng thái nhà sẽ về TRỐNG.\n- Số liệu 'Đã thu' bên Home sẽ tự động RESET về 0.`)) {
-                    updateDoc(doc(db, `${ROOT_PATH}/houses`, id), {
-                        status: 'EMPTY',
-                        currentBatch: '',
-                        batchQty: 0,
-                        startDate: '' // Xóa ngày -> Home tự hiểu là reset
-                    });
-                    Utils.toast("Đã dọn vụ thành công!");
-                }
-            }
-        };
+            <div>
+                <h3 class="font-bold text-slate-500 text-xs uppercase px-1 mb-3">TIẾN ĐỘ CÁC NHÀ</h3>
+                <div class="grid grid-cols-1 gap-3">
+                    ${houses.filter(h => h.id !== (houseA?.id)).map(h => {
+                        const isActive = h.status === 'ACTIVE';
+                        return `
+                        <div class="glass p-3 border-l-4 ${isActive?'border-green-500':'border-slate-300'} bg-white shadow-sm flex justify-between items-center">
+                            <div>
+                                <div class="font-bold text-slate-700">${h.name}</div>
+                                <div class="text-[10px] text-slate-400">${isActive ? `Lô: ${h.currentBatch} - ${h.batchQty} bịch` : 'Đang trống'}</div>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-1 rounded ${isActive?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'}">${isActive?'ĐANG CHẠY':'TRỐNG'}</span>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+        </div>`;
 
-        // GẮN SỰ KIỆN (Giữ nguyên logic cũ)
+        // EVENTS
         setTimeout(() => {
-            const qtyInput = document.getElementById('out-qty');
-            if(qtyInput) qtyInput.addEventListener('input', () => { if (Number(qtyInput.value) > tonKhoA) { qtyInput.value = tonKhoA; document.getElementById('stock-warning').innerText = `⚠️ Max: ${tonKhoA}`; } else document.getElementById('stock-warning').innerText = ""; });
+            const dateIn = document.getElementById('imp-date'); 
+            if(dateIn) dateIn.valueAsDate = new Date();
 
-            const btnIn = document.getElementById('btn-in-a');
-            if(btnIn) btnIn.onclick = async () => {
-                const s=document.getElementById('in-strain').value, d=document.getElementById('in-date').value, q=Number(document.getElementById('in-qty').value);
-                if(!s||!d||!q) return Utils.toast("Thiếu tin!", "err");
-                await addDoc(collection(db, `${ROOT_PATH}/spawn_inventory`), { batchCode: genCode(s,d), strain:s, date:d, qty:q, inputDate: new Date().toISOString() });
-                if(houseA) await updateDoc(doc(db, `${ROOT_PATH}/houses`, houseA.id), { batchQty: increment(q) });
-                Utils.toast("Đã nhập!"); document.getElementById('in-qty').value='';
-            };
+            const btnImp = document.getElementById('btn-imp');
+            if(btnImp && houseA) {
+                // Xóa sự kiện cũ
+                const newBtn = btnImp.cloneNode(true);
+                btnImp.parentNode.replaceChild(newBtn, btnImp);
+                
+                newBtn.onclick = async () => {
+                    const qty = Number(document.getElementById('imp-qty').value);
+                    const source = document.getElementById('imp-source').value;
+                    const dateVal = document.getElementById('imp-date').value;
 
-            const btnOut = document.getElementById('btn-out-a');
-            if(btnOut) btnOut.onclick = async () => {
-                const bc = document.getElementById('out-batch').value;
-                const hEl = document.getElementById('out-house');
-                const hid = hEl.value;
-                const qty = Number(document.getElementById('out-qty').value);
-                if(!bc||!hid||!qty) return Utils.toast("Thiếu tin!", "err");
-                if(qty > tonKhoA) return Utils.toast("Quá kho!", "err");
-
-                await updateDoc(doc(db, `${ROOT_PATH}/houses`, houseA.id), { batchQty: increment(-qty) });
-                const curBatch = hEl.options[hEl.selectedIndex].getAttribute('data-cur') || "";
-                const newBatch = curBatch.includes(bc) ? curBatch : (curBatch ? `${curBatch}, ${bc}` : bc);
-
-                await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), {
-                    status: 'ACTIVE',
-                    batchQty: increment(qty),
-                    currentBatch: newBatch,
-                    // QUAN TRỌNG: Cập nhật startDate để Home biết mốc tính sản lượng mới
-                    startDate: new Date().toISOString().split('T')[0]
-                });
-                Utils.toast(`Đã xuất ${qty} bịch!`);
-            };
-
-            document.getElementById('btn-add-mat').onclick = () => { const n=document.getElementById('mat-n').value, q=Number(document.getElementById('mat-q').value); if(n&&q) addDoc(collection(db, `${ROOT_PATH}/supplies`), {name:n, qty:q}); };
-            const btnH = document.getElementById('btn-add-h'); if(btnH) btnH.onclick = () => { const n=prompt("Tên Nhà:"); if(n) addDoc(collection(db, `${ROOT_PATH}/houses`), {name:n, status:'EMPTY', batchQty:0, currentBatch:''}); };
-
-        }, 100);
+                    if(qty > 0 && dateVal) {
+                        const batch = db.batch();
+                        // 1. Tạo log nhập
+                        batch.set(doc(collection(db, `${ROOT_PATH}/supplies`)), {
+                            type: 'IMPORT',
+                            to: houseA.id,
+                            qty: qty,
+                            source: source,
+                            user: user.name,
+                            time: new Date(dateVal).getTime()
+                        });
+                        // 2. Cộng tồn kho A
+                        batch.update(doc(db, `${ROOT_PATH}/houses`, houseA.id), { batchQty: increment(qty) });
+                        
+                        await batch.commit();
+                        Utils.toast(`✅ Đã nhập ${qty} bịch vào Kho A`);
+                        document.getElementById('imp-qty').value = '';
+                    } else {
+                        Utils.toast("Thiếu số lượng hoặc ngày!", "err");
+                    }
+                };
+            }
+        }, 200);
     }
 };
