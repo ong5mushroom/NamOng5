@@ -1,7 +1,6 @@
 import { addDoc, collection, db, ROOT_PATH, updateDoc, doc, deleteDoc, increment, writeBatch } from '../config.js';
 import { Utils } from '../utils.js';
 
-// --- HỆ THỐNG XỬ LÝ (CHAT, ĐIỂM, DUYỆT) ---
 window.HR_Action = {
     chat: async (user, msg, isSystem = false) => {
         try { await addDoc(collection(db, `${ROOT_PATH}/chat`), { user, message: msg, time: Date.now(), type: isSystem ? 'NOTIFY' : 'CHAT' }); } catch(e) {}
