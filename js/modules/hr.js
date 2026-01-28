@@ -1,9 +1,9 @@
 import { addDoc, collection, db, ROOT_PATH, updateDoc, doc, deleteDoc, increment, writeBatch } from '../config.js';
 import { Utils } from '../utils.js';
 
-// --- HỆ THỐNG XỬ LÝ (CHAT, ĐIỂM, DUYỆT) ---
+// --- HỆ THỐNG XỬ LÝ (LOGIC GIỮ NGUYÊN ĐỂ LƯU LỊCH SỬ) ---
 window.HR_Action = {
-    // 1. Gửi tin nhắn / Thông báo
+    // 1. Lưu log hệ thống (Vẫn lưu vào database nhưng không hiện ra nữa)
     chat: async (user, msg, isSystem = false) => {
         try {
             await addDoc(collection(db, `${ROOT_PATH}/chat`), {
@@ -12,39 +12,38 @@ window.HR_Action = {
         } catch(e) { console.error(e); }
     },
 
-    // 2. Cộng/Trừ điểm (MỚI)
+    // 2. Cộng/Trừ điểm
     score: async (id, name, val, adminName) => {
         const reason = prompt(`Lý do ${val > 0 ? 'thưởng' : 'phạt'} điểm ${name}?`);
         if(reason) {
             try {
                 await updateDoc(doc(db, `${ROOT_PATH}/employees`, id), { score: increment(val) });
                 Utils.toast("Đã cập nhật điểm!");
+                // Lưu log ngầm
                 window.HR_Action.chat("HỆ THỐNG", `⚖️ ${adminName} đã ${val>0?'THƯỞNG':'PHẠT'} ${name} ${Math.abs(val)} điểm. Lý do: ${reason}`, true);
             } catch(e) { alert(e.message); }
         }
     },
 
-    // 3. Nhắc nhở nhân viên (MỚI)
+    // 3. Nhắc nhở
     remind: async (empName, taskTitle, type) => {
-        const msg = type === 'ACCEPT' 
-            ? `🔔 @${empName}, vui lòng NHẬN VIỆC: "${taskTitle}" ngay nhé!` 
-            : `⏰ @${empName}, báo cáo tiến độ việc: "${taskTitle}" nhé!`;
-        
-        await window.HR_Action.chat("NHẮC NHỞ", msg, true);
-        Utils.toast("Đã gửi nhắc nhở!");
+        // Vì bỏ khung chat nên ta sẽ dùng Toast để báo đã nhắc (hoặc sau này tích hợp thông báo đẩy)
+        Utils.toast(`Đã gửi nhắc nhở đến ${empName}!`);
+        // Vẫn lưu log
+        const msg = type === 'ACCEPT' ? `🔔 Nhắc ${empName} nhận việc: "${taskTitle}"` : `⏰ Nhắc ${empName} báo cáo: "${taskTitle}"`;
+        window.HR_Action.chat("NHẮC NHỞ", msg, true);
     },
 
     // 4. Duyệt đơn
     approve: async (id, title, reqUser, adminName, isOk) => {
         if(confirm(isOk ? "Duyệt đơn này?" : "Từ chối đơn này?")) {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: isOk ? 'DONE' : 'REJECT' });
-            const statusText = isOk ? "✅ Đã DUYỆT" : "❌ Đã TỪ CHỐI";
-            Utils.toast(isOk ? "Đã duyệt!" : "Đã từ chối!");
-            window.HR_Action.chat("HỆ THỐNG", `${statusText} đơn: "${title}" của ${reqUser} (bởi ${adminName})`, true);
+            Utils.toast(isOk ? "✅ Đã duyệt!" : "❌ Đã từ chối!");
+            window.HR_Action.chat("HỆ THỐNG", `${isOk ? "✅ DUYỆT" : "❌ TỪ CHỐI"} đơn: "${title}" của ${reqUser} (bởi ${adminName})`, true);
         }
     },
 
-    // 5. Thao tác việc (Nhận/Xong/Xóa)
+    // 5. Thao tác việc
     task: {
         del: async (id) => { if(confirm("Xóa việc này?")) await deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id)); },
         accept: async (id, title, u) => { 
@@ -124,7 +123,7 @@ export const HR = {
                             ${isAdmin && !isDone ? `
                                 <button onclick="window.HR_Action.remind('${empName}', '${safeTitle}', '${t.status==='PENDING'?'ACCEPT':'REPORT'}')" 
                                         class="text-[9px] font-bold px-1.5 py-0.5 rounded border ${t.status==='PENDING'?'text-orange-600 border-orange-200 bg-orange-50':'text-blue-600 border-blue-200 bg-blue-50'}">
-                                    ${t.status==='PENDING' ? '🔔 Nhắc nhận' : '⏰ Nhắc báo cáo'}
+                                    ${t.status==='PENDING' ? '🔔 Nhắc' : '⏰ Nhắc'}
                                 </button>
                             ` : ''}
                         </div>
@@ -173,20 +172,20 @@ export const HR = {
         const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
         const employees = Array.isArray(data.employees) ? data.employees : [];
         const tasks = Array.isArray(data.tasks) ? data.tasks : [];
-        const chats = Array.isArray(data.chat) ? data.chat.sort((a,b)=>b.time-a.time).slice(0,30) : [];
         const pending = tasks.filter(t => t.status === 'PENDING' && ['LEAVE', 'BUY', 'CHECKIN'].includes(t.type));
 
         c.innerHTML = `
         <div class="space-y-5 pb-24">
+            
             ${isAdmin && pending.length ? `
             <div class="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-xl animate-pop shadow-sm">
                 <h3 class="font-black text-red-600 text-xs uppercase mb-2 flex items-center gap-2"><i class="fas fa-bell animate-bounce"></i> CẦN DUYỆT (${pending.length})</h3>
                 <div class="space-y-2 max-h-48 overflow-y-auto">${pending.map(t=>`
                     <div class="bg-white p-2 rounded shadow-sm flex justify-between items-center">
-                        <div><div class="text-[10px] font-bold text-slate-700">${t.by} <span class="font-normal">(${t.type})</span></div><div class="text-xs font-bold text-red-500">${t.title}</div></div>
+                        <div><div class="text-[10px] font-bold text-slate-700">${t.by} <span class="font-normal">(${t.type==='LEAVE'?'Nghỉ':(t.type==='BUY'?'Mua':'Checkin')})</span></div><div class="text-xs font-bold text-red-500">${t.title}</div></div>
                         <div class="flex gap-1">
-                            <button onclick="window.HR_Action.approve('${t.id}','${t.title}','${t.by}','${user.name}', true)" class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold">OK</button>
-                            <button onclick="window.HR_Action.approve('${t.id}','${t.title}','${t.by}','${user.name}', false)" class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] font-bold">Hủy</button>
+                            <button onclick="window.HR_Approve.ok('${t.id}','${t.title}','${t.by}','${user.name}', true)" class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold">OK</button>
+                            <button onclick="window.HR_Approve.no('${t.id}','${t.title}','${t.by}','${user.name}', false)" class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] font-bold">Hủy</button>
                         </div>
                     </div>`).join('')}
                 </div>
@@ -198,28 +197,6 @@ export const HR = {
                     <button id="btn-checkin" class="p-3 bg-white rounded-xl border border-purple-200 shadow-sm flex flex-col items-center active:scale-95 transition hover:shadow-md"><i class="fas fa-fingerprint text-2xl text-blue-500 mb-2"></i><span class="text-[10px] font-bold mt-1 text-slate-600">Chấm công</span></button>
                     <button id="btn-leave" class="p-3 bg-white rounded-xl border border-purple-200 shadow-sm flex flex-col items-center active:scale-95 transition hover:shadow-md"><i class="fas fa-user-clock text-2xl text-orange-500 mb-2"></i><span class="text-[10px] font-bold mt-1 text-slate-600">Xin nghỉ</span></button>
                     <button id="btn-buy" class="p-3 bg-white rounded-xl border border-purple-200 shadow-sm flex flex-col items-center active:scale-95 transition hover:shadow-md"><i class="fas fa-shopping-cart text-2xl text-green-500 mb-2"></i><span class="text-[10px] font-bold mt-1 text-slate-600">Mua hàng</span></button>
-                </div>
-            </div>
-
-            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm h-80 flex flex-col">
-                <div class="bg-slate-100 p-2 border-b font-bold text-xs text-slate-600 uppercase">💬 THẢO LUẬN</div>
-                <div class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50 flex flex-col-reverse">
-                    ${chats.map(msg => `
-                        <div class="flex flex-col ${msg.type==='NOTIFY'?'items-center':'items-start'}">
-                            ${msg.type==='NOTIFY' 
-                                ? `<span class="text-[9px] bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-center mb-1 border border-gray-300">${msg.message}</span>`
-                                : `<div class="bg-white px-3 py-2 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm max-w-[90%]">
-                                    <div class="text-xs text-slate-800">
-                                        <span class="font-bold text-blue-700 mr-1">${msg.user}:</span>${msg.message}
-                                    </div>
-                                    <div class="text-[8px] text-slate-300 text-right mt-0.5">${new Date(msg.time).toLocaleTimeString('vi-VN').slice(0,5)}</div>
-                                   </div>`
-                            }
-                        </div>`).join('')}
-                </div>
-                <div class="p-2 border-t bg-white flex gap-2">
-                    <input id="chat-msg" class="flex-1 p-2 border rounded-full text-xs outline-none bg-slate-50 focus:bg-white focus:border-blue-400 transition" placeholder="Nhập tin nhắn...">
-                    <button id="chat-send" class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm active:scale-90"><i class="fas fa-paper-plane text-xs"></i></button>
                 </div>
             </div>
 
@@ -237,7 +214,6 @@ export const HR = {
                         </div>
                         <div class="flex items-center gap-3">
                             <div class="font-black text-xl text-green-600">${e.score || 0}</div>
-                            
                             ${isAdmin ? `
                             <div class="flex flex-col gap-1">
                                 <button onclick="window.HR_Action.score('${e._id}', '${e.name}', 10, '${user.name}')" class="w-6 h-6 bg-green-100 text-green-700 rounded flex items-center justify-center font-bold hover:bg-green-200 shadow-sm">+</button>
@@ -250,19 +226,10 @@ export const HR = {
         </div>`;
 
         setTimeout(() => {
-            const sendReq = async (t, type) => { await addDoc(collection(db,`${ROOT_PATH}/tasks`), {title:t, to:'ADMIN', by:user.name, type, status:'PENDING', time:Date.now()}); Utils.toast("Đã gửi!"); window.HR_Action.chat(user.name, `📝 Gửi yêu cầu: ${t}`, true); };
-            const b1=document.getElementById('btn-checkin'); if(b1) b1.onclick = () => { if(confirm("Xác nhận chấm công?")) sendReq("Đã chấm công", "CHECKIN"); };
-            
-            // XIN NGHỈ (Form Modal)
+            const sendReq = async (t, type) => { await addDoc(collection(db,`${ROOT_PATH}/tasks`), {title:t, to:'ADMIN', by:user.name, type, status:'PENDING', time:Date.now()}); Utils.toast("Đã gửi yêu cầu!"); window.HR_Action.chat(user.name, `📝 Gửi yêu cầu: ${t}`, true); };
+            const b1=document.getElementById('btn-checkin'); if(b1) b1.onclick = () => { if(confirm("Chấm công?")) sendReq("Đã chấm công", "CHECKIN"); };
             const b2=document.getElementById('btn-leave'); if(b2) b2.onclick=()=>{Utils.modal("Xin Nghỉ",`<div class="space-y-2"><div><label class="text-[10px] font-bold text-slate-500">Lý do</label><input id="l-r" class="w-full p-2 border rounded text-xs"></div><div class="flex gap-2"><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Từ ngày</label><input type="date" id="l-d" class="w-full p-2 border rounded text-xs"></div><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Số ngày</label><input type="number" id="l-n" class="w-full p-2 border rounded text-xs" value="1"></div></div></div>`,[{id:'s-ok',text:'Gửi'}]);setTimeout(()=>{document.getElementById('l-d').valueAsDate=new Date();document.getElementById('s-ok').onclick=()=>{const r=document.getElementById('l-r').value,d=document.getElementById('l-d').value,n=document.getElementById('l-n').value;if(r&&d&&n){sendReq(`Nghỉ ${n} ngày (từ ${new Date(d).toLocaleDateString('vi-VN')}): ${r}`,"LEAVE");Utils.modal(null);}else alert("Thiếu tin!")}},100)};
-            
-            // MUA HÀNG (Form Modal)
             const b3=document.getElementById('btn-buy'); if(b3) b3.onclick=()=>{Utils.modal("Mua Hàng",`<div class="space-y-2"><div><label class="text-[10px] font-bold text-slate-500">Tên món</label><input id="b-n" class="w-full p-2 border rounded text-xs"></div><div class="flex gap-2"><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">SL</label><input type="number" id="b-q" class="w-full p-2 border rounded text-xs" value="1"></div><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Cần ngày</label><input type="date" id="b-d" class="w-full p-2 border rounded text-xs"></div></div></div>`,[{id:'s-ok',text:'Gửi'}]);setTimeout(()=>{document.getElementById('b-d').valueAsDate=new Date();document.getElementById('s-ok').onclick=()=>{const n=document.getElementById('b-n').value,q=document.getElementById('b-q').value,d=document.getElementById('b-d').value;if(n&&q&&d){sendReq(`Mua ${q} ${n} (cần ${new Date(d).toLocaleDateString('vi-VN')})`,"BUY");Utils.modal(null);}else alert("Thiếu tin!")}},100)};
-
-            // Chat
-            const sendChat = async () => { const m = document.getElementById('chat-msg').value; if(m.trim()) { await window.HR_Action.chat(user.name, m); document.getElementById('chat-msg').value=''; } };
-            document.getElementById('chat-send').onclick = sendChat;
-            document.getElementById('chat-msg').onkeypress = (e) => { if(e.key==='Enter') sendChat(); };
         }, 100);
     }
 };
