@@ -12,7 +12,18 @@ window.SX_Action = {
             } catch(e) { alert(e.message); }
         }
     },
-    reset0: async (hid) => { if(confirm("⚠️ Đưa về 0?")) { await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { batchQty: 0 }); Utils.toast("Đã Reset!"); } },
+    // --- SỬA LỖI Ở ĐÂY: Reset sạch sẽ ---
+    reset0: async (hid) => { 
+        if(confirm("⚠️ CẢNH BÁO: Reset về 0 và Xóa mã lô hiện tại?")) { 
+            // Đưa về trạng thái ban đầu: Không phôi, không mã, trạng thái rỗng
+            await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { 
+                batchQty: 0,
+                currentBatch: '', // Xóa mã lô
+                status: 'EMPTY'   // Đưa về trạng thái trống
+            }); 
+            Utils.toast("Đã Reset sạch kho!"); 
+        } 
+    },
     adjust: async (hid) => { const v=prompt("Nhập số (+/-):"); if(v) { await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { batchQty: increment(Number(v)) }); Utils.toast("Đã sửa!"); } },
     addHouse: async () => {
         const name = prompt("Tên nhà mới (VD: Nhà 5):");
@@ -39,7 +50,7 @@ export const SX = {
             <div class="bg-gradient-to-br from-purple-50 to-white p-5 rounded-2xl border border-purple-100 shadow-sm">
                 <div class="flex justify-between items-start mb-4">
                     <div><h3 class="font-black text-purple-800 text-sm uppercase flex items-center gap-2"><i class="fas fa-warehouse"></i> ${houseA.name}</h3><div class="text-[10px] text-purple-400 font-bold mt-1 tracking-wider">KHO TỔNG</div></div>
-                    <div class="text-right"><span class="text-3xl font-black text-purple-700 block tracking-tight">${(houseA.batchQty||0).toLocaleString()}</span>${isAdmin ? `<div class="flex gap-2 justify-end mt-1 opacity-80"><button onclick="window.SX_Action.reset0('${houseA.id}')" class="text-[9px] font-bold text-red-500 hover:underline">RESET</button><button onclick="window.SX_Action.adjust('${houseA.id}')" class="text-[9px] font-bold text-purple-500 hover:underline">SỬA</button></div>` : ''}</div>
+                    <div class="text-right"><span class="text-3xl font-black text-purple-700 block tracking-tight">${(houseA.batchQty||0).toLocaleString()}</span>${isAdmin ? `<div class="flex gap-2 justify-end mt-1 opacity-80"><button onclick="window.SX_Action.reset0('${houseA.id}')" class="text-[9px] font-bold text-red-500 hover:underline">RESET 0</button><button onclick="window.SX_Action.adjust('${houseA.id}')" class="text-[9px] font-bold text-purple-500 hover:underline">SỬA</button></div>` : ''}</div>
                 </div>
                 ${isAdmin ? `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
