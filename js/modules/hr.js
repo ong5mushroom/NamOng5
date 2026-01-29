@@ -1,32 +1,16 @@
 import { addDoc, collection, db, ROOT_PATH, updateDoc, doc, deleteDoc, increment, writeBatch, getDocs, query, where } from '../config.js';
 import { Utils } from '../utils.js';
 
-// --- 1. HTML MẪU (Để tránh lỗi cú pháp khi nhúng) ---
-const FORM_LEAVE = `
-    <div class="space-y-3">
-        <div><label class="text-[10px] font-bold text-slate-500 uppercase">Lý do nghỉ</label><input id="l-r" class="w-full p-2 border rounded text-xs font-bold" placeholder="VD: Việc gia đình..."></div>
-        <div class="flex gap-2">
-            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500 uppercase">Từ ngày</label><input type="date" id="l-d" class="w-full p-2 border rounded text-xs font-bold"></div>
-            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500 uppercase">Số ngày</label><input type="number" id="l-n" class="w-full p-2 border rounded text-xs font-bold text-center" value="1"></div>
-        </div>
-    </div>`;
-
-const FORM_BUY = `
-    <div class="space-y-3">
-        <div><label class="text-[10px] font-bold text-slate-500 uppercase">Tên vật tư</label><input id="b-n" class="w-full p-2 border rounded text-xs font-bold" placeholder="VD: Bóng đèn..."></div>
-        <div class="flex gap-2">
-            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500 uppercase">Số lượng</label><input type="number" id="b-q" class="w-full p-2 border rounded text-xs font-bold text-center" value="1"></div>
-            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500 uppercase">Cần ngày</label><input type="date" id="b-d" class="w-full p-2 border rounded text-xs font-bold"></div>
-        </div>
-    </div>`;
-
-// --- 2. HỆ THỐNG XỬ LÝ (Action) ---
+// --- HỆ THỐNG XỬ LÝ (Global Action) ---
 window.HR_Action = {
+    // 1. Chat
     chat: async (user, msg, isSystem = false) => {
-        try { await addDoc(collection(db, `${ROOT_PATH}/chat`), { user, message: msg, time: Date.now(), type: isSystem ? 'NOTIFY' : 'CHAT' }); } catch(e) {}
+        try {
+            await addDoc(collection(db, `${ROOT_PATH}/chat`), { user, message: msg, time: Date.now(), type: isSystem ? 'NOTIFY' : 'CHAT' });
+        } catch (e) { console.error(e); }
     },
 
-    // Chấm điểm (Nhận tham số đã mã hóa để an toàn)
+    // 2. Chấm điểm thủ công
     score: async (id, nameEnc, val, adminEnc) => {
         const name = decodeURIComponent(nameEnc);
         const adminName = decodeURIComponent(adminEnc);
@@ -40,12 +24,13 @@ window.HR_Action = {
         }
     },
 
-    // Nhắc nhở & Phạt
+    // 3. NHẮC NHỞ & PHẠT ĐIỂM (Nhận -1, Báo cáo -5)
     remind: async (empId, nameEnc, titleEnc, type) => {
         const name = decodeURIComponent(nameEnc);
         const title = decodeURIComponent(titleEnc);
         const penalty = type === 'ACCEPT' ? -1 : -5;
         const msgType = type === 'ACCEPT' ? 'nhận việc' : 'báo cáo';
+        
         try {
             await updateDoc(doc(db, `${ROOT_PATH}/employees`, empId), { score: increment(penalty) });
             Utils.toast(`Đã nhắc và trừ ${Math.abs(penalty)} điểm!`);
@@ -53,13 +38,13 @@ window.HR_Action = {
         } catch(e) { alert(e.message); }
     },
 
-    // Duyệt đơn
+    // 4. DUYỆT ĐƠN
     approve: async (id, titleEnc, userEnc, adminEnc, isOk) => {
         const title = decodeURIComponent(titleEnc);
         const user = decodeURIComponent(userEnc);
         const admin = decodeURIComponent(adminEnc);
         
-        if (confirm(isOk ? `Duyệt đơn "${title}"?` : `Từ chối đơn này?`)) {
+        if (confirm(isOk ? `Duyệt đơn "${title}"?` : `Từ chối?`)) {
             try {
                 await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: isOk ? 'DONE' : 'REJECT' });
                 Utils.toast("Đã xử lý!");
@@ -68,13 +53,14 @@ window.HR_Action = {
         }
     },
 
-    // Thao tác Task
+    // 5. TASK
     task: {
         del: async (id) => {
             if (confirm("Xóa việc này?")) {
                 try {
                     await deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id));
-                    const el = document.getElementById(`task-${id}`); if(el) el.remove();
+                    const el = document.getElementById(`task-${id}`);
+                    if (el) el.remove();
                     Utils.toast("Đã xóa!");
                 } catch (e) { alert(e.message); }
             }
@@ -85,6 +71,7 @@ window.HR_Action = {
         },
         finish: async (id, tEnc, u, uid) => {
             try {
+                // Yêu cầu Index trên Firebase
                 const start = new Date(); start.setHours(0,0,0,0);
                 const q = query(collection(db, `${ROOT_PATH}/tasks`), where("to", "==", uid), where("time", ">=", start.getTime()));
                 const snap = await getDocs(q);
@@ -98,15 +85,14 @@ window.HR_Action = {
                 await batch.commit();
 
                 window.HR_Action.chat("TIẾN ĐỘ", `🏁 ${u} đã XONG: "${decodeURIComponent(tEnc)}" (+${points}đ)`, true);
-                Utils.toast(`Xong! Cộng ${points} điểm.`);
-            } catch(e) { alert("Lỗi (Hãy tạo Index): " + e.message); }
+                Utils.toast(`Xong! Cộng ${points}đ.`);
+            } catch(e) { alert("Lỗi Index: " + e.message); }
         }
     }
 };
 
-// --- 3. GIAO DIỆN (Render) ---
 export const HR = {
-    // === TAB 1: VIỆC ===
+    // === TAB 1: GIAO VIỆC ===
     renderTasks: (data, user) => {
         const c = document.getElementById('view-tasks');
         if (!c || c.classList.contains('hidden')) return;
@@ -120,19 +106,22 @@ export const HR = {
         <div class="space-y-4 pb-24">
             ${isAdmin ? `
             <div class="bg-white p-4 rounded-xl shadow-sm border border-blue-100">
-                <h3 class="font-black text-blue-600 text-xs uppercase mb-3"><i class="fas fa-paper-plane"></i> GIAO VIỆC NHANH</h3>
-                <input id="t-t" placeholder="Nội dung công việc..." class="w-full p-3 rounded-lg border border-slate-200 text-sm mb-3 focus:border-blue-500 outline-none">
-                <div class="flex gap-2 mb-3">
-                    <select id="t-area" class="w-1/2 p-2 rounded-lg border border-slate-200 text-xs font-bold"><option value="">-- Khu vực --</option>${houses.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}<option value="Khác">Khác</option></select>
-                    <input type="date" id="t-date" class="w-1/2 p-2 rounded-lg border border-slate-200 text-xs font-bold">
+                <h3 class="font-black text-blue-600 text-xs uppercase mb-3">GIAO VIỆC NHANH</h3>
+                <input id="t-t" placeholder="Nội dung..." class="w-full p-2 border rounded mb-2 text-xs">
+                <div class="flex gap-2 mb-2">
+                    <select id="t-area" class="w-1/2 p-2 border rounded text-xs"><option value="">-- Khu --</option>${houses.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}<option value="Khác">Khác</option></select>
+                    <input type="date" id="t-date" class="w-1/2 p-2 border rounded text-xs">
                 </div>
-                <div class="bg-slate-50 p-2 rounded-lg border border-slate-100 max-h-32 overflow-y-auto grid grid-cols-2 gap-2 mb-3">
-                    <label class="col-span-2 font-bold text-xs border-b pb-1 text-blue-600"><input type="checkbox" id="check-all"> Chọn tất cả</label>
-                    ${employees.map(e=>`<label class="flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" class="ec" value="${e._id}" data-name="${e.name}"> ${e.name}</label>`).join('')}
+                <div class="bg-slate-50 p-2 border rounded max-h-32 overflow-y-auto grid grid-cols-2 gap-2 mb-3">
+                    <label class="col-span-2 text-xs font-bold"><input type="checkbox" id="check-all"> Chọn tất cả</label>
+                    ${employees.map(e=>`<label class="flex items-center gap-1 text-xs"><input type="checkbox" class="ec" value="${e._id}" data-name="${e.name}"> ${e.name}</label>`).join('')}
                 </div>
-                <button id="btn-tsk" class="w-full bg-blue-600 text-white rounded-lg py-3 text-xs font-bold shadow-md shadow-blue-200 active:scale-95 transition">GỬI YÊU CẦU</button>
+                <button id="btn-tsk" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold">GỬI</button>
             </div>` : ''}
-            <div><div class="flex justify-between items-center mb-2 px-1"><h2 class="font-black text-slate-700 text-sm uppercase">NHẬT KÝ</h2><select id="filter-emp" class="text-[10px] border rounded p-1 bg-white"><option value="ALL">Tất cả</option>${employees.map(e=>`<option value="${e._id}">${e.name}</option>`).join('')}</select></div><div id="lst" class="space-y-3"></div></div>
+            <div>
+                <div class="flex justify-between items-center mb-2 px-1"><h2 class="font-black text-xs uppercase">NHẬT KÝ</h2><select id="filter-emp" class="text-[10px] border rounded p-1"><option value="ALL">Tất cả</option>${employees.map(e=>`<option value="${e._id}">${e.name}</option>`).join('')}</select></div>
+                <div id="lst" class="space-y-2"></div>
+            </div>
         </div>`;
 
         const renderList = () => {
@@ -146,34 +135,57 @@ export const HR = {
                 const isDone = t.status === 'DONE';
                 const emp = employees.find(e=>e._id===t.to);
                 const empName = emp?.name || '...';
-                
-                // MÃ HÓA DỮ LIỆU ĐỂ TRÁNH LỖI CÚ PHÁP
                 const tEnc = encodeURIComponent(t.title);
                 const nameEnc = encodeURIComponent(empName);
                 
-                let btns = '';
+                // Nút Admin
+                let adminBtns = '';
                 if(isAdmin) {
-                    btns = `<div class="absolute top-2 right-2 flex flex-col items-end gap-1">
+                    adminBtns = `<div class="absolute top-2 right-2 flex flex-col items-end gap-1">
                         <button onclick="window.HR_Action.task.del('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-times"></i></button>
-                        ${!isDone ? `<button onclick="window.HR_Action.remind('${t.to}','${nameEnc}','${tEnc}','${t.status==='PENDING'?'ACCEPT':'REPORT'}')" class="text-[9px] bg-yellow-50 text-yellow-600 px-2 py-1 rounded border border-yellow-200">${t.status==='PENDING'?'🔔 Nhắc -1đ':'⏰ Báo cáo -5đ'}</button>` : ''}
+                        ${!isDone ? `<button onclick="window.HR_Action.remind('${emp._id}','${nameEnc}','${tEnc}','${t.status==='PENDING'?'ACCEPT':'REPORT'}')" class="text-[9px] border px-1 rounded">${t.status==='PENDING'?'🔔 -1đ':'⏰ -5đ'}</button>` : ''}
                     </div>`;
                 }
 
+                // Nút User
                 let userAction = '';
                 if(!isDone && t.to === user._id) {
                     userAction = t.status !== 'DOING' 
-                        ? `<button onclick="window.HR_Action.task.accept('${t.id}','${tEnc}','${user.name}')" class="w-full mt-2 py-2 bg-blue-100 text-blue-700 font-bold text-[10px] rounded hover:bg-blue-200">NHẬN VIỆC</button>`
-                        : `<button onclick="window.HR_Action.task.finish('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-2 bg-green-100 text-green-700 font-bold text-[10px] rounded hover:bg-green-200">BÁO CÁO XONG</button>`;
+                        ? `<button onclick="window.HR_Action.task.accept('${t.id}','${tEnc}','${user.name}')" class="w-full mt-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">NHẬN VIỆC</button>`
+                        : `<button onclick="window.HR_Action.task.finish('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded">BÁO CÁO XONG</button>`;
                 }
 
-                return `<div id="task-${t.id}" class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm relative ${isDone?'opacity-60 bg-slate-50':''}">
-                    <div class="pr-8"><span class="text-xs font-bold text-slate-700 block ${isDone?'line-through':''}">${t.area?`[${t.area}] `:''}${t.title}</span><span class="text-[10px] text-slate-400 mt-1 block">Người làm: <b>${empName}</b> • ${new Date(t.time).toLocaleDateString('vi-VN')}</span></div>
-                    ${btns} ${userAction}
+                return `<div id="task-${t.id}" class="bg-white p-3 rounded border shadow-sm relative ${isDone?'opacity-50':''}">
+                    <div class="pr-8"><span class="text-xs font-bold text-slate-700 block ${isDone?'line-through':''}">${t.area?`[${t.area}] `:''}${t.title}</span><span class="text-[10px] text-slate-400">Người làm: <b>${empName}</b> • ${new Date(t.time).toLocaleDateString('vi-VN')}</span></div>
+                    ${adminBtns} ${userAction}
                 </div>`;
-            }).join('') : '<div class="text-center text-slate-300 italic text-xs py-10">Chưa có công việc nào</div>';
+            }).join('') : '<div class="text-center text-slate-400 text-xs py-4">Chưa có dữ liệu</div>';
         };
 
-        setTimeout(()=>{ renderList(); const dIn=document.getElementById('t-date'); if(dIn) dIn.valueAsDate=new Date(); const fSel=document.getElementById('filter-emp'); if(fSel) fSel.onchange=renderList; const chkAll=document.getElementById('check-all'); if(chkAll) chkAll.onchange=(e)=>document.querySelectorAll('.ec').forEach(cb=>cb.checked=e.target.checked); const btn=document.getElementById('btn-tsk'); if(btn) btn.onclick=async()=>{const t=document.getElementById('t-t').value; const a=document.getElementById('t-area').value; const chk=document.querySelectorAll('.ec:checked'); if(t&&chk.length){const batch=writeBatch(db); const names=[]; chk.forEach(c=>{const ref=doc(collection(db,`${ROOT_PATH}/tasks`)); batch.set(ref,{title:t,area:a,to:c.value,by:user.name,status:'PENDING',time:Date.now(),type:'TASK'}); names.push(c.getAttribute('data-name'))}); await batch.commit(); window.HR_Action.chat(user.name,`📢 Đã giao: "${t}" ${a?`tại ${a}`:''} cho ${names.join(', ')}`,true); Utils.toast("Đã giao!"); renderList(); document.getElementById('t-t').value='';}else Utils.toast("Thiếu tin!","err")}}}, 200);
+        setTimeout(()=>{ 
+            renderList(); 
+            const dIn = document.getElementById('t-date'); if(dIn) dIn.valueAsDate = new Date();
+            const fSel = document.getElementById('filter-emp'); if(fSel) fSel.onchange = renderList;
+            const chkAll = document.getElementById('check-all'); if(chkAll) chkAll.onchange=(e)=>document.querySelectorAll('.ec').forEach(cb=>cb.checked=e.target.checked);
+            
+            const btn = document.getElementById('btn-tsk');
+            if(btn) btn.onclick = async () => {
+                const t=document.getElementById('t-t').value; 
+                const a=document.getElementById('t-area').value; 
+                const chk=document.querySelectorAll('.ec:checked');
+                if(t && chk.length){
+                    const batch=writeBatch(db); const names=[];
+                    chk.forEach(c=>{
+                        const ref=doc(collection(db,`${ROOT_PATH}/tasks`)); 
+                        batch.set(ref,{title:t,area:a,to:c.value,by:user.name,status:'PENDING',time:Date.now(),type:'TASK'}); 
+                        names.push(c.getAttribute('data-name'));
+                    });
+                    await batch.commit(); 
+                    window.HR_Action.chat(user.name, `📢 Đã giao: "${t}" ${a?`tại ${a}`:''} cho ${names.join(', ')}`, true);
+                    Utils.toast("Đã giao!"); renderList(); document.getElementById('t-t').value='';
+                } else Utils.toast("Thiếu tin!","err");
+            };
+        }, 100);
     },
 
     // === TAB 2: TEAM ===
@@ -185,59 +197,43 @@ export const HR = {
         const tasks = Array.isArray(data.tasks) ? data.tasks : [];
         const employees = (Array.isArray(data.employees) ? data.employees : []).sort((a,b) => (b.score||0) - (a.score||0));
         const chats = Array.isArray(data.chat) ? data.chat.sort((a,b)=>b.time-a.time).slice(0,50) : [];
-        
         const pending = tasks.filter(t => t.status === 'PENDING' && ['LEAVE', 'BUY'].includes(t.type));
-        const top3 = employees.slice(0, 3);
-
-        // Chuẩn bị biến adminEnc ở ngoài để dùng trong loop
+        
+        // Chuẩn bị biến encode cho admin
         const adminEnc = encodeURIComponent(user.name);
 
         c.innerHTML = `
-        <div class="space-y-6 pb-24">
-            ${isAdmin && pending.length ? `<div class="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm"><h3 class="font-black text-red-600 text-xs uppercase mb-3 flex items-center gap-2"><i class="fas fa-bell animate-bounce"></i> CẦN DUYỆT (${pending.length})</h3><div class="space-y-2 max-h-60 overflow-y-auto">${pending.map(t => {
-                const tEnc = encodeURIComponent(t.title);
-                const byEnc = encodeURIComponent(t.by);
-                return `<div class="bg-white p-3 rounded-lg shadow-sm border border-red-100 flex justify-between items-center"><div><div class="text-[10px] font-bold text-slate-500">${t.by} • ${t.type==='LEAVE'?'Nghỉ':'Mua'}</div><div class="text-xs font-bold text-slate-800 line-clamp-1">${t.title}</div></div><div class="flex gap-2"><button onclick="window.HR_Action.approve('${t.id}','${tEnc}','${byEnc}','${adminEnc}',true)" class="bg-green-100 text-green-700 w-8 h-8 rounded-full font-bold flex items-center justify-center">✓</button><button onclick="window.HR_Action.approve('${t.id}','${tEnc}','${byEnc}','${adminEnc}',false)" class="bg-red-100 text-red-700 w-8 h-8 rounded-full font-bold flex items-center justify-center">✕</button></div></div>`;
+        <div class="space-y-5 pb-24">
+            ${isAdmin && pending.length ? `<div class="bg-red-50 p-3 rounded-lg border border-red-200"><h3 class="font-bold text-red-600 text-xs mb-2">CẦN DUYỆT (${pending.length})</h3><div class="space-y-2 max-h-40 overflow-y-auto">${pending.map(t=>{
+                const tEnc=encodeURIComponent(t.title); const uEnc=encodeURIComponent(t.by);
+                return `<div class="bg-white p-2 rounded flex justify-between items-center text-xs"><div><b class="text-slate-600">${t.by}</b>: ${t.title}</div><div class="flex gap-1"><button onclick="window.HR_Action.approve('${t.id}','${tEnc}','${uEnc}','${adminEnc}',true)" class="text-green-600 font-bold px-1">OK</button><button onclick="window.HR_Action.approve('${t.id}','${tEnc}','${uEnc}','${adminEnc}',false)" class="text-red-600 font-bold px-1">X</button></div></div>`;
             }).join('')}</div></div>` : ''}
 
-            <div class="bg-gradient-to-br from-yellow-50 to-white p-4 rounded-xl border border-yellow-200 shadow-sm text-center relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-2 opacity-10"><i class="fas fa-trophy text-6xl text-yellow-500"></i></div>
-                <h3 class="font-black text-yellow-600 text-xs uppercase mb-4 tracking-widest">🏆 TOP 3 XUẤT SẮC</h3>
-                <div class="flex justify-center items-end gap-2">
-                    ${top3[1] ? `<div class="flex flex-col items-center"><div class="w-10 h-10 rounded-full border-2 border-slate-300 bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-xs shadow-sm mb-1">${top3[1].name.charAt(0)}</div><div class="h-16 w-14 bg-slate-200 rounded-t-lg flex flex-col justify-end pb-2 border-t-4 border-slate-400"><span class="text-[10px] font-bold text-slate-600">${top3[1].score||0}đ</span><span class="text-[20px]">🥈</span></div><div class="text-[9px] font-bold text-slate-500 mt-1 truncate w-14">${top3[1].name}</div></div>` : ''}
-                    ${top3[0] ? `<div class="flex flex-col items-center z-10"><div class="w-12 h-12 rounded-full border-2 border-yellow-400 bg-yellow-100 flex items-center justify-center font-bold text-yellow-600 text-sm shadow-md mb-1 relative">${top3[0].name.charAt(0)}<i class="fas fa-crown absolute -top-3 text-yellow-500 text-xs animate-bounce"></i></div><div class="h-20 w-16 bg-yellow-100 rounded-t-lg flex flex-col justify-end pb-2 border-t-4 border-yellow-400 shadow-lg"><span class="text-xs font-black text-yellow-700">${top3[0].score||0}đ</span><span class="text-[24px]">🥇</span></div><div class="text-[10px] font-bold text-yellow-700 mt-1 truncate w-16">${top3[0].name}</div></div>` : '<div class="text-xs text-slate-400 italic">Chưa có dữ liệu</div>'}
-                    ${top3[2] ? `<div class="flex flex-col items-center"><div class="w-10 h-10 rounded-full border-2 border-orange-300 bg-orange-50 flex items-center justify-center font-bold text-orange-600 text-xs shadow-sm mb-1">${top3[2].name.charAt(0)}</div><div class="h-12 w-14 bg-orange-100 rounded-t-lg flex flex-col justify-end pb-2 border-t-4 border-orange-400"><span class="text-[10px] font-bold text-orange-700">${top3[2].score||0}đ</span><span class="text-[20px]">🥉</span></div><div class="text-[9px] font-bold text-slate-500 mt-1 truncate w-14">${top3[2].name}</div></div>` : ''}
-                </div>
+            <div class="grid grid-cols-3 gap-3 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                <button id="btn-checkin" class="bg-white p-2 rounded flex flex-col items-center shadow-sm"><span class="text-xl">📍</span><span class="text-[10px] font-bold">Chấm công</span></button>
+                <button id="btn-leave" class="bg-white p-2 rounded flex flex-col items-center shadow-sm"><span class="text-xl">📝</span><span class="text-[10px] font-bold">Xin nghỉ</span></button>
+                <button id="btn-buy" class="bg-white p-2 rounded flex flex-col items-center shadow-sm"><span class="text-xl">🛒</span><span class="text-[10px] font-bold">Mua hàng</span></button>
             </div>
 
-            <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-xl shadow-lg text-white">
-                <h3 class="font-bold text-xs uppercase mb-3 opacity-80 text-center tracking-widest">Tiện ích</h3>
-                <div class="grid grid-cols-3 gap-3">
-                    <button id="btn-checkin" class="flex flex-col items-center gap-2 group p-2 rounded-lg hover:bg-white/10 transition"><div class="text-2xl">📍</div><span class="text-[10px] font-bold">Chấm công</span></button>
-                    <button id="btn-leave" class="flex flex-col items-center gap-2 group p-2 rounded-lg hover:bg-white/10 transition"><div class="text-2xl">📝</div><span class="text-[10px] font-bold">Xin nghỉ</span></button>
-                    <button id="btn-buy" class="flex flex-col items-center gap-2 group p-2 rounded-lg hover:bg-white/10 transition"><div class="text-2xl">🛒</div><span class="text-[10px] font-bold">Mua hàng</span></button>
-                </div>
-            </div>
-
-            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm h-80 flex flex-col">
-                <div class="bg-slate-100 p-2 border-b font-bold text-xs text-slate-600 uppercase">💬 THẢO LUẬN</div>
-                <div id="chat-list" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 flex flex-col-reverse">
-                    ${chats.map(msg => {
-                        const isMe = msg.user === user.name;
-                        const isSys = msg.type === 'NOTIFY';
-                        if(isSys) return `<div class="flex justify-center"><span class="text-[9px] bg-gray-200 text-gray-500 px-3 py-1 rounded-full text-center border border-gray-300 max-w-[90%]">${msg.message}</span></div>`;
-                        return `<div class="flex flex-col ${isMe?'items-end':'items-start'}"><div class="max-w-[80%] ${isMe?'bg-blue-500 text-white rounded-br-none':'bg-white text-slate-700 border border-slate-200 rounded-bl-none'} px-3 py-2 rounded-xl shadow-sm text-xs relative"><div class="font-bold ${isMe?'text-blue-100':'text-blue-600'} text-[9px] mb-0.5">${msg.user}</div>${msg.message}</div><span class="text-[8px] text-slate-400 mt-1 mx-1">${new Date(msg.time).toLocaleTimeString('vi-VN').slice(0,5)}</span></div>`;
+            <div class="bg-white border rounded-xl h-80 flex flex-col shadow-sm">
+                <div class="p-2 border-b font-bold text-xs bg-slate-50 text-center">THẢO LUẬN</div>
+                <div id="chat-list" class="flex-1 overflow-y-auto p-2 space-y-2 flex flex-col-reverse bg-slate-50">
+                    ${chats.map(m => {
+                        const isMe = m.user === user.name;
+                        const isSys = m.type === 'NOTIFY';
+                        if(isSys) return `<div class="text-center"><span class="text-[9px] bg-gray-200 px-2 py-1 rounded-full text-gray-500">${m.message}</span></div>`;
+                        return `<div class="flex ${isMe?'justify-end':'justify-start'}"><div class="max-w-[80%] ${isMe?'bg-blue-500 text-white':'bg-white border text-slate-700'} px-2 py-1 rounded text-xs"><div class="font-bold text-[9px] opacity-70">${m.user}</div>${m.message}</div></div>`;
                     }).join('')}
                 </div>
-                <div class="p-2 border-t bg-white flex gap-2"><input id="chat-msg" class="flex-1 p-2 border rounded-full text-xs outline-none bg-slate-50" placeholder="Nhập tin..."><button id="chat-send" class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm"><i class="fas fa-paper-plane text-xs"></i></button></div>
+                <div class="p-2 border-t flex gap-2 bg-white"><input id="chat-msg" class="flex-1 p-1 border rounded text-xs" placeholder="Tin nhắn..."><button id="chat-send" class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-paper-plane text-xs"></i></button></div>
             </div>
 
             <div>
-                <h2 class="font-black text-slate-700 text-sm border-l-4 border-slate-500 pl-2 mb-3 uppercase">DANH SÁCH NHÂN VIÊN</h2>
+                <h3 class="font-bold text-slate-600 text-xs mb-2 uppercase">DANH SÁCH NHÂN VIÊN</h3>
                 <div class="space-y-2">
-                    ${employees.map((e,idx) => {
+                    ${employees.map((e,i) => {
                         const nameEnc = encodeURIComponent(e.name);
-                        return `<div class="bg-white p-3 rounded-lg shadow-sm border border-slate-100 flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 border border-slate-200 relative">${e.name.charAt(0)}${idx<3?`<i class="fas fa-crown absolute -top-1 -right-1 text-xs ${idx===0?'text-yellow-500':(idx===1?'text-slate-400':'text-orange-400')}"></i>`:''}</div><div><div class="font-bold text-slate-700 text-sm">${e.name}</div><div class="text-[9px] text-slate-400 font-bold uppercase">${e.role || 'NV'}</div></div></div><div class="flex items-center gap-3"><div class="font-black text-lg ${e.score >= 0 ? 'text-green-600' : 'text-red-500'}">${e.score || 0}</div>${isAdmin ? `<div class="flex flex-col gap-1"><button onclick="window.HR_Action.score('${e._id}','${nameEnc}',10,'${adminEnc}')" class="w-6 h-6 bg-green-50 text-green-600 rounded flex items-center justify-center font-bold text-xs">+</button><button onclick="window.HR_Action.score('${e._id}','${nameEnc}',-10,'${adminEnc}')" class="w-6 h-6 bg-red-50 text-red-600 rounded flex items-center justify-center font-bold text-xs">-</button></div>` : ''}</div></div>`;
+                        return `<div class="bg-white p-3 rounded border shadow-sm flex justify-between items-center"><div class="flex gap-2 items-center"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 border relative">${e.name.charAt(0)}${i<3?`<i class="fas fa-crown absolute -top-1 -right-1 text-[10px] text-yellow-500"></i>`:''}</div><div><div class="font-bold text-xs">${e.name}</div><div class="text-[9px] text-slate-400">Điểm: <b>${e.score||0}</b></div></div></div>${isAdmin?`<div class="flex gap-1"><button onclick="window.HR_Action.score('${e._id}','${nameEnc}',10,'${adminEnc}')" class="w-6 h-6 bg-green-100 text-green-700 font-bold rounded flex items-center justify-center text-xs">+</button><button onclick="window.HR_Action.score('${e._id}','${nameEnc}',-10,'${adminEnc}')" class="w-6 h-6 bg-red-100 text-red-700 font-bold rounded flex items-center justify-center text-xs">-</button></div>`:''}</div>`;
                     }).join('')}
                 </div>
             </div>
@@ -246,53 +242,42 @@ export const HR = {
         setTimeout(() => {
             const sendReq = async (t, type) => { await addDoc(collection(db,`${ROOT_PATH}/tasks`), {title:t, to:'ADMIN', by:user.name, type, status:'PENDING', time:Date.now()}); Utils.toast("Đã gửi!"); window.HR_Action.chat(user.name, `📝 Yêu cầu: ${t}`, true); };
             
-            // Checkin
-            const b1 = document.getElementById('btn-checkin'); 
-            if(b1) b1.onclick = async () => { 
-                if(confirm("Xác nhận chấm công?")) {
+            // Checkin (Auto Done)
+            const b1 = document.getElementById('btn-checkin');
+            if(b1) b1.onclick = async () => {
+                if(confirm("Chấm công?")) {
                     await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title: "Đã chấm công", to: 'ADMIN', by: user.name, type: 'CHECKIN', status: 'DONE', time: Date.now() });
-                    window.HR_Action.chat("HỆ THỐNG", `📍 ${user.name} đã CHẤM CÔNG lúc ${new Date().toLocaleTimeString('vi-VN')}`, true);
+                    window.HR_Action.chat("HỆ THỐNG", `📍 ${user.name} đã chấm công`, true);
                     Utils.toast("✅ Đã chấm công!");
                 }
             };
 
-            // Xin nghỉ (Dùng biến FORM_LEAVE đã khai báo)
+            // HTML Form Popup (Viết thẳng trong JS để tránh lỗi biến global)
             const b2 = document.getElementById('btn-leave');
-            if (b2) b2.onclick = () => {
-                Utils.modal("Xin Nghỉ", FORM_LEAVE, [{id:'s-ok',text:'Gửi'}]);
+            if(b2) b2.onclick = () => {
+                Utils.modal("Xin Nghỉ", `<div class="space-y-2"><input id="l-r" class="w-full p-2 border rounded text-xs" placeholder="Lý do..."><div class="flex gap-2"><input type="date" id="l-d" class="w-full p-2 border rounded text-xs"><input type="number" id="l-n" class="w-full p-2 border rounded text-xs" value="1" placeholder="Số ngày"></div></div>`, [{id:'s-ok',text:'Gửi'}]);
                 setTimeout(() => {
                     document.getElementById('l-d').valueAsDate = new Date();
                     document.getElementById('s-ok').onclick = () => {
-                        const r = document.getElementById('l-r').value;
-                        const d = document.getElementById('l-d').value;
-                        const n = document.getElementById('l-n').value;
-                        if (r && d && n) {
-                            sendReq(`Nghỉ ${n} ngày (từ ${new Date(d).toLocaleDateString('vi-VN')}): ${r}`, "LEAVE");
-                            Utils.modal(null);
-                        } else alert("Thiếu tin!");
+                        const r=document.getElementById('l-r').value, d=document.getElementById('l-d').value, n=document.getElementById('l-n').value;
+                        if(r&&d&&n) { sendReq(`Nghỉ ${n} ngày (${new Date(d).toLocaleDateString('vi-VN')}): ${r}`, "LEAVE"); Utils.modal(null); }
                     };
                 }, 100);
             };
 
-            // Mua hàng (Dùng biến FORM_BUY đã khai báo)
             const b3 = document.getElementById('btn-buy');
-            if (b3) b3.onclick = () => {
-                Utils.modal("Mua Hàng", FORM_BUY, [{id:'s-ok',text:'Gửi'}]);
+            if(b3) b3.onclick = () => {
+                Utils.modal("Mua Hàng", `<div class="space-y-2"><input id="b-n" class="w-full p-2 border rounded text-xs" placeholder="Tên món..."><div class="flex gap-2"><input type="number" id="b-q" class="w-full p-2 border rounded text-xs" value="1" placeholder="SL"><input type="date" id="b-d" class="w-full p-2 border rounded text-xs"></div></div>`, [{id:'s-ok',text:'Gửi'}]);
                 setTimeout(() => {
                     document.getElementById('b-d').valueAsDate = new Date();
                     document.getElementById('s-ok').onclick = () => {
-                        const n = document.getElementById('b-n').value;
-                        const q = document.getElementById('b-q').value;
-                        const d = document.getElementById('b-d').value;
-                        if (n && q && d) {
-                            sendReq(`Mua ${q} ${n} (Cần ngày ${new Date(d).toLocaleDateString('vi-VN')})`, "BUY");
-                            Utils.modal(null);
-                        } else alert("Thiếu tin!");
+                        const n=document.getElementById('b-n').value, q=document.getElementById('b-q').value, d=document.getElementById('b-d').value;
+                        if(n&&q&&d) { sendReq(`Mua ${q} ${n} (Cần ${new Date(d).toLocaleDateString('vi-VN')})`, "BUY"); Utils.modal(null); }
                     };
                 }, 100);
             };
-            
-            const sendChat = async () => { const m = document.getElementById('chat-msg').value; if(m.trim()) { await window.HR_Action.chat(user.name, m); document.getElementById('chat-msg').value=''; } };
+
+            const sendChat = async () => { const m=document.getElementById('chat-msg').value; if(m.trim()) { await window.HR_Action.chat(user.name, m); document.getElementById('chat-msg').value=''; } };
             document.getElementById('chat-send').onclick = sendChat;
             document.getElementById('chat-msg').onkeypress = (e) => { if(e.key==='Enter') sendChat(); };
         }, 100);
