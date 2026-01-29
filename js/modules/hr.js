@@ -1,22 +1,37 @@
 import { addDoc, collection, db, ROOT_PATH, updateDoc, doc, deleteDoc, increment, writeBatch, getDocs, query, where } from '../config.js';
 import { Utils } from '../utils.js';
 
-// --- 1. HỆ THỐNG XỬ LÝ (Action) ---
+// --- 1. CÁC BIẾN HTML MẪU (Đưa ra ngoài để tránh lỗi cú pháp) ---
+const FORM_LEAVE = `
+    <div class="space-y-3">
+        <div><label class="text-[10px] font-bold text-slate-500 uppercase">Lý do nghỉ</label><input id="l-r" class="w-full p-2 border rounded text-xs font-bold" placeholder="VD: Việc gia đình..."></div>
+        <div class="flex gap-2">
+            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500 uppercase">Từ ngày</label><input type="date" id="l-d" class="w-full p-2 border rounded text-xs font-bold"></div>
+            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500 uppercase">Số ngày</label><input type="number" id="l-n" class="w-full p-2 border rounded text-xs font-bold text-center" value="1"></div>
+        </div>
+    </div>`;
+
+const FORM_BUY = `
+    <div class="space-y-3">
+        <div><label class="text-[10px] font-bold text-slate-500 uppercase">Tên vật tư / thiết bị</label><input id="b-n" class="w-full p-2 border rounded text-xs font-bold" placeholder="VD: Bóng đèn, dây kẽm..."></div>
+        <div class="flex gap-2">
+            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500 uppercase">Số lượng</label><input type="number" id="b-q" class="w-full p-2 border rounded text-xs font-bold text-center" value="1"></div>
+            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500 uppercase">Cần ngày</label><input type="date" id="b-d" class="w-full p-2 border rounded text-xs font-bold"></div>
+        </div>
+    </div>`;
+
+// --- 2. HỆ THỐNG XỬ LÝ LOGIC ---
 window.HR_Action = {
-    // Chat
+    // Gửi chat log
     chat: async (user, msg, isSystem = false) => {
         try {
-            await addDoc(collection(db, `${ROOT_PATH}/chat`), {
-                user: user,
-                message: msg,
-                time: Date.now(),
-                type: isSystem ? 'NOTIFY' : 'CHAT'
-            });
+            await addDoc(collection(db, `${ROOT_PATH}/chat`), { user, message: msg, time: Date.now(), type: isSystem ? 'NOTIFY' : 'CHAT' });
         } catch (e) { console.error(e); }
     },
 
     // Chấm điểm
-    score: async (id, name, val, adminName) => {
+    score: async (id, nameEnc, val, adminName) => {
+        const name = decodeURIComponent(nameEnc);
         const reason = prompt(`Lý do ${val > 0 ? 'thưởng' : 'phạt'} ${Math.abs(val)} điểm cho ${name}?`);
         if (reason) {
             try {
@@ -27,26 +42,29 @@ window.HR_Action = {
         }
     },
 
-    // Nhắc nhở
-    remind: async (empId, name, title, type) => {
+    // Nhắc nhở & Phạt
+    remind: async (empId, nameEnc, titleEnc, type) => {
+        const name = decodeURIComponent(nameEnc);
+        const title = decodeURIComponent(titleEnc);
         const penalty = type === 'ACCEPT' ? -1 : -5;
         const msgType = type === 'ACCEPT' ? 'nhận việc' : 'báo cáo';
+        
         try {
             await updateDoc(doc(db, `${ROOT_PATH}/employees`, empId), { score: increment(penalty) });
             Utils.toast(`Đã nhắc và trừ ${Math.abs(penalty)} điểm!`);
-            window.HR_Action.chat("NHẮC NHỞ", `⚠️ Nhắc @${name} ${msgType}: "${decodeURIComponent(title)}" (Phạt ${penalty}đ)`, true);
-        } catch (e) { alert(e.message); }
+            window.HR_Action.chat("NHẮC NHỞ", `⚠️ Nhắc @${name} ${msgType}: "${title}" (Phạt ${penalty}đ)`, true);
+        } catch(e) { alert(e.message); }
     },
 
     // Duyệt đơn
-    approve: async (id, titleEncoded, user, admin, isOk) => {
-        const title = decodeURIComponent(titleEncoded);
-        if (confirm(isOk ? `Duyệt đơn "${title}"?` : `Từ chối đơn "${title}"?`)) {
+    approve: async (id, titleEnc, user, admin, isOk) => {
+        const title = decodeURIComponent(titleEnc);
+        if (confirm(isOk ? `Duyệt đơn "${title}"?` : `Từ chối đơn này?`)) {
             try {
                 await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: isOk ? 'DONE' : 'REJECT' });
                 Utils.toast("Đã xử lý!");
-                window.HR_Action.chat("HỆ THỐNG", `${isOk ? "✅ ĐÃ DUYỆT" : "❌ TỪ CHỐI"} đơn: "${title}" của ${user} (bởi ${admin})`, true);
-            } catch (e) { alert(e.message); }
+                window.HR_Action.chat("HỆ THỐNG", `${isOk ? "✅ ĐÃ DUYỆT" : "❌ TỪ CHỐI"} đơn: "${title}" của ${user}`, true);
+            } catch(e) { alert(e.message); }
         }
     },
 
@@ -62,12 +80,13 @@ window.HR_Action = {
                 } catch (e) { alert(e.message); }
             }
         },
-        accept: async (id, t, u) => {
+        accept: async (id, tEnc, u) => {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DOING' });
-            window.HR_Action.chat("TIẾN ĐỘ", `💪 ${u} đã NHẬN: "${decodeURIComponent(t)}"`, true);
+            window.HR_Action.chat("TIẾN ĐỘ", `💪 ${u} đã NHẬN: "${decodeURIComponent(tEnc)}"`, true);
         },
-        finish: async (id, t, u, uid) => {
+        finish: async (id, tEnc, u, uid) => {
             try {
+                // Tính điểm 10/tổng task
                 const start = new Date(); start.setHours(0,0,0,0);
                 const q = query(collection(db, `${ROOT_PATH}/tasks`), where("to", "==", uid), where("time", ">=", start.getTime()));
                 const snap = await getDocs(q);
@@ -80,14 +99,14 @@ window.HR_Action = {
                 batch.update(doc(db, `${ROOT_PATH}/employees`, uid), { score: increment(points) });
                 await batch.commit();
 
-                window.HR_Action.chat("TIẾN ĐỘ", `🏁 ${u} đã XONG: "${decodeURIComponent(t)}" (+${points}đ)`, true);
+                window.HR_Action.chat("TIẾN ĐỘ", `🏁 ${u} đã XONG: "${decodeURIComponent(tEnc)}" (+${points}đ)`, true);
                 Utils.toast(`Đã xong! Cộng ${points} điểm.`);
-            } catch (e) { alert("Lỗi (Cần tạo Index trên Firebase): " + e.message); }
+            } catch(e) { alert("Lỗi: " + e.message + "\n(Hãy tạo Index trên Firebase nếu chưa có)"); }
         }
     }
 };
 
-// --- 2. GIAO DIỆN (Render) ---
+// --- 3. GIAO DIỆN (Render) ---
 export const HR = {
     // === TAB 1: GIAO VIỆC ===
     renderTasks: (data, user) => {
@@ -130,21 +149,24 @@ export const HR = {
                 const emp = employees.find(e=>e._id===t.to);
                 const empName = emp?.name || '...';
                 const empId = emp?._id || '';
-                const titleEnc = encodeURIComponent(t.title);
+                
+                // Mã hóa chuỗi để tránh lỗi cú pháp trong HTML
+                const tEnc = encodeURIComponent(t.title);
+                const nameEnc = encodeURIComponent(empName);
                 
                 let btns = '';
                 if(isAdmin) {
                     btns = `<div class="absolute top-2 right-2 flex flex-col items-end gap-1">
                         <button onclick="window.HR_Action.task.del('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-times"></i></button>
-                        ${!isDone ? `<button onclick="window.HR_Action.remind('${empId}','${empName}','${titleEnc}','${t.status==='PENDING'?'ACCEPT':'REPORT'}')" class="text-[9px] bg-yellow-50 text-yellow-600 px-2 py-1 rounded border border-yellow-200">${t.status==='PENDING'?'🔔 Nhắc -1đ':'⏰ Báo cáo -5đ'}</button>` : ''}
+                        ${!isDone ? `<button onclick="window.HR_Action.remind('${empId}','${nameEnc}','${tEnc}','${t.status==='PENDING'?'ACCEPT':'REPORT'}')" class="text-[9px] bg-yellow-50 text-yellow-600 px-2 py-1 rounded border border-yellow-200">${t.status==='PENDING'?'🔔 Nhắc -1đ':'⏰ Báo cáo -5đ'}</button>` : ''}
                     </div>`;
                 }
 
                 let userAction = '';
                 if(!isDone && t.to === user._id) {
                     userAction = t.status !== 'DOING' 
-                        ? `<button onclick="window.HR_Action.task.accept('${t.id}','${titleEnc}','${user.name}')" class="w-full mt-2 py-2 bg-blue-100 text-blue-700 font-bold text-[10px] rounded hover:bg-blue-200">NHẬN VIỆC</button>`
-                        : `<button onclick="window.HR_Action.task.finish('${t.id}','${titleEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-2 bg-green-100 text-green-700 font-bold text-[10px] rounded hover:bg-green-200">BÁO CÁO XONG</button>`;
+                        ? `<button onclick="window.HR_Action.task.accept('${t.id}','${tEnc}','${user.name}')" class="w-full mt-2 py-2 bg-blue-100 text-blue-700 font-bold text-[10px] rounded hover:bg-blue-200">NHẬN VIỆC</button>`
+                        : `<button onclick="window.HR_Action.task.finish('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-2 bg-green-100 text-green-700 font-bold text-[10px] rounded hover:bg-green-200">BÁO CÁO XONG</button>`;
                 }
 
                 return `<div id="task-${t.id}" class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm relative ${isDone?'opacity-60 bg-slate-50':''}">
@@ -209,22 +231,20 @@ export const HR = {
             <div>
                 <h2 class="font-black text-slate-700 text-sm border-l-4 border-slate-500 pl-2 mb-3 uppercase">DANH SÁCH NHÂN VIÊN</h2>
                 <div class="space-y-2">
-                    ${employees.map((e,idx) => `<div class="bg-white p-3 rounded-lg shadow-sm border border-slate-100 flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 border border-slate-200 relative">${e.name.charAt(0)}${idx<3?`<i class="fas fa-crown absolute -top-1 -right-1 text-xs ${idx===0?'text-yellow-500':(idx===1?'text-slate-400':'text-orange-400')}"></i>`:''}</div><div><div class="font-bold text-slate-700 text-sm">${e.name}</div><div class="text-[9px] text-slate-400 font-bold uppercase">${e.role || 'NV'}</div></div></div><div class="flex items-center gap-3"><div class="font-black text-lg ${e.score >= 0 ? 'text-green-600' : 'text-red-500'}">${e.score || 0}</div>${isAdmin ? `<div class="flex flex-col gap-1"><button onclick="window.HR_Action.score('${e._id}','${e.name}',10,'${user.name}')" class="w-6 h-6 bg-green-50 text-green-600 rounded flex items-center justify-center font-bold text-xs">+</button><button onclick="window.HR_Action.score('${e._id}','${e.name}',-10,'${user.name}')" class="w-6 h-6 bg-red-50 text-red-600 rounded flex items-center justify-center font-bold text-xs">-</button></div>` : ''}</div></div>`).join('')}
+                    ${employees.map((e,idx) => {
+                        const nameEnc = encodeURIComponent(e.name);
+                        return `<div class="bg-white p-3 rounded-lg shadow-sm border border-slate-100 flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 border border-slate-200 relative">${e.name.charAt(0)}${idx<3?`<i class="fas fa-crown absolute -top-1 -right-1 text-xs ${idx===0?'text-yellow-500':(idx===1?'text-slate-400':'text-orange-400')}"></i>`:''}</div><div><div class="font-bold text-slate-700 text-sm">${e.name}</div><div class="text-[9px] text-slate-400 font-bold uppercase">${e.role || 'NV'}</div></div></div><div class="flex items-center gap-3"><div class="font-black text-lg ${e.score >= 0 ? 'text-green-600' : 'text-red-500'}">${e.score || 0}</div>${isAdmin ? `<div class="flex flex-col gap-1"><button onclick="window.HR_Action.score('${e._id}','${nameEnc}',10,'${user.name}')" class="w-6 h-6 bg-green-50 text-green-600 rounded flex items-center justify-center font-bold text-xs">+</button><button onclick="window.HR_Action.score('${e._id}','${nameEnc}',-10,'${user.name}')" class="w-6 h-6 bg-red-50 text-red-600 rounded flex items-center justify-center font-bold text-xs">-</button></div>` : ''}</div></div>`;
+                    }).join('')}
                 </div>
             </div>
         </div>`;
 
-        // EVENTS (Tách biệt khỏi HTML để tránh lỗi cú pháp)
         setTimeout(() => {
-            const sendReq = async (t, type) => { 
-                await addDoc(collection(db,`${ROOT_PATH}/tasks`), {title:t, to:'ADMIN', by:user.name, type, status:'PENDING', time:Date.now()}); 
-                Utils.toast("Đã gửi!"); 
-                window.HR_Action.chat(user.name, `📝 Yêu cầu: ${t}`, true); 
-            };
+            const sendReq = async (t, type) => { await addDoc(collection(db,`${ROOT_PATH}/tasks`), {title:t, to:'ADMIN', by:user.name, type, status:'PENDING', time:Date.now()}); Utils.toast("Đã gửi!"); window.HR_Action.chat(user.name, `📝 Yêu cầu: ${t}`, true); };
             
-            // 1. Chấm công
-            const b1 = document.getElementById('btn-checkin');
-            if(b1) b1.onclick = async () => {
+            // Checkin KHÔNG CẦN DUYỆT
+            const b1=document.getElementById('btn-checkin'); 
+            if(b1) b1.onclick = async () => { 
                 if(confirm("Xác nhận chấm công?")) {
                     await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title: "Đã chấm công", to: 'ADMIN', by: user.name, type: 'CHECKIN', status: 'DONE', time: Date.now() });
                     window.HR_Action.chat("HỆ THỐNG", `📍 ${user.name} đã CHẤM CÔNG lúc ${new Date().toLocaleTimeString('vi-VN')}`, true);
@@ -232,65 +252,44 @@ export const HR = {
                 }
             };
 
-            // 2. Xin nghỉ (Tách HTML Modal ra biến riêng)
+            // Xin nghỉ
             const b2 = document.getElementById('btn-leave');
-            if(b2) b2.onclick = () => {
-                const leaveForm = `
-                    <div class="space-y-2">
-                        <div><label class="text-[10px] font-bold text-slate-500">Lý do</label><input id="l-r" class="w-full p-2 border rounded text-xs"></div>
-                        <div class="flex gap-2">
-                            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Từ ngày</label><input type="date" id="l-d" class="w-full p-2 border rounded text-xs"></div>
-                            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Số ngày</label><input type="number" id="l-n" class="w-full p-2 border rounded text-xs" value="1"></div>
-                        </div>
-                    </div>`;
-                Utils.modal("Xin Nghỉ", leaveForm, [{id:'s-ok',text:'Gửi'}]);
-                
+            if (b2) b2.onclick = () => {
+                Utils.modal("Xin Nghỉ", FORM_LEAVE, [{id:'s-ok',text:'Gửi'}]);
                 setTimeout(() => {
-                    const dInput = document.getElementById('l-d'); if(dInput) dInput.valueAsDate = new Date();
+                    document.getElementById('l-d').valueAsDate = new Date();
                     document.getElementById('s-ok').onclick = () => {
                         const r = document.getElementById('l-r').value;
                         const d = document.getElementById('l-d').value;
                         const n = document.getElementById('l-n').value;
-                        if(r && d && n) {
+                        if (r && d && n) {
                             sendReq(`Nghỉ ${n} ngày (từ ${new Date(d).toLocaleDateString('vi-VN')}): ${r}`, "LEAVE");
                             Utils.modal(null);
                         } else alert("Thiếu tin!");
-                    }
+                    };
                 }, 100);
             };
 
-            // 3. Mua hàng (Tách HTML Modal ra biến riêng)
+            // Mua hàng
             const b3 = document.getElementById('btn-buy');
-            if(b3) b3.onclick = () => {
-                const buyForm = `
-                    <div class="space-y-2">
-                        <div><label class="text-[10px] font-bold text-slate-500">Tên món</label><input id="b-n" class="w-full p-2 border rounded text-xs"></div>
-                        <div class="flex gap-2">
-                            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">SL</label><input type="number" id="b-q" class="w-full p-2 border rounded text-xs" value="1"></div>
-                            <div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Cần ngày</label><input type="date" id="b-d" class="w-full p-2 border rounded text-xs"></div>
-                        </div>
-                    </div>`;
-                Utils.modal("Mua Hàng", buyForm, [{id:'s-ok',text:'Gửi'}]);
-
+            if (b3) b3.onclick = () => {
+                Utils.modal("Mua Hàng", FORM_BUY, [{id:'s-ok',text:'Gửi'}]);
                 setTimeout(() => {
-                    const dInput = document.getElementById('b-d'); if(dInput) dInput.valueAsDate = new Date();
+                    document.getElementById('b-d').valueAsDate = new Date();
                     document.getElementById('s-ok').onclick = () => {
                         const n = document.getElementById('b-n').value;
                         const q = document.getElementById('b-q').value;
                         const d = document.getElementById('b-d').value;
-                        if(n && q && d) {
+                        if (n && q && d) {
                             sendReq(`Mua ${q} ${n} (Cần ngày ${new Date(d).toLocaleDateString('vi-VN')})`, "BUY");
                             Utils.modal(null);
                         } else alert("Thiếu tin!");
-                    }
+                    };
                 }, 100);
             };
             
             // Chat
-            const sendChat = async () => { 
-                const m = document.getElementById('chat-msg').value; 
-                if(m.trim()) { await window.HR_Action.chat(user.name, m); document.getElementById('chat-msg').value=''; } 
-            };
+            const sendChat = async () => { const m = document.getElementById('chat-msg').value; if(m.trim()) { await window.HR_Action.chat(user.name, m); document.getElementById('chat-msg').value=''; } };
             document.getElementById('chat-send').onclick = sendChat;
             document.getElementById('chat-msg').onkeypress = (e) => { if(e.key==='Enter') sendChat(); };
         }, 100);
