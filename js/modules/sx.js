@@ -2,29 +2,51 @@ import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc
 import { Utils } from '../utils.js';
 
 window.SX_Action = {
+    // Xóa Log nhập/xuất
     delLog: async (id, qty, houseId) => {
         if(confirm(`⚠️ Xóa lô ${qty} bịch?`)) {
             try {
                 const batch = writeBatch(db);
                 batch.delete(doc(db, `${ROOT_PATH}/supplies`, id));
+                // Trả lại kho
                 if(houseId) batch.update(doc(db, `${ROOT_PATH}/houses`, houseId), { batchQty: increment(-Number(qty)) });
-                await batch.commit(); Utils.toast("✅ Đã xóa!");
+                await batch.commit(); 
+                Utils.toast("✅ Đã xóa!");
             } catch(e) { alert(e.message); }
         }
     },
-    // --- SỬA LỖI Ở ĐÂY: Reset sạch sẽ ---
+
+    // 1. RESET SẠCH SẼ (Về 0, Xóa mã, Status Empty)
     reset0: async (hid) => { 
-        if(confirm("⚠️ CẢNH BÁO: Reset về 0 và Xóa mã lô hiện tại?")) { 
-            // Đưa về trạng thái ban đầu: Không phôi, không mã, trạng thái rỗng
+        if(confirm("⚠️ RESET TOÀN BỘ NHÀ NÀY?\n(Xóa số lượng, xóa mã lô, tắt đèn)")) { 
             await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { 
                 batchQty: 0,
                 currentBatch: '', // Xóa mã lô
-                status: 'EMPTY'   // Đưa về trạng thái trống
+                status: 'EMPTY'   // Tắt nhà
             }); 
-            Utils.toast("Đã Reset sạch kho!"); 
+            Utils.toast("✅ Đã Reset sạch!"); 
         } 
     },
-    adjust: async (hid) => { const v=prompt("Nhập số (+/-):"); if(v) { await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { batchQty: increment(Number(v)) }); Utils.toast("Đã sửa!"); } },
+
+    // 2. SỬA TAY (Tự động OFF nếu số lượng <= 0)
+    adjust: async (hid, currentQty) => { 
+        const v = prompt("Nhập số lượng điều chỉnh (+/-):");
+        if(v) { 
+            const n = Number(v);
+            const newQty = (currentQty || 0) + n;
+            const updateData = { batchQty: increment(n) };
+            
+            // Nếu hết phôi -> Tự động OFF và xóa mã
+            if (newQty <= 0) {
+                updateData.status = 'EMPTY';
+                updateData.currentBatch = '';
+            }
+
+            await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), updateData); 
+            Utils.toast("✅ Đã cập nhật!"); 
+        } 
+    },
+
     addHouse: async () => {
         const name = prompt("Tên nhà mới (VD: Nhà 5):");
         if(name) {
@@ -50,7 +72,7 @@ export const SX = {
             <div class="bg-gradient-to-br from-purple-50 to-white p-5 rounded-2xl border border-purple-100 shadow-sm">
                 <div class="flex justify-between items-start mb-4">
                     <div><h3 class="font-black text-purple-800 text-sm uppercase flex items-center gap-2"><i class="fas fa-warehouse"></i> ${houseA.name}</h3><div class="text-[10px] text-purple-400 font-bold mt-1 tracking-wider">KHO TỔNG</div></div>
-                    <div class="text-right"><span class="text-3xl font-black text-purple-700 block tracking-tight">${(houseA.batchQty||0).toLocaleString()}</span>${isAdmin ? `<div class="flex gap-2 justify-end mt-1 opacity-80"><button onclick="window.SX_Action.reset0('${houseA.id}')" class="text-[9px] font-bold text-red-500 hover:underline">RESET 0</button><button onclick="window.SX_Action.adjust('${houseA.id}')" class="text-[9px] font-bold text-purple-500 hover:underline">SỬA</button></div>` : ''}</div>
+                    <div class="text-right"><span class="text-3xl font-black text-purple-700 block tracking-tight">${(houseA.batchQty||0).toLocaleString()}</span>${isAdmin ? `<div class="flex gap-2 justify-end mt-1 opacity-80"><button onclick="window.SX_Action.reset0('${houseA.id}')" class="text-[9px] font-bold text-red-500 hover:underline">RESET 0</button><button onclick="window.SX_Action.adjust('${houseA.id}', ${houseA.batchQty||0})" class="text-[9px] font-bold text-purple-500 hover:underline">SỬA</button></div>` : ''}</div>
                 </div>
                 ${isAdmin ? `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -63,7 +85,7 @@ export const SX = {
             <div>
                 <div class="flex justify-between items-center mb-4 px-1"><h3 class="font-bold text-slate-600 text-xs uppercase tracking-wide">CÁC NHÀ TRỒNG</h3>${isAdmin ? `<button onclick="window.SX_Action.addHouse()" class="bg-blue-600 text-white px-3 py-1.5 rounded-full text-[10px] font-bold shadow-md active:scale-95 flex items-center gap-1"><i class="fas fa-plus"></i> NHÀ</button>` : ''}</div>
                 <div class="grid grid-cols-2 gap-3">
-                    ${houses.filter(h => h.id !== (houseA?.id)).map(h => `<div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden"><div class="absolute top-0 left-0 w-1 h-full ${h.status==='ACTIVE'?'bg-green-500':'bg-slate-300'}"></div><div class="pl-3"><div class="flex justify-between items-start mb-2"><div><div class="font-bold text-slate-700 text-sm">${h.name}</div><div class="text-[10px] text-slate-400 mt-0.5">Lô: <b>${h.currentBatch||'--'}</b></div></div>${isAdmin?`<button onclick="window.SX_Action.adjust('${h.id}')" class="text-slate-300 hover:text-blue-500"><i class="fas fa-pen text-[10px]"></i></button>`:''}</div><div class="text-right"><span class="block font-black text-lg ${h.status==='ACTIVE'?'text-blue-600':'text-slate-400'}">${(h.batchQty||0).toLocaleString()}</span><span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${h.status==='ACTIVE'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'}">${h.status==='ACTIVE'?'RUNNING':'EMPTY'}</span></div></div></div>`).join('')}
+                    ${houses.filter(h => h.id !== (houseA?.id)).map(h => `<div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden"><div class="absolute top-0 left-0 w-1 h-full ${h.status==='ACTIVE'?'bg-green-500':'bg-slate-300'}"></div><div class="pl-3"><div class="flex justify-between items-start mb-2"><div><div class="font-bold text-slate-700 text-sm">${h.name}</div><div class="text-[10px] text-slate-400 mt-0.5">Lô: <b>${h.currentBatch||'--'}</b></div></div>${isAdmin?`<button onclick="window.SX_Action.adjust('${h.id}', ${h.batchQty||0})" class="text-slate-300 hover:text-blue-500"><i class="fas fa-pen text-[10px]"></i></button>`:''}</div><div class="text-right"><span class="block font-black text-lg ${h.status==='ACTIVE'?'text-blue-600':'text-slate-400'}">${(h.batchQty||0).toLocaleString()}</span><span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${h.status==='ACTIVE'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'}">${h.status==='ACTIVE'?'RUNNING':'EMPTY'}</span></div></div></div>`).join('')}
                 </div>
             </div>
         </div>`;
@@ -79,8 +101,7 @@ export const SX = {
                 if(n && q>0 && d) {
                     const code = `${n}-${new Date(d).getDate()}${new Date(d).getMonth()+1}${new Date(d).getFullYear()}`;
                     const batch = writeBatch(db);
-                    const ref = doc(collection(db, `${ROOT_PATH}/supplies`));
-                    batch.set(ref, { type:'IMPORT', to:houseA.id, code, qty:q, user:user.name, time:new Date(d).getTime() });
+                    batch.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'IMPORT', to:houseA.id, code, qty:q, user:user.name, time:new Date(d).getTime() });
                     batch.update(doc(db, `${ROOT_PATH}/houses`, houseA.id), { batchQty: increment(q) });
                     await batch.commit(); Utils.toast(`Đã nhập ${code}`); document.getElementById('i-qty').value='';
                 } else Utils.toast("Thiếu thông tin!", "err");
@@ -92,8 +113,7 @@ export const SX = {
                 if(hid && c && q>0) {
                     if(q > houseA.batchQty) return Utils.toast("Không đủ kho!", "err");
                     const batch = writeBatch(db);
-                    const ref = doc(collection(db, `${ROOT_PATH}/supplies`));
-                    batch.set(ref, { type:'EXPORT', from:houseA.id, to:hid, code:c, qty:q, user:user.name, time:new Date(d).getTime() });
+                    batch.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseA.id, to:hid, code:c, qty:q, user:user.name, time:new Date(d).getTime() });
                     batch.update(doc(db, `${ROOT_PATH}/houses`, houseA.id), { batchQty: increment(-q) });
                     batch.update(doc(db, `${ROOT_PATH}/houses`, hid), { status:'ACTIVE', batchQty: increment(q), currentBatch:c });
                     await batch.commit(); Utils.toast("Đã xuất!"); document.getElementById('e-qty').value='';
