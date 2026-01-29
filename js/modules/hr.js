@@ -1,48 +1,42 @@
 import { addDoc, collection, db, ROOT_PATH, updateDoc, doc, deleteDoc, increment, writeBatch, getDocs, query, where } from '../config.js';
 import { Utils } from '../utils.js';
 
-// --- 1. HỆ THỐNG XỬ LÝ (Action) ---
 window.HR_Action = {
-    // Chat
+    // 1. Chat
     chat: async (user, msg, isSystem = false) => {
         try {
-            await addDoc(collection(db, `${ROOT_PATH}/chat`), {
-                user: user,
-                message: msg,
-                time: Date.now(),
-                type: isSystem ? 'NOTIFY' : 'CHAT'
-            });
+            await addDoc(collection(db, `${ROOT_PATH}/chat`), { user, message: msg, time: Date.now(), type: isSystem ? 'NOTIFY' : 'CHAT' });
         } catch (e) { console.error(e); }
     },
 
-    // Chấm điểm
+    // 2. Chấm điểm thủ công
     score: async (id, name, val, adminName) => {
         const reason = prompt(`Lý do ${val > 0 ? 'thưởng' : 'phạt'} ${Math.abs(val)} điểm?`);
-        if (reason) {
-            try {
-                await updateDoc(doc(db, `${ROOT_PATH}/employees`, id), { score: increment(val) });
-                Utils.toast("Đã cập nhật!");
-                window.HR_Action.chat("HỆ THỐNG", `⚖️ ${adminName} đã ${val > 0 ? 'THƯỞNG' : 'PHẠT'} ${name} ${Math.abs(val)} điểm. Lý do: ${reason}`, true);
-            } catch (e) { alert(e.message); }
+        if(reason) {
+            await updateDoc(doc(db, `${ROOT_PATH}/employees`, id), { score: increment(val) });
+            Utils.toast("Đã cập nhật!");
+            window.HR_Action.chat("HỆ THỐNG", `⚖️ ${adminName} đã ${val>0?'THƯỞNG':'PHẠT'} ${name} ${Math.abs(val)} điểm. Lý do: ${reason}`, true);
         }
     },
 
-    // Nhắc nhở & Phạt
+    // 3. NHẮC NHỞ & PHẠT ĐIỂM (CẬP NHẬT: TRỪ ĐIỂM THẬT)
     remind: async (empId, name, title, type) => {
         const penalty = type === 'ACCEPT' ? -1 : -5;
         const msgType = type === 'ACCEPT' ? 'nhận việc' : 'báo cáo';
         
         try {
+            // Trừ điểm trực tiếp
             await updateDoc(doc(db, `${ROOT_PATH}/employees`, empId), { score: increment(penalty) });
+            
             Utils.toast(`Đã nhắc và trừ ${Math.abs(penalty)} điểm!`);
             window.HR_Action.chat("NHẮC NHỞ", `⚠️ Nhắc @${name} ${msgType}: "${decodeURIComponent(title)}" (Phạt ${penalty}đ)`, true);
-        } catch(e) { alert(e.message); }
+        } catch(e) { alert("Lỗi: " + e.message); }
     },
 
-    // Duyệt đơn
+    // 4. DUYỆT ĐƠN (Fix lỗi click)
     approve: async (id, titleEncoded, user, admin, isOk) => {
         const title = decodeURIComponent(titleEncoded);
-        if (confirm(isOk ? `Duyệt "${title}"?` : `Từ chối?`)) {
+        if(confirm(isOk ? `Duyệt "${title}"?` : `Từ chối?`)) {
             try {
                 await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: isOk ? 'DONE' : 'REJECT' });
                 Utils.toast("Đã xử lý!");
@@ -51,23 +45,23 @@ window.HR_Action = {
         }
     },
 
-    // Thao tác Task
+    // 5. Thao tác Task
     task: {
-        del: async (id) => {
-            if (confirm("Xóa việc này?")) {
+        del: async (id) => { 
+            if(confirm("Xóa việc này?")) {
                 await deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id));
-                const el = document.getElementById(`task-${id}`);
-                if (el) el.remove();
+                const el = document.getElementById(`task-${id}`); if(el) el.remove();
                 Utils.toast("Đã xóa!");
-            }
+            } 
         },
-        accept: async (id, t, u) => {
-            await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DOING' });
-            window.HR_Action.chat("TIẾN ĐỘ", `💪 ${u} đã NHẬN: "${decodeURIComponent(t)}"`, true);
+        accept: async (id, t, u) => { 
+            await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DOING' }); 
+            window.HR_Action.chat("TIẾN ĐỘ", `💪 ${u} đã NHẬN: "${decodeURIComponent(t)}"`, true); 
         },
-        finish: async (id, t, u, uid) => {
+        // Báo cáo xong: Cộng điểm 10/tổng task
+        finish: async (id, t, u, uid) => { 
             try {
-                // Tính điểm: 10 / Tổng đầu việc trong ngày
+                // Lưu ý: Cần tạo Index trên Firebase thì dòng này mới chạy được
                 const start = new Date(); start.setHours(0,0,0,0);
                 const q = query(collection(db, `${ROOT_PATH}/tasks`), where("to", "==", uid), where("time", ">=", start.getTime()));
                 const snap = await getDocs(q);
@@ -82,14 +76,13 @@ window.HR_Action = {
 
                 window.HR_Action.chat("TIẾN ĐỘ", `🏁 ${u} đã XONG: "${decodeURIComponent(t)}" (+${points}đ)`, true);
                 Utils.toast(`Xong! Cộng ${points}đ.`);
-            } catch(e) { alert("Lỗi: " + e.message); }
+            } catch(e) { alert("Lỗi (Cần tạo Index trên Firebase): " + e.message); }
         }
     }
 };
 
-// --- 2. GIAO DIỆN (Render) ---
 export const HR = {
-    // === TAB 1: GIAO VIỆC ===
+    // === TAB 1: VIỆC ===
     renderTasks: (data, user) => {
         const c = document.getElementById('view-tasks');
         if (!c || c.classList.contains('hidden')) return;
@@ -121,19 +114,19 @@ export const HR = {
         const renderList = () => {
             const fid = document.getElementById('filter-emp').value;
             let list = tasks.filter(t => !t.type || t.type === 'TASK');
-            if (fid !== 'ALL') list = list.filter(t => t.to === fid);
-            if (!isAdmin) list = list.filter(t => t.to === user._id || t.by === user.name);
+            if(fid !== 'ALL') list = list.filter(t => t.to === fid);
+            if(!isAdmin) list = list.filter(t => t.to === user._id || t.by === user.name);
             list.sort((a,b) => b.time - a.time);
 
             document.getElementById('lst').innerHTML = list.length ? list.map(t => {
                 const isDone = t.status === 'DONE';
-                const emp = employees.find(e => e._id === t.to);
+                const emp = employees.find(e=>e._id===t.to);
                 const empName = emp?.name || '...';
                 const empId = emp?._id || '';
                 const titleEnc = encodeURIComponent(t.title);
                 
                 let btns = '';
-                if (isAdmin) {
+                if(isAdmin) {
                     btns = `<div class="absolute top-2 right-2 flex flex-col items-end gap-1">
                         <button onclick="window.HR_Action.task.del('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-times"></i></button>
                         ${!isDone ? `<button onclick="window.HR_Action.remind('${empId}','${empName}','${titleEnc}','${t.status==='PENDING'?'ACCEPT':'REPORT'}')" class="text-[9px] bg-yellow-50 text-yellow-600 px-2 py-1 rounded border border-yellow-200">${t.status==='PENDING'?'🔔 Nhắc -1đ':'⏰ Báo cáo -5đ'}</button>` : ''}
@@ -141,10 +134,10 @@ export const HR = {
                 }
 
                 let userAction = '';
-                if (!isDone && t.to === user._id) {
-                    userAction = t.status !== 'DOING'
+                if(!isDone && t.to === user._id) {
+                    userAction = t.status !== 'DOING' 
                         ? `<button onclick="window.HR_Action.task.accept('${t.id}','${titleEnc}','${user.name}')" class="w-full mt-2 py-2 bg-blue-100 text-blue-700 font-bold text-[10px] rounded hover:bg-blue-200">NHẬN VIỆC</button>`
-                        : `<button onclick="window.HR_Action.task.finish('${t.id}','${titleEnc}','${user.name}','${user._id}')" class="w-full mt-2 py-2 bg-green-100 text-green-700 font-bold text-[10px] rounded hover:bg-green-200">BÁO CÁO XONG</button>`;
+                        : `<button onclick="window.HR_Action.task.finish('${t.id}','${titleEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-2 bg-green-100 text-green-700 font-bold text-[10px] rounded hover:bg-green-200">BÁO CÁO XONG</button>`;
                 }
 
                 return `<div id="task-${t.id}" class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm relative ${isDone?'opacity-60 bg-slate-50':''}">
@@ -154,46 +147,7 @@ export const HR = {
             }).join('') : '<div class="text-center text-slate-300 italic text-xs py-10">Chưa có công việc nào</div>';
         };
 
-        setTimeout(() => {
-            renderList();
-            const dIn = document.getElementById('t-date');
-            if (dIn) dIn.valueAsDate = new Date();
-            
-            const fSel = document.getElementById('filter-emp');
-            if (fSel) fSel.onchange = renderList;
-            
-            const chkAll = document.getElementById('check-all');
-            if (chkAll) {
-                chkAll.onchange = (e) => {
-                    document.querySelectorAll('.ec').forEach(cb => cb.checked = e.target.checked);
-                };
-            }
-
-            const btn = document.getElementById('btn-tsk');
-            if (btn) {
-                btn.onclick = async () => {
-                    const title = document.getElementById('t-t').value;
-                    const area = document.getElementById('t-area').value;
-                    const chk = document.querySelectorAll('.ec:checked');
-                    if (title && chk.length) {
-                        const batch = writeBatch(db);
-                        const names = [];
-                        chk.forEach(c => {
-                            const ref = doc(collection(db, `${ROOT_PATH}/tasks`));
-                            batch.set(ref, {title, area, to: c.value, by: user.name, status: 'PENDING', time: Date.now(), type: 'TASK'});
-                            names.push(c.getAttribute('data-name'));
-                        });
-                        await batch.commit();
-                        window.HR_Action.chat(user.name, `📢 Đã giao: "${title}" ${area ? `tại ${area}` : ''} cho ${names.join(', ')}`, true);
-                        Utils.toast("Đã giao!");
-                        renderList();
-                        document.getElementById('t-t').value = '';
-                    } else {
-                        Utils.toast("Thiếu thông tin!", "err");
-                    }
-                };
-            }
-        }, 200);
+        setTimeout(()=>{ renderList(); const dIn=document.getElementById('t-date'); if(dIn) dIn.valueAsDate=new Date(); const fSel=document.getElementById('filter-emp'); if(fSel) fSel.onchange=renderList; const chkAll=document.getElementById('check-all'); if(chkAll) chkAll.onchange=(e)=>document.querySelectorAll('.ec').forEach(cb=>cb.checked=e.target.checked); const btn=document.getElementById('btn-tsk'); if(btn) btn.onclick=async()=>{const t=document.getElementById('t-t').value; const a=document.getElementById('t-area').value; const chk=document.querySelectorAll('.ec:checked'); if(t&&chk.length){const batch=writeBatch(db); const names=[]; chk.forEach(c=>{const ref=doc(collection(db,`${ROOT_PATH}/tasks`)); batch.set(ref,{title:t,area:a,to:c.value,by:user.name,status:'PENDING',time:Date.now(),type:'TASK'}); names.push(c.getAttribute('data-name'))}); await batch.commit(); window.HR_Action.chat(user.name,`📢 Đã giao: "${t}" ${a?`tại ${a}`:''} cho ${names.join(', ')}`,true); Utils.toast("Đã giao!"); renderList(); document.getElementById('t-t').value='';}else Utils.toast("Thiếu tin!","err")}}}, 200);
     },
 
     // === TAB 2: TEAM ===
@@ -256,76 +210,22 @@ export const HR = {
         setTimeout(() => {
             const sendReq = async (t, type) => { await addDoc(collection(db,`${ROOT_PATH}/tasks`), {title:t, to:'ADMIN', by:user.name, type, status:'PENDING', time:Date.now()}); Utils.toast("Đã gửi!"); window.HR_Action.chat(user.name, `📝 Yêu cầu: ${t}`, true); };
             
-            // Checkin KHÔNG CẦN DUYỆT
-            const b1 = document.getElementById('btn-checkin');
-            if (b1) {
-                b1.onclick = async () => {
-                    if (confirm("Xác nhận chấm công?")) {
-                        await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title: "Đã chấm công", to: 'ADMIN', by: user.name, type: 'CHECKIN', status: 'DONE', time: Date.now() });
-                        window.HR_Action.chat("HỆ THỐNG", `📍 ${user.name} đã CHẤM CÔNG lúc ${new Date().toLocaleTimeString('vi-VN')}`, true);
-                        Utils.toast("✅ Đã chấm công!");
-                    }
-                };
-            }
-
-            const b2 = document.getElementById('btn-leave');
-            if (b2) {
-                b2.onclick = () => {
-                    Utils.modal("Xin Nghỉ", 
-                        `<div class="space-y-2"><div><label class="text-[10px] font-bold text-slate-500">Lý do</label><input id="l-r" class="w-full p-2 border rounded text-xs"></div><div class="flex gap-2"><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Từ ngày</label><input type="date" id="l-d" class="w-full p-2 border rounded text-xs"></div><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Số ngày</label><input type="number" id="l-n" class="w-full p-2 border rounded text-xs" value="1"></div></div></div>`, 
-                        [{ id: 's-ok', text: 'Gửi' }]
-                    );
-                    setTimeout(() => {
-                        document.getElementById('l-d').valueAsDate = new Date();
-                        document.getElementById('s-ok').onclick = () => {
-                            const r = document.getElementById('l-r').value;
-                            const d = document.getElementById('l-d').value;
-                            const n = document.getElementById('l-n').value;
-                            if (r && d && n) {
-                                sendReq(`Nghỉ ${n} ngày (từ ${new Date(d).toLocaleDateString('vi-VN')}): ${r}`, "LEAVE");
-                                Utils.modal(null);
-                            } else alert("Thiếu tin!");
-                        };
-                    }, 100);
-                };
-            }
-
-            const b3 = document.getElementById('btn-buy');
-            if (b3) {
-                b3.onclick = () => {
-                    Utils.modal("Mua Hàng", 
-                        `<div class="space-y-2"><div><label class="text-[10px] font-bold text-slate-500">Tên món</label><input id="b-n" class="w-full p-2 border rounded text-xs"></div><div class="flex gap-2"><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">SL</label><input type="number" id="b-q" class="w-full p-2 border rounded text-xs" value="1"></div><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Cần ngày</label><input type="date" id="b-d" class="w-full p-2 border rounded text-xs"></div></div></div>`, 
-                        [{ id: 's-ok', text: 'Gửi' }]
-                    );
-                    setTimeout(() => {
-                        document.getElementById('b-d').valueAsDate = new Date();
-                        document.getElementById('s-ok').onclick = () => {
-                            const n = document.getElementById('b-n').value;
-                            const q = document.getElementById('b-q').value;
-                            const d = document.getElementById('b-d').value;
-                            if (n && q && d) {
-                                sendReq(`Mua ${q} ${n} (Cần ngày ${new Date(d).toLocaleDateString('vi-VN')})`, "BUY");
-                                Utils.modal(null);
-                            } else alert("Thiếu tin!");
-                        };
-                    }, 100);
-                };
-            }
-            
-            const sendChat = async () => {
-                const m = document.getElementById('chat-msg').value;
-                if (m.trim()) {
-                    await window.HR_Action.chat(user.name, m);
-                    document.getElementById('chat-msg').value = '';
+            // Checkin KHÔNG CẦN DUYỆT (Ghi thẳng log chat + Task Done)
+            const b1=document.getElementById('btn-checkin'); 
+            if(b1) b1.onclick = async () => { 
+                if(confirm("Xác nhận chấm công?")) {
+                    await addDoc(collection(db, `${ROOT_PATH}/tasks`), { title: "Đã chấm công", to: 'ADMIN', by: user.name, type: 'CHECKIN', status: 'DONE', time: Date.now() });
+                    window.HR_Action.chat("HỆ THỐNG", `📍 ${user.name} đã CHẤM CÔNG lúc ${new Date().toLocaleTimeString('vi-VN')}`, true);
+                    Utils.toast("✅ Đã chấm công!");
                 }
             };
-            const btnSend = document.getElementById('chat-send');
-            if (btnSend) btnSend.onclick = sendChat;
+
+            const b2=document.getElementById('btn-leave'); if(b2) b2.onclick=()=>{Utils.modal("Xin Nghỉ",`<div class="space-y-2"><div><label class="text-[10px] font-bold text-slate-500">Lý do</label><input id="l-r" class="w-full p-2 border rounded text-xs"></div><div class="flex gap-2"><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Từ ngày</label><input type="date" id="l-d" class="w-full p-2 border rounded text-xs"></div><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Số ngày</label><input type="number" id="l-n" class="w-full p-2 border rounded text-xs" value="1"></div></div></div>`,[{id:'s-ok',text:'Gửi'}]);setTimeout(()=>{document.getElementById('l-d').valueAsDate=new Date();document.getElementById('s-ok').onclick=()=>{const r=document.getElementById('l-r').value,d=document.getElementById('l-d').value,n=document.getElementById('l-n').value;if(r&&d&&n){sendReq(`Nghỉ ${n} ngày (từ ${new Date(d).toLocaleDateString('vi-VN')}): ${r}`,"LEAVE");Utils.modal(null);}else alert("Thiếu tin!")}},100)};
+            const b3=document.getElementById('btn-buy'); if(b3) b3.onclick=()=>{Utils.modal("Mua Hàng",`<div class="space-y-2"><div><label class="text-[10px] font-bold text-slate-500">Tên món</label><input id="b-n" class="w-full p-2 border rounded text-xs"></div><div class="flex gap-2"><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">SL</label><input type="number" id="b-q" class="w-full p-2 border rounded text-xs" value="1"></div><div class="w-1/2"><label class="text-[10px] font-bold text-slate-500">Cần ngày</label><input type="date" id="b-d" class="w-full p-2 border rounded text-xs"></div></div></div>`,[{id:'s-ok',text:'Gửi'}]);setTimeout(()=>{document.getElementById('b-d').valueAsDate=new Date();document.getElementById('s-ok').onclick=()=>{const n=document.getElementById('b-n').value,q=document.getElementById('b-q').value,d=document.getElementById('b-d').value;if(n&&q&&d){sendReq(`Mua ${q} ${n} (Cần ngày ${new Date(d).toLocaleDateString('vi-VN')})`,"BUY");Utils.modal(null);}else alert("Thiếu tin!")}},100)};
             
-            const inputChat = document.getElementById('chat-msg');
-            if (inputChat) inputChat.onkeypress = (e) => {
-                if (e.key === 'Enter') sendChat();
-            };
+            const sendChat = async () => { const m = document.getElementById('chat-msg').value; if(m.trim()) { await window.HR_Action.chat(user.name, m); document.getElementById('chat-msg').value=''; } };
+            document.getElementById('chat-send').onclick = sendChat;
+            document.getElementById('chat-msg').onkeypress = (e) => { if(e.key==='Enter') sendChat(); };
         }, 100);
     }
 };
