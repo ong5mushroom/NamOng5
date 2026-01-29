@@ -8,7 +8,6 @@ window.SX_Action = {
             try {
                 const batch = writeBatch(db);
                 batch.delete(doc(db, `${ROOT_PATH}/supplies`, id));
-                // Trả lại kho
                 if(houseId) batch.update(doc(db, `${ROOT_PATH}/houses`, houseId), { batchQty: increment(-Number(qty)) });
                 await batch.commit(); 
                 Utils.toast("✅ Đã xóa!");
@@ -34,12 +33,17 @@ window.SX_Action = {
         if(v) { 
             const n = Number(v);
             const newQty = (currentQty || 0) + n;
+            
             const updateData = { batchQty: increment(n) };
             
             // Nếu hết phôi -> Tự động OFF và xóa mã
             if (newQty <= 0) {
                 updateData.status = 'EMPTY';
                 updateData.currentBatch = '';
+                updateData.batchQty = 0; // Đảm bảo không bị âm
+            } else {
+                // Nếu đang tắt mà chỉnh số > 0 thì bật lên lại (tùy chọn, ở đây giữ nguyên logic cũ là chỉ tắt khi về 0)
+                if(newQty > 0) updateData.status = 'ACTIVE';
             }
 
             await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), updateData); 
@@ -112,10 +116,15 @@ export const SX = {
                 const hid=document.getElementById('e-house').value, c=document.getElementById('e-code').value, q=Number(document.getElementById('e-qty').value), d=document.getElementById('e-date').value;
                 if(hid && c && q>0) {
                     if(q > houseA.batchQty) return Utils.toast("Không đủ kho!", "err");
+                    
+                    // Logic update
                     const batch = writeBatch(db);
                     batch.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseA.id, to:hid, code:c, qty:q, user:user.name, time:new Date(d).getTime() });
                     batch.update(doc(db, `${ROOT_PATH}/houses`, houseA.id), { batchQty: increment(-q) });
+                    
+                    // Nhà nhận: Bật đèn, cộng số, gán mã
                     batch.update(doc(db, `${ROOT_PATH}/houses`, hid), { status:'ACTIVE', batchQty: increment(q), currentBatch:c });
+                    
                     await batch.commit(); Utils.toast("Đã xuất!"); document.getElementById('e-qty').value='';
                 } else Utils.toast("Thiếu thông tin!", "err");
             };
