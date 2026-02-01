@@ -54,11 +54,27 @@
     </main>
 
     <nav class="fixed bottom-0 left-0 right-0 glass h-[75px] z-30 flex justify-around items-center pb-2 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] border-t border-white/50">
-        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="tasks"><i class="fas fa-clipboard-list text-xl mb-1"></i><span class="text-[9px] font-bold">VIỆC</span></button>
-        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="sx"><div class="w-12 h-12 -mt-8 bg-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/40 text-white border-4 border-slate-50"><span class="text-xs font-black">SX</span></div></button>
-        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="th"><i class="fas fa-warehouse text-xl mb-1"></i><span class="text-[9px] font-bold">THDG</span></button>
-        <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="team"><i class="fas fa-users text-xl mb-1"></i><span class="text-[9px] font-bold">TEAM</span></button>
-    </nav>
+    <button class="nav-btn active flex flex-col items-center justify-center text-blue-600 group w-full" data-tab="tasks">
+        <i class="fas fa-tasks text-xl mb-1"></i>
+        <span class="text-[9px] font-bold uppercase">Công Việc</span>
+    </button>
+    
+    <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="sx">
+        <div class="w-12 h-12 -mt-8 bg-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/40 text-white border-4 border-slate-50 transition-transform active:scale-95">
+            <span class="text-[10px] font-black">SX</span>
+        </div>
+    </button>
+    
+    <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="th">
+        <i class="fas fa-warehouse text-xl mb-1"></i>
+        <span class="text-[9px] font-bold uppercase">Kho Hàng</span>
+    </button>
+    
+    <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="team">
+        <i class="fas fa-users text-xl mb-1"></i>
+        <span class="text-[9px] font-bold uppercase">Nhân Sự</span>
+    </button>
+</nav>
 
        <div id="login-overlay" class="fixed inset-0 z-[300] flex flex-col items-center justify-center p-6">
         
@@ -105,5 +121,6 @@
     <script type="module" src="js/app.js"></script>
 </body>
 </html>
+
 
 
