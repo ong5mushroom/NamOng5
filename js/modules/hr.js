@@ -15,35 +15,21 @@ window.HR_Action = {
         }
     },
     remind: async (empId, nameEnc, titleEnc, type) => {
-        const name = decodeURIComponent(nameEnc);
-        const title = decodeURIComponent(titleEnc);
-        const penalty = type === 'ACCEPT' ? -1 : -5;
-        try {
-            await updateDoc(doc(db, `${ROOT_PATH}/employees`, empId), { score: increment(penalty) });
-            Utils.toast(`Đã nhắc và trừ ${Math.abs(penalty)} điểm!`);
-            window.HR_Action.chat("NHẮC NHỞ", `⚠️ Nhắc @${name} ${type==='ACCEPT'?'nhận việc':'báo cáo'}: "${title}" (Phạt ${penalty}đ)`, true);
-        } catch(e) { alert(e.message); }
+        const name = decodeURIComponent(nameEnc); const title = decodeURIComponent(titleEnc); const penalty = type === 'ACCEPT' ? -1 : -5;
+        try { await updateDoc(doc(db, `${ROOT_PATH}/employees`, empId), { score: increment(penalty) }); Utils.toast(`Đã nhắc và trừ ${Math.abs(penalty)} điểm!`); window.HR_Action.chat("NHẮC NHỞ", `⚠️ Nhắc @${name} ${type==='ACCEPT'?'nhận việc':'báo cáo'}: "${title}" (Phạt ${penalty}đ)`, true); } catch(e) { alert(e.message); }
     },
     approve: async (id, titleEnc, userEnc, isOk) => {
-        const title = decodeURIComponent(titleEnc);
-        const user = decodeURIComponent(userEnc);
+        const title = decodeURIComponent(titleEnc); const user = decodeURIComponent(userEnc);
         if(confirm(isOk ? `Duyệt "${title}"?` : `Từ chối?`)) {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: isOk ? 'DONE' : 'REJECT' });
-            Utils.toast("Đã xử lý!");
-            window.HR_Action.chat("HỆ THỐNG", `${isOk ? "✅ DUYỆT" : "❌ TỪ CHỐI"} đơn: "${title}" của ${user}`, true);
+            Utils.toast("Đã xử lý!"); window.HR_Action.chat("HỆ THỐNG", `${isOk ? "✅ DUYỆT" : "❌ TỪ CHỐI"} đơn: "${title}" của ${user}`, true);
         }
     },
     task: {
-        del: async (id) => { 
-            if(confirm("Xóa việc này?")) { await deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id)); const el = document.getElementById(`task-${id}`); if(el) el.remove(); Utils.toast("Đã xóa!"); } 
-        },
-        accept: async (id, tEnc, u) => { 
-            await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DOING' }); 
-            window.HR_Action.chat("TIẾN ĐỘ", `💪 ${u} đã NHẬN: "${decodeURIComponent(tEnc)}"`, true); 
-        },
+        del: async (id) => { if(confirm("Xóa việc này?")) { await deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id)); const el = document.getElementById(`task-${id}`); if(el) el.remove(); Utils.toast("Đã xóa!"); } },
+        accept: async (id, tEnc, u) => { await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DOING' }); window.HR_Action.chat("TIẾN ĐỘ", `💪 ${u} đã NHẬN: "${decodeURIComponent(tEnc)}"`, true); },
         finish: async (id, tEnc, u, uid) => { 
             try {
-                // Nhớ tạo Index trên Firebase
                 const start = new Date(); start.setHours(0,0,0,0);
                 const q = query(collection(db, `${ROOT_PATH}/tasks`), where("to", "==", uid), where("time", ">=", start.getTime()));
                 const snap = await getDocs(q);
@@ -54,18 +40,15 @@ window.HR_Action = {
                 batch.update(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DONE' });
                 batch.update(doc(db, `${ROOT_PATH}/employees`, uid), { score: increment(points) });
                 await batch.commit();
-                
-                window.HR_Action.chat("TIẾN ĐỘ", `🏁 ${u} đã XONG: "${decodeURIComponent(tEnc)}" (+${points}đ)`, true);
-                Utils.toast(`Xong! Cộng ${points}đ.`);
-            } catch(e) { alert("Lỗi Index: " + e.message); }
+                window.HR_Action.chat("TIẾN ĐỘ", `🏁 ${u} đã XONG: "${decodeURIComponent(tEnc)}" (+${points}đ)`, true); Utils.toast(`Xong! Cộng ${points}đ.`);
+            } catch(e) { alert("Lỗi Index Firebase: " + e.message); }
         }
     }
 };
 
 export const HR = {
     renderTasks: (data, user) => {
-        const c = document.getElementById('view-tasks');
-        if (!c || c.classList.contains('hidden')) return;
+        const c = document.getElementById('view-tasks'); if (!c || c.classList.contains('hidden')) return;
         const isAdmin = user && ['admin', 'quản lý', 'giám đốc'].some(r => (user.role || '').toLowerCase().includes(r));
         const tasks = Array.isArray(data.tasks) ? data.tasks : [];
         const employees = Array.isArray(data.employees) ? data.employees : [];
@@ -73,14 +56,7 @@ export const HR = {
 
         c.innerHTML = `
         <div class="space-y-4 pb-24">
-            ${isAdmin ? `
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-blue-100">
-                <h3 class="font-black text-blue-600 text-xs uppercase mb-3">GIAO VIỆC</h3>
-                <input id="t-t" placeholder="Nội dung..." class="w-full p-2 border rounded mb-2 text-xs">
-                <div class="flex gap-2 mb-2"><select id="t-area" class="w-1/2 p-2 border rounded text-xs"><option value="">-- Khu --</option>${houses.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}<option value="Khác">Khác</option></select><input type="date" id="t-date" class="w-1/2 p-2 border rounded text-xs"></div>
-                <div class="bg-slate-50 p-2 border rounded max-h-32 overflow-y-auto grid grid-cols-2 gap-2 mb-3"><label class="col-span-2 text-xs font-bold"><input type="checkbox" id="check-all"> Chọn tất cả</label>${employees.map(e=>`<label class="flex items-center gap-1 text-xs"><input type="checkbox" class="ec" value="${e._id}" data-name="${e.name}"> ${e.name}</label>`).join('')}</div>
-                <button id="btn-tsk" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold">GỬI</button>
-            </div>` : ''}
+            ${isAdmin ? `<div class="bg-white p-4 rounded-xl shadow-sm border border-blue-100"><h3 class="font-black text-blue-600 text-xs uppercase mb-3">GIAO VIỆC</h3><input id="t-t" placeholder="Nội dung..." class="w-full p-2 border rounded mb-2 text-xs"><div class="flex gap-2 mb-2"><select id="t-area" class="w-1/2 p-2 border rounded text-xs"><option value="">-- Khu --</option>${houses.map(h=>`<option value="${h.name}">${h.name}</option>`).join('')}<option value="Khác">Khác</option></select><input type="date" id="t-date" class="w-1/2 p-2 border rounded text-xs"></div><div class="bg-slate-50 p-2 border rounded max-h-32 overflow-y-auto grid grid-cols-2 gap-2 mb-3"><label class="col-span-2 text-xs font-bold"><input type="checkbox" id="check-all"> Chọn tất cả</label>${employees.map(e=>`<label class="flex items-center gap-1 text-xs"><input type="checkbox" class="ec" value="${e._id}" data-name="${e.name}"> ${e.name}</label>`).join('')}</div><button id="btn-tsk" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold">GỬI</button></div>` : ''}
             <div><div class="flex justify-between items-center mb-2 px-1"><h2 class="font-black text-xs uppercase">NHẬT KÝ</h2><select id="filter-emp" class="text-[10px] border rounded p-1"><option value="ALL">Tất cả</option>${employees.map(e=>`<option value="${e._id}">${e.name}</option>`).join('')}</select></div><div id="lst" class="space-y-2"></div></div>
         </div>`;
 
@@ -123,7 +99,7 @@ export const HR = {
         const c = document.getElementById('view-team');
         if (!c || c.classList.contains('hidden')) return;
 
-        // 1. ẨN KHUNG CHAT RỜI (Nếu có)
+        // ẨN KHUNG CHAT RỜI
         const oldChat = document.getElementById('view-chat'); 
         if(oldChat) oldChat.classList.add('hidden');
 
