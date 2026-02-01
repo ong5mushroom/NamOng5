@@ -1,10 +1,45 @@
 import { addDoc, collection, db, ROOT_PATH, updateDoc, doc, deleteDoc, increment, writeBatch, getDocs, query, where } from '../config.js';
 import { Utils } from '../utils.js';
 
+// --- HỆ THỐNG XỬ LÝ (Global Action) ---
 window.HR_Action = {
-    chat: async (user, msg, isSystem = false) => {
-        try { await addDoc(collection(db, `${ROOT_PATH}/chat`), { user, message: msg, time: Date.now(), type: isSystem ? 'NOTIFY' : 'CHAT' }); } catch(e) {}
+    // 1. Quản lý Nhân sự (MỚI)
+    addEmp: async () => {
+        const name = prompt("Tên nhân viên mới:");
+        if (!name) return;
+        const pin = prompt("Mã PIN đăng nhập (4 số):", "1234");
+        if (!pin) return;
+        const role = prompt("Chức vụ (admin / quản lý / nhân viên):", "nhân viên");
+        
+        try {
+            await addDoc(collection(db, `${ROOT_PATH}/employees`), { 
+                name: name, 
+                pin: pin, 
+                role: role.toLowerCase(), 
+                score: 0 
+            });
+            Utils.toast("✅ Đã thêm nhân viên!");
+            setTimeout(() => window.location.reload(), 1000); // Reload để cập nhật list login
+        } catch(e) { alert("Lỗi: " + e.message); }
     },
+
+    delEmp: async (id, name) => {
+        if(confirm(`⚠️ XÓA VĨNH VIỄN nhân viên: ${name}?`)) {
+            try {
+                await deleteDoc(doc(db, `${ROOT_PATH}/employees`, id));
+                Utils.toast("🗑️ Đã xóa nhân viên!");
+            } catch(e) { alert("Lỗi: " + e.message); }
+        }
+    },
+
+    // 2. Chat
+    chat: async (user, msg, isSystem = false) => {
+        try {
+            await addDoc(collection(db, `${ROOT_PATH}/chat`), { user, message: msg, time: Date.now(), type: isSystem ? 'NOTIFY' : 'CHAT' });
+        } catch (e) { console.error(e); }
+    },
+
+    // 3. Chấm điểm
     score: async (id, nameEnc, val, adminEnc) => {
         const name = decodeURIComponent(nameEnc);
         const reason = prompt(`Lý do ${val > 0 ? 'thưởng' : 'phạt'} ${Math.abs(val)} điểm cho ${name}?`);
@@ -14,10 +49,14 @@ window.HR_Action = {
             window.HR_Action.chat("HỆ THỐNG", `⚖️ Admin đã ${val>0?'THƯỞNG':'PHẠT'} ${name} ${Math.abs(val)} điểm. Lý do: ${reason}`, true);
         }
     },
+
+    // 4. Nhắc nhở
     remind: async (empId, nameEnc, titleEnc, type) => {
         const name = decodeURIComponent(nameEnc); const title = decodeURIComponent(titleEnc); const penalty = type === 'ACCEPT' ? -1 : -5;
         try { await updateDoc(doc(db, `${ROOT_PATH}/employees`, empId), { score: increment(penalty) }); Utils.toast(`Đã nhắc và trừ ${Math.abs(penalty)} điểm!`); window.HR_Action.chat("NHẮC NHỞ", `⚠️ Nhắc @${name} ${type==='ACCEPT'?'nhận việc':'báo cáo'}: "${title}" (Phạt ${penalty}đ)`, true); } catch(e) { alert(e.message); }
     },
+
+    // 5. Duyệt đơn
     approve: async (id, titleEnc, userEnc, isOk) => {
         const title = decodeURIComponent(titleEnc); const user = decodeURIComponent(userEnc);
         if(confirm(isOk ? `Duyệt "${title}"?` : `Từ chối?`)) {
@@ -25,6 +64,8 @@ window.HR_Action = {
             Utils.toast("Đã xử lý!"); window.HR_Action.chat("HỆ THỐNG", `${isOk ? "✅ DUYỆT" : "❌ TỪ CHỐI"} đơn: "${title}" của ${user}`, true);
         }
     },
+
+    // 6. Thao tác Task
     task: {
         del: async (id) => { if(confirm("Xóa việc này?")) { await deleteDoc(doc(db, `${ROOT_PATH}/tasks`, id)); const el = document.getElementById(`task-${id}`); if(el) el.remove(); Utils.toast("Đã xóa!"); } },
         accept: async (id, tEnc, u) => { await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DOING' }); window.HR_Action.chat("TIẾN ĐỘ", `💪 ${u} đã NHẬN: "${decodeURIComponent(tEnc)}"`, true); },
@@ -41,7 +82,7 @@ window.HR_Action = {
                 batch.update(doc(db, `${ROOT_PATH}/employees`, uid), { score: increment(points) });
                 await batch.commit();
                 window.HR_Action.chat("TIẾN ĐỘ", `🏁 ${u} đã XONG: "${decodeURIComponent(tEnc)}" (+${points}đ)`, true); Utils.toast(`Xong! Cộng ${points}đ.`);
-            } catch(e) { alert("Lỗi Index Firebase: " + e.message); }
+            } catch(e) { alert("Lỗi Index: Hãy vào Firebase Console tạo Index cho 'tasks' (fields: to, time)."); }
         }
     }
 };
@@ -99,7 +140,7 @@ export const HR = {
         const c = document.getElementById('view-team');
         if (!c || c.classList.contains('hidden')) return;
 
-        // ẨN KHUNG CHAT RỜI
+        // ẨN CHAT RỜI
         const oldChat = document.getElementById('view-chat'); 
         if(oldChat) oldChat.classList.add('hidden');
 
@@ -112,17 +153,11 @@ export const HR = {
         const adminEnc = encodeURIComponent(user.name);
 
         c.innerHTML = `
-        <div class="space-y-6 pb-24">
-            ${isAdmin && pending.length ? `<div class="bg-red-50 p-3 rounded-lg border border-red-200"><h3 class="font-bold text-red-600 text-xs mb-2">CẦN DUYỆT (${pending.length})</h3><div class="space-y-2 max-h-40 overflow-y-auto">${pending.map(t=>{const tEnc=encodeURIComponent(t.title); const uEnc=encodeURIComponent(t.by); return `<div class="bg-white p-2 rounded flex justify-between items-center text-xs"><div><b class="text-slate-600">${t.by}</b>: ${t.title}</div><div class="flex gap-1"><button onclick="window.HR_Action.approve('${t.id}','${tEnc}','${uEnc}',true)" class="text-green-600 font-bold px-1">OK</button><button onclick="window.HR_Action.approve('${t.id}','${tEnc}','${uEnc}',false)" class="text-red-600 font-bold px-1">X</button></div></div>`;}).join('')}</div></div>` : ''}
-
-            <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 text-center shadow-sm">
-                <h3 class="font-black text-yellow-600 text-xs uppercase mb-3">🏆 TOP 3 XUẤT SẮC</h3>
-                <div class="flex justify-center items-end gap-2">
-                    ${top3[1] ? `<div class="flex flex-col items-center"><div class="w-8 h-8 rounded-full bg-white border border-slate-300 flex items-center justify-center font-bold text-xs">${top3[1].name.charAt(0)}</div><div class="h-12 w-12 bg-slate-200 rounded-t flex flex-col justify-end pb-1 border-t-2 border-slate-400"><span class="text-[9px] font-bold">${top3[1].score||0}</span><span class="text-xs">🥈</span></div><div class="text-[8px] font-bold mt-1 truncate w-12">${top3[1].name}</div></div>` : ''}
-                    ${top3[0] ? `<div class="flex flex-col items-center z-10"><div class="w-10 h-10 rounded-full bg-yellow-100 border border-yellow-400 flex items-center justify-center font-bold text-sm mb-1">${top3[0].name.charAt(0)}</div><div class="h-16 w-14 bg-yellow-100 rounded-t flex flex-col justify-end pb-1 border-t-4 border-yellow-400 shadow"><span class="text-[10px] font-bold text-yellow-700">${top3[0].score||0}</span><span class="text-sm">🥇</span></div><div class="text-[9px] font-bold text-yellow-700 mt-1 truncate w-14">${top3[0].name}</div></div>` : '<div class="text-xs text-slate-400 italic">Chưa có dữ liệu</div>'}
-                    ${top3[2] ? `<div class="flex flex-col items-center"><div class="w-8 h-8 rounded-full bg-white border border-orange-300 flex items-center justify-center font-bold text-xs">${top3[2].name.charAt(0)}</div><div class="h-10 w-12 bg-orange-100 rounded-t flex flex-col justify-end pb-1 border-t-2 border-orange-400"><span class="text-[9px] font-bold">${top3[2].score||0}</span><span class="text-xs">🥉</span></div><div class="text-[8px] font-bold mt-1 truncate w-12">${top3[2].name}</div></div>` : ''}
-                </div>
-            </div>
+        <div class="space-y-5 pb-24">
+            ${isAdmin && pending.length ? `<div class="bg-red-50 p-3 rounded-lg border border-red-200"><h3 class="font-bold text-red-600 text-xs mb-2">CẦN DUYỆT (${pending.length})</h3><div class="space-y-2 max-h-40 overflow-y-auto">${pending.map(t=>{
+                const tEnc=encodeURIComponent(t.title); const uEnc=encodeURIComponent(t.by);
+                return `<div class="bg-white p-2 rounded flex justify-between items-center text-xs"><div><b class="text-slate-600">${t.by}</b>: ${t.title}</div><div class="flex gap-1"><button onclick="window.HR_Action.approve('${t.id}','${tEnc}','${uEnc}',true)" class="text-green-600 font-bold px-1">OK</button><button onclick="window.HR_Action.approve('${t.id}','${tEnc}','${uEnc}',false)" class="text-red-600 font-bold px-1">X</button></div></div>`;
+            }).join('')}</div></div>` : ''}
 
             <div class="grid grid-cols-3 gap-3 bg-blue-50 p-3 rounded-xl border border-blue-100">
                 <button id="btn-checkin" class="bg-white p-2 rounded flex flex-col items-center shadow-sm"><span class="text-xl">📍</span><span class="text-[10px] font-bold">Chấm công</span></button>
@@ -130,7 +165,33 @@ export const HR = {
                 <button id="btn-buy" class="bg-white p-2 rounded flex flex-col items-center shadow-sm"><span class="text-xl">🛒</span><span class="text-[10px] font-bold">Mua hàng</span></button>
             </div>
 
-            <div class="bg-white border rounded-xl h-80 flex flex-col shadow-sm">
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-bold text-slate-600 text-xs uppercase">NHÂN SỰ (${employees.length})</h3>
+                    ${isAdmin ? `<button onclick="window.HR_Action.addEmp()" class="text-[10px] bg-blue-600 text-white px-2 py-1 rounded font-bold">+ THÊM NV</button>` : ''}
+                </div>
+                <div class="space-y-2">
+                    ${employees.map((e,i) => {
+                        const nameEnc = encodeURIComponent(e.name);
+                        return `<div class="bg-white p-3 rounded border shadow-sm flex justify-between items-center">
+                            <div class="flex gap-2 items-center">
+                                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 border relative">
+                                    ${e.name.charAt(0)}
+                                    ${i<3?`<i class="fas fa-crown absolute -top-1 -right-1 text-[10px] ${i===0?'text-yellow-500':(i===1?'text-slate-400':'text-orange-400')}"></i>`:''}
+                                </div>
+                                <div><div class="font-bold text-xs">${e.name}</div><div class="text-[9px] text-slate-400">Điểm: <b>${e.score||0}</b></div></div>
+                            </div>
+                            <div class="flex gap-1 items-center">
+                                ${isAdmin?`<button onclick="window.HR_Action.score('${e._id}','${nameEnc}',10,'${adminEnc}')" class="w-6 h-6 bg-green-100 text-green-700 font-bold rounded flex items-center justify-center text-xs">+</button>
+                                <button onclick="window.HR_Action.score('${e._id}','${nameEnc}',-10,'${adminEnc}')" class="w-6 h-6 bg-red-100 text-red-700 font-bold rounded flex items-center justify-center text-xs">-</button>
+                                <button onclick="window.HR_Action.delEmp('${e._id}', '${nameEnc}')" class="ml-1 text-slate-300 hover:text-red-500"><i class="fas fa-trash-alt"></i></button>`:''}
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+
+            <div class="bg-white border rounded-xl h-80 flex flex-col shadow-sm mt-4">
                 <div class="p-2 border-b font-bold text-xs bg-slate-50 text-center">THẢO LUẬN TEAM</div>
                 <div id="chat-list" class="flex-1 overflow-y-auto p-2 space-y-2 flex flex-col-reverse bg-slate-50">
                     ${chats.map(m => {
@@ -140,17 +201,7 @@ export const HR = {
                         return `<div class="flex ${isMe?'justify-end':'justify-start'}"><div class="max-w-[80%] ${isMe?'bg-blue-500 text-white':'bg-white border text-slate-700'} px-2 py-1 rounded text-xs"><div class="font-bold text-[9px] opacity-70">${m.user}</div>${m.message}</div></div>`;
                     }).join('')}
                 </div>
-                <div class="p-2 border-t flex gap-2 bg-white"><input id="chat-msg" class="flex-1 p-1 border rounded text-xs" placeholder="Nhập tin..."><button id="chat-send" class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-paper-plane text-xs"></i></button></div>
-            </div>
-
-            <div>
-                <h3 class="font-bold text-slate-600 text-xs mb-2 uppercase">DANH SÁCH NHÂN VIÊN</h3>
-                <div class="space-y-2">
-                    ${employees.map((e,i) => {
-                        const nameEnc = encodeURIComponent(e.name);
-                        return `<div class="bg-white p-3 rounded border shadow-sm flex justify-between items-center"><div class="flex gap-2 items-center"><div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 border relative">${e.name.charAt(0)}${i<3?`<i class="fas fa-crown absolute -top-1 -right-1 text-[10px] text-yellow-500"></i>`:''}</div><div><div class="font-bold text-xs">${e.name}</div><div class="text-[9px] text-slate-400">Điểm: <b>${e.score||0}</b></div></div></div>${isAdmin?`<div class="flex gap-1"><button onclick="window.HR_Action.score('${e._id}','${nameEnc}',10,'${adminEnc}')" class="w-6 h-6 bg-green-100 text-green-700 font-bold rounded flex items-center justify-center text-xs">+</button><button onclick="window.HR_Action.score('${e._id}','${nameEnc}',-10,'${adminEnc}')" class="w-6 h-6 bg-red-100 text-red-700 font-bold rounded flex items-center justify-center text-xs">-</button></div>`:''}</div>`;
-                    }).join('')}
-                </div>
+                <div class="p-2 border-t flex gap-2 bg-white"><input id="chat-msg" class="flex-1 p-1 border rounded text-xs" placeholder="Tin nhắn..."><button id="chat-send" class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-paper-plane text-xs"></i></button></div>
             </div>
         </div>`;
 
