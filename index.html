@@ -53,29 +53,37 @@
         <div id="view-team" class="view-section hidden animate-pop"></div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 glass h-[75px] z-30 flex justify-around items-center pb-2 rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.05)] border-t border-white/50">
-    <button class="nav-btn active flex flex-col items-center justify-center text-blue-600 group w-full" data-tab="tasks">
-        <i class="fas fa-tasks text-xl mb-1"></i>
-        <span class="text-[9px] font-bold uppercase">Công Việc</span>
-    </button>
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md h-[70px] z-30 flex justify-between items-center px-6 border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] pb-1">
     
-    <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="sx">
-        <div class="w-12 h-12 -mt-8 bg-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/40 text-white border-4 border-slate-50 transition-transform active:scale-95">
-            <span class="text-[10px] font-black">SX</span>
+    <button class="nav-btn group flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all active:scale-95" data-tab="tasks">
+        <div class="icon-box w-6 h-6 flex items-center justify-center rounded-full mb-0.5 transition-colors">
+            <i class="fas fa-clipboard-check text-xl text-slate-400 group-[.active]:text-blue-600"></i>
         </div>
+        <span class="text-[9px] font-bold text-slate-400 group-[.active]:text-blue-600">VIỆC</span>
     </button>
     
-    <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="th">
-        <i class="fas fa-warehouse text-xl mb-1"></i>
-        <span class="text-[9px] font-bold uppercase">Kho Hàng</span>
+    <button class="nav-btn group flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all active:scale-95" data-tab="sx">
+        <div class="icon-box w-6 h-6 flex items-center justify-center rounded-full mb-0.5 transition-colors">
+            <i class="fas fa-seedling text-xl text-slate-400 group-[.active]:text-green-600"></i>
+        </div>
+        <span class="text-[9px] font-bold text-slate-400 group-[.active]:text-green-600">SẢN XUẤT</span>
     </button>
     
-    <button class="nav-btn flex flex-col items-center justify-center text-slate-400 group w-full" data-tab="team">
-        <i class="fas fa-users text-xl mb-1"></i>
-        <span class="text-[9px] font-bold uppercase">Nhân Sự</span>
+    <button class="nav-btn group flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all active:scale-95" data-tab="th">
+        <div class="icon-box w-6 h-6 flex items-center justify-center rounded-full mb-0.5 transition-colors">
+            <i class="fas fa-box-open text-xl text-slate-400 group-[.active]:text-orange-500"></i>
+        </div>
+        <span class="text-[9px] font-bold text-slate-400 group-[.active]:text-orange-500">KHO</span>
     </button>
-</nav>
+    
+    <button class="nav-btn group flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all active:scale-95" data-tab="team">
+        <div class="icon-box w-6 h-6 flex items-center justify-center rounded-full mb-0.5 transition-colors">
+            <i class="fas fa-users-cog text-xl text-slate-400 group-[.active]:text-purple-600"></i>
+        </div>
+        <span class="text-[9px] font-bold text-slate-400 group-[.active]:text-purple-600">TEAM</span>
+    </button>
 
+</nav>
        <div id="login-overlay" class="fixed inset-0 z-[300] flex flex-col items-center justify-center p-6">
         
         <div class="mb-8 text-center animate-pop">
@@ -121,6 +129,7 @@
     <script type="module" src="js/app.js"></script>
 </body>
 </html>
+
 
 
 
