@@ -1,121 +1,184 @@
-import { Home } from './modules/home.js';
-import { HR } from './modules/hr.js';
+import { db, getDocs, collection, query, where, ROOT_PATH } from './config.js';
+import { Utils } from './utils.js';
 import { SX } from './modules/sx.js';
 import { THDG } from './modules/thdg.js';
-import { Chat } from './modules/chat.js';
-import { Admin } from './modules/admin.js';
-import { auth, db, collection, onSnapshot, signInAnonymously, ROOT_PATH } from './config.js';
-import { Utils } from './utils.js';
+import { HR } from './modules/hr.js';
 
+// --- BIẾN TOÀN CỤC ---
+let currentUser = null;
+let currentTab = 'home';
+
+// --- DOM ELEMENTS ---
+const els = {
+    loginOverlay: document.getElementById('login-overlay'),
+    userSelect: document.getElementById('login-user'),
+    pinInput: document.getElementById('login-pin'),
+    loginBtn: document.getElementById('login-btn'),
+    mainApp: document.getElementById('main-app'),
+    headerUser: document.getElementById('head-user'),
+    headerRole: document.getElementById('head-role'),
+    btnSettings: document.getElementById('btn-settings'),
+    navBtns: document.querySelectorAll('.nav-btn'),
+    views: {
+        home: document.getElementById('view-home'),
+        tasks: document.getElementById('view-tasks'),
+        sx: document.getElementById('view-sx'),
+        th: document.getElementById('view-th'),
+        team: document.getElementById('view-team')
+    }
+};
+
+// --- KHỞI TẠO ---
 const App = {
-    data: { houses: [], users: [], tasks: [], employees: [], chat: [], spawn_inventory: [], products: [], harvest: [], shipping: [], supplies: [] },
-    user: JSON.parse(localStorage.getItem('n5_modular_user')) || null,
-    currentTab: 'home',
-
     init: async () => {
-        console.log("App V5 Fixed Starting...");
-        try { await signInAnonymously(auth); } catch (e) { console.error("Auth Err:", e); }
-        App.listenData();
-        App.checkLoginState();
+        await App.loadUsers();
         App.bindEvents();
     },
 
-    listenData: () => {
-        onSnapshot(collection(db, `${ROOT_PATH}/employees`), (snap) => {
-            App.data.employees = snap.docs.map(d => ({...d.data(), _id: d.id}));
-            App.data.users = App.data.employees; 
-            App.renderLoginList();
-        });
-
-        if (App.user) {
-            const cols = ['houses', 'tasks', 'chat', 'spawn_inventory', 'products', 'harvest_logs', 'shipping', 'supplies'];
-            cols.forEach(key => {
-                const dataKey = key === 'harvest_logs' ? 'harvest' : key;
-                onSnapshot(collection(db, `${ROOT_PATH}/${key}`), (snap) => {
-                    let docs = snap.docs.map(d => ({...d.data(), id: d.id}));
-                    if(dataKey === 'chat') docs.sort((a,b) => a.time - b.time);
-                    App.data[dataKey] = docs;
-                    
-                    if(App.currentTab) App.renderActiveTab();
-                    
-                    if(!document.getElementById('chat-layer').classList.contains('hidden')) {
-                        Chat.render(App.data, App.user);
-                    }
-                });
-            });
+    loadUsers: async () => {
+        try {
+            const snap = await getDocs(collection(db, `${ROOT_PATH}/employees`));
+            els.userSelect.innerHTML = '<option value="">-- Chọn nhân viên --</option>' + 
+                snap.docs.map(d => `<option value="${d.id}" data-pin="${d.data().pin}" data-role="${d.data().role}">${d.data().name}</option>`).join('');
+        } catch (e) {
+            console.error(e);
+            alert("Lỗi tải danh sách nhân viên. Kiểm tra mạng!");
         }
     },
 
-    renderLoginList: () => {
-        const el = document.getElementById('login-user');
-        if (el && App.data.users.length) el.innerHTML = '<option value="">-- Chọn nhân viên --</option>' + App.data.users.map(u => `<option value="${u._id}">${u.name}</option>`).join('');
-    },
+    bindEvents: () => {
+        // Đăng nhập
+        els.loginBtn.onclick = App.login;
+        
+        // Chuyển Tab
+        els.navBtns.forEach(btn => {
+            btn.onclick = () => {
+                els.navBtns.forEach(b => {
+                    b.classList.remove('active', 'text-blue-600');
+                    b.classList.add('text-slate-400');
+                });
+                btn.classList.add('active', 'text-blue-600');
+                btn.classList.remove('text-slate-400');
+                currentTab = btn.getAttribute('data-tab');
+                App.render();
+            };
+        });
 
-    checkLoginState: () => {
-        if (App.user) {
-            document.getElementById('login-overlay').classList.add('hidden');
-            document.getElementById('head-user').innerText = App.user.name;
-            document.getElementById('head-role').innerText = App.user.role;
-            if(['admin', 'quản lý', 'giám đốc'].some(r => (App.user.role||'').toLowerCase().includes(r))) {
-                document.getElementById('btn-settings').classList.remove('hidden');
-            }
-            App.switchTab('home');
-        } else {
-            document.getElementById('login-overlay').classList.remove('hidden');
+        // Nút Cài Đặt (Xử lý sự kiện click)
+        if(els.btnSettings) {
+            els.btnSettings.onclick = () => {
+                Utils.modal("CÀI ĐẶT", `
+                    <div class="space-y-3">
+                        <button id="st-logout" class="w-full p-3 bg-red-100 text-red-600 rounded-xl font-bold flex items-center justify-center gap-2"><i class="fas fa-sign-out-alt"></i> Đăng Xuất</button>
+                        <div class="text-center text-xs text-slate-400 pt-2">Phiên bản 2.0 (Role: ${currentUser.role})</div>
+                    </div>
+                `, []);
+                
+                // Gắn sự kiện cho nút Đăng xuất trong Modal
+                setTimeout(() => {
+                    document.getElementById('st-logout').onclick = () => window.location.reload();
+                }, 100);
+            };
         }
     },
 
     login: () => {
-        const id = document.getElementById('login-user').value;
-        const pin = document.getElementById('login-pin').value;
-        const u = App.data.users.find(u => u._id === id);
-        if (u && String(u.pin) === String(pin)) {
-            App.user = u; localStorage.setItem('n5_modular_user', JSON.stringify(u)); location.reload();
-        } else Utils.toast("Sai mã PIN!", "err");
-    },
+        const sel = els.userSelect;
+        const uid = sel.value;
+        const name = sel.options[sel.selectedIndex].text;
+        const correctPin = sel.options[sel.selectedIndex].getAttribute('data-pin');
+        const role = sel.options[sel.selectedIndex].getAttribute('data-role') || 'Nhân viên';
+        const enteredPin = els.pinInput.value;
 
-    switchTab: (tab) => {
-        document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'text-blue-600'));
-        
-        // Tab HTML ID là 'view-th' nên biến 'tab' sẽ là 'th'
-        const view = document.getElementById(`view-${tab}`);
-        if(view) {
-            view.classList.remove('hidden');
-            const btn = document.querySelector(`.nav-btn[data-tab="${tab}"]`);
-            if(btn) btn.classList.add('active', 'text-blue-600');
-            App.currentTab = tab;
-            App.renderActiveTab();
+        if (!uid) return Utils.toast("Chưa chọn nhân viên!", "err");
+        if (enteredPin !== correctPin) return Utils.toast("Sai mã PIN!", "err");
+
+        // Đăng nhập thành công
+        currentUser = { _id: uid, name, role };
+        els.loginOverlay.classList.add('hidden');
+        els.headerUser.innerText = name;
+        els.headerRole.innerText = role;
+
+        // HIỂN THỊ NÚT CÀI ĐẶT NẾU LÀ ADMIN
+        const isManager = ['admin', 'quản lý', 'giám đốc'].some(r => role.toLowerCase().includes(r));
+        if (isManager) {
+            els.btnSettings.classList.remove('hidden');
+        } else {
+            els.btnSettings.classList.add('hidden');
         }
+
+        App.render();
     },
 
-    renderActiveTab: () => {
-        if(!App.user) return;
-        try {
-            const d = App.data;
-            // --- SỬA LỖI TẠI ĐÂY: Đổi 'thdg' thành 'th' ---
-            if(App.currentTab === 'home') Home.render(d, true);
-            if(App.currentTab === 'tasks') HR.renderTasks(d, App.user);
-            if(App.currentTab === 'team') HR.renderTeam(d, App.user);
-            if(App.currentTab === 'sx') SX.render(d, App.user);
-            
-            // QUAN TRỌNG: Dùng đúng tên 'th' khớp với data-tab="th" trong HTML
-            if(App.currentTab === 'th') THDG.render(d, App.user); 
-            
-        } catch (e) { console.error("Render Tab Err:", e); }
-    },
+    // RENDER DỮ LIỆU
+    render: async () => {
+        if (!currentUser) return;
 
-    bindEvents: () => {
-        document.getElementById('login-btn').onclick = App.login;
-        document.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => App.switchTab(b.dataset.tab));
-        
-        document.getElementById('btn-chat').onclick = () => {
-            document.getElementById('chat-layer').classList.remove('hidden');
-            Chat.render(App.data, App.user);
+        // Ẩn tất cả views
+        Object.values(els.views).forEach(el => el.classList.add('hidden'));
+
+        // Load dữ liệu chung (có thể tối ưu cache sau)
+        const [hSnap, sSnap, tSnap, eSnap, pSnap, cSnap] = await Promise.all([
+            getDocs(collection(db, `${ROOT_PATH}/houses`)),
+            getDocs(collection(db, `${ROOT_PATH}/supplies`)),
+            getDocs(collection(db, `${ROOT_PATH}/tasks`)),
+            getDocs(collection(db, `${ROOT_PATH}/employees`)),
+            getDocs(collection(db, `${ROOT_PATH}/products`)),
+            getDocs(collection(db, `${ROOT_PATH}/chat`))
+        ]);
+
+        const data = {
+            houses: hSnap.docs.map(d => ({id: d.id, ...d.data()})),
+            supplies: sSnap.docs.map(d => ({_id: d.id, ...d.data()})),
+            tasks: tSnap.docs.map(d => ({id: d.id, ...d.data()})),
+            employees: eSnap.docs.map(d => ({_id: d.id, ...d.data()})),
+            products: pSnap.docs.map(d => ({_id: d.id, ...d.data()})),
+            chat: cSnap.docs.map(d => ({id: d.id, ...d.data()}))
         };
-        
-        document.querySelector('[data-action="closeChat"]').onclick = () => document.getElementById('chat-layer').classList.add('hidden');
-        document.getElementById('btn-settings').onclick = Admin.openSettings;
+
+        // Render View hiện tại
+        switch (currentTab) {
+            case 'home':
+                els.views.home.classList.remove('hidden');
+                els.views.home.innerHTML = `
+                    <div class="p-4 space-y-4">
+                        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-5 rounded-2xl text-white shadow-lg">
+                            <h2 class="text-lg font-bold">Xin chào, ${currentUser.name}! 👋</h2>
+                            <p class="text-blue-100 text-xs mt-1">Chúc bạn một ngày làm việc hiệu quả.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-2">
+                                <span class="text-3xl">🍄</span>
+                                <span class="font-bold text-slate-600 text-xs">Sản Xuất</span>
+                                <b class="text-xl text-blue-600">${data.houses.filter(h=>h.status==='ACTIVE').length} Nhà</b>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-2">
+                                <span class="text-3xl">👥</span>
+                                <span class="font-bold text-slate-600 text-xs">Nhân Sự</span>
+                                <b class="text-xl text-green-600">${data.employees.length} NV</b>
+                            </div>
+                        </div>
+                    </div>`;
+                break;
+            case 'tasks':
+                els.views.tasks.classList.remove('hidden');
+                HR.renderTasks(data, currentUser);
+                break;
+            case 'sx':
+                els.views.sx.classList.remove('hidden');
+                SX.render(data, currentUser);
+                break;
+            case 'th':
+                els.views.th.classList.remove('hidden');
+                THDG.render(data, currentUser);
+                break;
+            case 'team':
+                els.views.team.classList.remove('hidden');
+                HR.renderTeam(data, currentUser);
+                break;
+        }
     }
 };
-document.addEventListener('DOMContentLoaded', App.init);
+
+// Chạy App
+window.onload = App.init;
