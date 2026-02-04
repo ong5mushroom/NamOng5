@@ -2,7 +2,6 @@ import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc
 import { Utils } from '../utils.js';
 
 window.SX_Action = {
-    // ... (Giữ nguyên phần SX_Action cũ của bạn) ...
     delLog: async (id, qty, houseId) => {
         if(confirm(`⚠️ Xóa lô ${qty} bịch? (Kho sẽ được hoàn tác)`)) {
             try {
@@ -30,7 +29,6 @@ window.SX_Action = {
             const n = Number(v);
             const newQty = (currentQty || 0) + n;
             const updateData = { batchQty: increment(n) };
-            // Logic quan trọng: Nếu về <= 0 thì tắt đèn ngay
             if (newQty <= 0) { updateData.status = 'EMPTY'; updateData.currentBatch = ''; updateData.batchQty = 0; } 
             else { updateData.status = 'ACTIVE'; }
             await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), updateData); 
@@ -63,7 +61,12 @@ export const SX = {
 
         const houses = (Array.isArray(data.houses) ? data.houses : []).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
         const supplies = Array.isArray(data.supplies) ? data.supplies : [];
-        const houseA = houses.find(h => ['nhà a','kho a', 'kho phôi'].includes((h.name||'').toLowerCase()));
+        
+        // --- ĐOẠN CODE BẠN HỎI NẰM Ở ĐÂY ---
+        // Tôi đã thêm 'kho vật tư', 'kho tổng' vào danh sách nhận diện
+        const houseA = houses.find(h => ['nhà a','kho a', 'kho phôi', 'kho vật tư', 'kho tổng'].includes((h.name||'').toLowerCase()));
+        // ------------------------------------
+
         const logsA = supplies.filter(s => houseA && s.to === houseA.id).sort((a,b)=>b.time-a.time);
         const uniqueCodes = [...new Set(logsA.filter(l => l.type === 'IMPORT').map(l => l.code).filter(Boolean))];
 
@@ -85,7 +88,7 @@ export const SX = {
                 </div>
 
                 <div class="max-h-40 overflow-y-auto space-y-1 bg-white/50 p-1 rounded-lg">${logsA.map(l => `<div class="flex justify-between items-center text-[10px] p-2 bg-white rounded border border-purple-50 mb-1"><div><span class="font-bold text-slate-700 block">${l.code||'--'}</span><span class="text-slate-400">${new Date(l.time).toLocaleDateString('vi-VN')}</span></div><div class="flex items-center gap-2"><span class="font-bold ${l.qty>0?'text-purple-600':'text-red-500'}">${l.qty>0?'+':''}${Number(l.qty).toLocaleString()}</span>${isManager && l.type==='IMPORT'?`<button onclick="window.SX_Action.delLog('${l._id}',${l.qty},'${houseA.id}')" class="text-red-300 hover:text-red-500">×</button>`:''}</div></div>`).join('')}</div>
-            </div>` : '<div class="p-4 text-center text-slate-400 bg-slate-50 rounded-xl">Chưa có dữ liệu Kho A</div>'}
+            </div>` : '<div class="p-4 text-center text-slate-400 bg-slate-50 rounded-xl">Chưa có dữ liệu Kho (Tạo nhà tên "Kho Vật Tư" hoặc "Nhà A")</div>'}
 
             <div>
                 <div class="flex justify-between items-center mb-4 px-1">
@@ -97,11 +100,7 @@ export const SX = {
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     ${houses.filter(h => h.id !== (houseA?.id)).map(h => {
-                        // --- FIX LỖI Ở ĐÂY ---
-                        // Tính toán trạng thái dựa trên SỐ LƯỢNG THỰC TẾ, không tin vào field 'status' cũ
                         const isRunning = (h.batchQty > 0); 
-                        // ---------------------
-
                         return `
                         <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
                             <div class="absolute top-0 left-0 w-1 h-full ${isRunning ? 'bg-green-500' : 'bg-slate-300'}"></div>
