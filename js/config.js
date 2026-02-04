@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
-    getFirestore, collection, onSnapshot, addDoc, updateDoc, 
+    getFirestore, initializeFirestore, collection, onSnapshot, addDoc, updateDoc, 
     doc, deleteDoc, getDoc, increment, writeBatch, getDocs, query, where 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -16,7 +16,13 @@ const fbConfig = {
 
 const appInstance = initializeApp(fbConfig);
 export const auth = getAuth(appInstance);
-export const db = getFirestore(appInstance);
+
+// --- SỬA ĐỔI QUAN TRỌNG CHO XIAOMI 13T ---
+// Thay vì dùng getFirestore mặc định, ta dùng cấu hình ép Long Polling
+export const db = initializeFirestore(appInstance, {
+    experimentalForceLongPolling: true, // Giúp vượt qua lỗi Failed to fetch trên mạng kén
+});
+
 export const ROOT_PATH = "artifacts/namong5_production/public/data";
 
 // Xuất khẩu đầy đủ công cụ cho các module khác dùng
