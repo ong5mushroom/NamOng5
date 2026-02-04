@@ -31,10 +31,10 @@ export const THDG = {
         const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => role.includes(r));
         // ------------------
 
-        // Đảm bảo products luôn là mảng mới nhất
+        // FIX 1: Đảm bảo có dữ liệu
         let products = (Array.isArray(data.products) ? data.products : []).sort((a,b) => (a.name||'').localeCompare(b.name||''));
         
-        // Hàm vẽ lại danh sách (để gọi lại khi cập nhật)
+        // Hàm vẽ lại danh sách (để gọi lại khi cập nhật UI)
         const renderProductList = () => {
             const groups = {
                 '1': { title: '🍄 NẤM TƯƠI', color: 'green', items: products.filter(p => String(p.group) === '1') },
@@ -45,10 +45,10 @@ export const THDG = {
             const renderRow = (p, color) => `
                 <div class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200 shadow-sm relative">
                     <div class="flex items-center gap-1 overflow-hidden">
-                        ${isManager ? `<button onclick="window.THDG_Action.delOne('${p._id}', '${p.name}')" class="text-red-400 hover:text-red-600 font-bold px-1 text-xs">×</button>` : ''}
+                        ${isManager ? `<button onclick="window.THDG_Action.delOne('${p.id}', '${p.name}')" class="text-red-400 hover:text-red-600 font-bold px-1 text-xs">×</button>` : ''}
                         <div>
                             <span class="text-[11px] font-bold text-slate-700 truncate w-24 block" title="${p.name}">${p.name}</span>
-                            <span class="text-[9px] text-slate-400 font-bold">Tồn: <span id="stk-${p.code}" class="text-blue-600">${(p.stock||0).toLocaleString()}</span></span>
+                            <span class="text-[9px] text-slate-400 font-bold">Tồn: <span id="stk-${p.code}" class="text-blue-600 font-black">${(p.stock||0).toLocaleString()}</span></span>
                         </div>
                     </div>
                     <input type="number" step="0.1" id="in-${p.code}" class="w-16 p-1 text-center font-bold text-slate-700 border border-slate-200 rounded text-xs outline-none focus:border-${color}-500 bg-white transition" placeholder="Nhập...">
@@ -127,7 +127,6 @@ export const THDG = {
             </div>
         </div>`;
 
-        // Gọi hàm vẽ lần đầu
         renderProductList();
 
         setTimeout(() => {
@@ -149,7 +148,6 @@ export const THDG = {
                 }
             }
 
-            // --- ĐOẠN CODE SỬA LỖI (BẮT ĐẦU) ---
             document.getElementById('btn-save-h').onclick = async () => {
                 const aid = document.getElementById('h-area').value; 
                 const dVal = document.getElementById('h-date').value;
@@ -160,39 +158,36 @@ export const THDG = {
                 let totalKg = 0; 
                 let details = {};
                 
-                // Duyệt qua danh sách để lấy số nhập vào
                 products.forEach(p => { 
                     const el = document.getElementById(`in-${p.code}`); 
                     if(el && Number(el.value) > 0) { 
                         const q = Number(el.value); 
-                        // Cập nhật DB
-                        batch.update(doc(db, `${ROOT_PATH}/products`, p._id), {stock: increment(q)}); 
                         
-                        // CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC (Không cần chờ Server)
-                        p.stock = (p.stock || 0) + q;
-                        const stockEl = document.getElementById(`stk-${p.code}`);
-                        if(stockEl) stockEl.innerText = p.stock.toLocaleString();
-                        
-                        details[p.code] = q; 
-                        totalKg += q; 
-                        el.value = ''; 
-                        hasData = true; 
+                        // FIX 3: Sửa p._id thành p.id (Đây là nguyên nhân chính gây lỗi)
+                        if(p.id) {
+                            batch.update(doc(db, `${ROOT_PATH}/products`, p.id), {stock: increment(q)}); 
+                            
+                            // Cập nhật giao diện ngay lập tức
+                            p.stock = (p.stock || 0) + q;
+                            const stockEl = document.getElementById(`stk-${p.code}`);
+                            if(stockEl) stockEl.innerText = p.stock.toLocaleString();
+                            
+                            details[p.code] = q; 
+                            totalKg += q; 
+                            el.value = ''; 
+                            hasData = true; 
+                        } else {
+                            console.error("Lỗi ID sản phẩm:", p);
+                        }
                     } 
                 });
 
                 if(hasData) { 
                     const aname = document.getElementById('h-area').options[document.getElementById('h-area').selectedIndex].getAttribute('data-name'); 
-                    
-                    // Lưu nhật ký nhập
-                    batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {
-                        area: aname, 
-                        details, 
-                        total: totalKg, 
-                        user: user.name, 
-                        time: new Date(dVal).setHours(12)
-                    }); 
+                    batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {area: aname, details, total: totalKg, user: user.name, time: new Date(dVal).setHours(12)}); 
                     
                     if(aid !== 'MuaNgoai') {
+                        // Cập nhật số tổng cho Nhà trồng
                         batch.update(doc(db, `${ROOT_PATH}/houses`, aid), { totalYield: increment(totalKg) }); 
                     }
 
@@ -202,7 +197,6 @@ export const THDG = {
                     Utils.toast("Chưa nhập số!", "err"); 
                 }
             };
-            // --- ĐOẠN CODE SỬA LỖI (KẾT THÚC) ---
             
             let cart=[]; 
             const upC=()=>{ document.getElementById('cart-list').innerHTML=cart.map((i,x)=>`<div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100"><div class="text-[11px]"><div class="font-bold text-slate-700">${i.name}</div><div class="text-slate-500">${i.qty} x ${i.price.toLocaleString()}</div></div><div class="flex items-center gap-3"><span class="font-bold text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button onclick="document.getElementById('d-${x}').click()" class="text-red-400 hover:text-red-600 font-bold px-1">×</button></div><button id="d-${x}" class="hidden"></button></div>`).join(''); document.getElementById('cart-total').innerText=cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()+'đ'; cart.forEach((_,i)=>document.getElementById(`d-${i}`).onclick=()=>{cart.splice(i,1);upC()}) };
@@ -213,7 +207,21 @@ export const THDG = {
                 const w = window.open('', '', 'height=600,width=400'); w.document.write(`<html><head><title>HOA DON</title><style>body{font-family:'Courier New',monospace;font-size:12px;padding:10px}.c{text-align:center}.r{text-align:right}table{width:100%;border-collapse:collapse;margin-top:10px}td,th{padding:4px 0}</style></head><body><div class="c"><div style="font-size:16px;font-weight:bold">${COMPANY_INFO.name}</div><div>${COMPANY_INFO.address}</div><div>${COMPANY_INFO.hotline}</div><div style="border-bottom:1px dashed #000;margin:5px 0"></div><b>HÓA ĐƠN BÁN LẺ</b></div><div>Khách: <b>${cust}</b></div><div>Ngày: ${new Date().toLocaleString('vi-VN')}</div><div style="border-bottom:1px dashed #000;margin:5px 0"></div><table><tr><th align="left">Món</th><th class="c">SL</th><th class="r">Tiền</th></tr>${cart.map(i=>`<tr><td>${i.name}</td><td class="c">${i.qty}</td><td class="r">${(i.qty*i.price).toLocaleString()}</td></tr>`).join('')}</table><div style="border-bottom:1px dashed #000;margin:5px 0"></div><div class="r" style="font-size:14px">TỔNG: <b>${cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()}đ</b></div><div class="c" style="margin-top:20px;font-style:italic">Cảm ơn quý khách!</div></body></html>`); w.document.close(); w.print();
             };
 
-            document.getElementById('btn-save-sell').onclick=async()=>{ if(cart.length){ const batch=writeBatch(db); batch.set(doc(collection(db,`${ROOT_PATH}/shipping`)),{customer:document.getElementById('s-cust').value,items:cart,total:cart.reduce((a,b)=>a+b.qty*b.price,0),user:user.name, time:Date.now()}); cart.forEach(i=>{const p=products.find(x=>x.code===i.code);if(p)batch.update(doc(db,`${ROOT_PATH}/products`,p._id),{stock:increment(-i.qty)})}); await batch.commit(); Utils.toast("✅ Đã xuất bán!"); cart=[]; upC(); document.getElementById('s-cust').value=''; } else {Utils.toast("Giỏ trống!","err")} };
+            document.getElementById('btn-save-sell').onclick=async()=>{ 
+                if(cart.length){ 
+                    const batch=writeBatch(db); 
+                    batch.set(doc(collection(db,`${ROOT_PATH}/shipping`)),{customer:document.getElementById('s-cust').value,items:cart,total:cart.reduce((a,b)=>a+b.qty*b.price,0),user:user.name, time:Date.now()}); 
+                    
+                    cart.forEach(i=>{
+                        const p=products.find(x=>x.code===i.code);
+                        // FIX 4: Sửa p._id thành p.id ở đây nữa
+                        if(p && p.id) batch.update(doc(db,`${ROOT_PATH}/products`,p.id),{stock:increment(-i.qty)});
+                    }); 
+                    
+                    await batch.commit(); 
+                    Utils.toast("✅ Đã xuất bán!"); cart=[]; upC(); document.getElementById('s-cust').value=''; 
+                } else {Utils.toast("Giỏ trống!","err")} 
+            };
         }, 300);
     }
 };
