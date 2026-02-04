@@ -1,7 +1,7 @@
 import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc, writeBatch, getDocs } from '../config.js';
 import { Utils } from '../utils.js';
 
-const COMPANY_INFO = { name: "NẤM ÔNG 5", address: "Thôn Đa Ra Hoa, xã Lạc Dương, Lâm Đồng", hotline: "0899.49.0808", web: "ong5mushroom.com" };
+const COMPANY_INFO = { name: "NẤM ÔNG 5", address: "Thôn Đa Ra Hoa, xã Lạc Dương, Lâm Đồng", hotline: "0899.49.0808", web: "ong5mushroom.com" };
 
 window.THDG_Action = {
     delOne: async (id, name) => {
@@ -31,21 +31,41 @@ export const THDG = {
         const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => role.includes(r));
         // ------------------
 
-        const products = (Array.isArray(data.products) ? data.products : []).sort((a,b) => (a.name||'').localeCompare(b.name||''));
-        const groups = {
-            '1': { title: '🍄 NẤM TƯƠI', color: 'green', items: products.filter(p => String(p.group) === '1') },
-            '2': { title: '🍂 PHỤ PHẨM', color: 'orange', items: products.filter(p => String(p.group) === '2') },
-            '3': { title: '🏭 SƠ CHẾ', color: 'purple', items: products.filter(p => String(p.group) === '3') }
-        };
+        // Đảm bảo products luôn là mảng mới nhất
+        let products = (Array.isArray(data.products) ? data.products : []).sort((a,b) => (a.name||'').localeCompare(b.name||''));
+        
+        // Hàm vẽ lại danh sách (để gọi lại khi cập nhật)
+        const renderProductList = () => {
+            const groups = {
+                '1': { title: '🍄 NẤM TƯƠI', color: 'green', items: products.filter(p => String(p.group) === '1') },
+                '2': { title: '🍂 PHỤ PHẨM', color: 'orange', items: products.filter(p => String(p.group) === '2') },
+                '3': { title: '🏭 SƠ CHẾ', color: 'purple', items: products.filter(p => String(p.group) === '3') }
+            };
 
-        const renderRow = (p, color) => `
-            <div class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200 shadow-sm">
-                <div class="flex items-center gap-1 overflow-hidden">
-                    ${isManager ? `<button onclick="window.THDG_Action.delOne('${p._id}', '${p.name}')" class="text-red-400 hover:text-red-600 font-bold px-1 text-xs">×</button>` : ''}
-                    <span class="text-[11px] font-bold text-slate-700 truncate w-24" title="${p.name}">${p.name}</span>
-                </div>
-                <input type="number" step="0.1" id="in-${p.code}" class="w-16 p-1 text-center font-bold text-slate-700 border border-slate-200 rounded text-xs outline-none focus:border-${color}-500 bg-white transition" placeholder="0">
-            </div>`;
+            const renderRow = (p, color) => `
+                <div class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200 shadow-sm relative">
+                    <div class="flex items-center gap-1 overflow-hidden">
+                        ${isManager ? `<button onclick="window.THDG_Action.delOne('${p._id}', '${p.name}')" class="text-red-400 hover:text-red-600 font-bold px-1 text-xs">×</button>` : ''}
+                        <div>
+                            <span class="text-[11px] font-bold text-slate-700 truncate w-24 block" title="${p.name}">${p.name}</span>
+                            <span class="text-[9px] text-slate-400 font-bold">Tồn: <span id="stk-${p.code}" class="text-blue-600">${(p.stock||0).toLocaleString()}</span></span>
+                        </div>
+                    </div>
+                    <input type="number" step="0.1" id="in-${p.code}" class="w-16 p-1 text-center font-bold text-slate-700 border border-slate-200 rounded text-xs outline-none focus:border-${color}-500 bg-white transition" placeholder="Nhập...">
+                </div>`;
+
+            const container = document.getElementById('product-groups-container');
+            if(container) {
+                container.innerHTML = Object.keys(groups).map(k => `
+                    <div class="bg-white/60 p-2 rounded-xl border border-slate-100">
+                        <div class="text-[10px] font-bold text-${groups[k].color}-700 mb-2 uppercase border-b border-slate-100 pb-1 ml-1">${groups[k].title}</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${groups[k].items.length ? groups[k].items.map(p => renderRow(p, groups[k].color)).join('') : '<div class="col-span-2 text-[10px] text-slate-300 italic text-center">Chưa có mã</div>'}
+                        </div>
+                    </div>
+                `).join('');
+            }
+        };
 
         c.innerHTML = `
         <div class="space-y-4 pb-24">
@@ -71,14 +91,7 @@ export const THDG = {
                             </select>
                         </div>
 
-                        ${Object.keys(groups).map(k => `
-                            <div class="bg-white/60 p-2 rounded-xl border border-slate-100">
-                                <div class="text-[10px] font-bold text-${groups[k].color}-700 mb-2 uppercase border-b border-slate-100 pb-1 ml-1">${groups[k].title}</div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    ${groups[k].items.length ? groups[k].items.map(p => renderRow(p, groups[k].color)).join('') : '<div class="col-span-2 text-[10px] text-slate-300 italic text-center">Chưa có mã</div>'}
-                                </div>
-                            </div>
-                        `).join('')}
+                        <div id="product-groups-container"></div>
 
                         <button id="btn-save-h" class="w-full py-3 bg-green-600 text-white rounded-lg font-bold text-xs shadow-lg shadow-green-200 active:scale-95 transition">LƯU KHO</button>
                     </div>
@@ -114,6 +127,9 @@ export const THDG = {
             </div>
         </div>`;
 
+        // Gọi hàm vẽ lần đầu
+        renderProductList();
+
         setTimeout(() => {
             const di = document.getElementById('h-date'); if(di) di.valueAsDate = new Date();
             const bIn = document.getElementById('btn-tab-in'), bOut = document.getElementById('btn-tab-out');
@@ -133,13 +149,60 @@ export const THDG = {
                 }
             }
 
+            // --- ĐOẠN CODE SỬA LỖI (BẮT ĐẦU) ---
             document.getElementById('btn-save-h').onclick = async () => {
-                const aid = document.getElementById('h-area').value; const dVal = document.getElementById('h-date').value;
+                const aid = document.getElementById('h-area').value; 
+                const dVal = document.getElementById('h-date').value;
                 if(!dVal || !aid) return Utils.toast("Thiếu ngày hoặc nguồn!", "err");
-                const batch = writeBatch(db); let hasData = false; let totalKg = 0; let details = {};
-                products.forEach(p => { const el = document.getElementById(`in-${p.code}`); if(el && Number(el.value) > 0) { const q = Number(el.value); batch.update(doc(db, `${ROOT_PATH}/products`, p._id), {stock: increment(q)}); details[p.code] = q; totalKg += q; el.value = ''; hasData = true; } });
-                if(hasData) { const aname = document.getElementById('h-area').options[document.getElementById('h-area').selectedIndex].getAttribute('data-name'); batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {area: aname, details, total: totalKg, user: user.name, time: new Date(dVal).setHours(12)}); if(aid !== 'MuaNgoai') batch.update(doc(db, `${ROOT_PATH}/houses`, aid), { totalYield: increment(totalKg) }); await batch.commit(); Utils.toast(`✅ Đã lưu ${totalKg}kg!`); } else { Utils.toast("Chưa nhập số!", "err"); }
+                
+                const batch = writeBatch(db); 
+                let hasData = false; 
+                let totalKg = 0; 
+                let details = {};
+                
+                // Duyệt qua danh sách để lấy số nhập vào
+                products.forEach(p => { 
+                    const el = document.getElementById(`in-${p.code}`); 
+                    if(el && Number(el.value) > 0) { 
+                        const q = Number(el.value); 
+                        // Cập nhật DB
+                        batch.update(doc(db, `${ROOT_PATH}/products`, p._id), {stock: increment(q)}); 
+                        
+                        // CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC (Không cần chờ Server)
+                        p.stock = (p.stock || 0) + q;
+                        const stockEl = document.getElementById(`stk-${p.code}`);
+                        if(stockEl) stockEl.innerText = p.stock.toLocaleString();
+                        
+                        details[p.code] = q; 
+                        totalKg += q; 
+                        el.value = ''; 
+                        hasData = true; 
+                    } 
+                });
+
+                if(hasData) { 
+                    const aname = document.getElementById('h-area').options[document.getElementById('h-area').selectedIndex].getAttribute('data-name'); 
+                    
+                    // Lưu nhật ký nhập
+                    batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {
+                        area: aname, 
+                        details, 
+                        total: totalKg, 
+                        user: user.name, 
+                        time: new Date(dVal).setHours(12)
+                    }); 
+                    
+                    if(aid !== 'MuaNgoai') {
+                        batch.update(doc(db, `${ROOT_PATH}/houses`, aid), { totalYield: increment(totalKg) }); 
+                    }
+
+                    await batch.commit(); 
+                    Utils.toast(`✅ Đã lưu ${totalKg}kg!`); 
+                } else { 
+                    Utils.toast("Chưa nhập số!", "err"); 
+                }
             };
+            // --- ĐOẠN CODE SỬA LỖI (KẾT THÚC) ---
             
             let cart=[]; 
             const upC=()=>{ document.getElementById('cart-list').innerHTML=cart.map((i,x)=>`<div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100"><div class="text-[11px]"><div class="font-bold text-slate-700">${i.name}</div><div class="text-slate-500">${i.qty} x ${i.price.toLocaleString()}</div></div><div class="flex items-center gap-3"><span class="font-bold text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button onclick="document.getElementById('d-${x}').click()" class="text-red-400 hover:text-red-600 font-bold px-1">×</button></div><button id="d-${x}" class="hidden"></button></div>`).join(''); document.getElementById('cart-total').innerText=cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()+'đ'; cart.forEach((_,i)=>document.getElementById(`d-${i}`).onclick=()=>{cart.splice(i,1);upC()}) };
