@@ -2,7 +2,7 @@ import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc
 import { Utils } from '../utils.js';
 
 window.SX_Action = {
-    // Chỉ Quản lý mới xóa được
+    // ... (Giữ nguyên phần SX_Action cũ của bạn) ...
     delLog: async (id, qty, houseId) => {
         if(confirm(`⚠️ Xóa lô ${qty} bịch? (Kho sẽ được hoàn tác)`)) {
             try {
@@ -15,7 +15,6 @@ window.SX_Action = {
         }
     },
 
-    // Chỉ Quản lý mới Reset được
     reset0: async (hid) => { 
         if(confirm("⚠️ CẢNH BÁO: Xóa trắng nhà này (Về 0 & Tắt đèn)?")) { 
             await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { 
@@ -25,13 +24,13 @@ window.SX_Action = {
         } 
     },
 
-    // Chỉ Quản lý mới Sửa tay được
     adjust: async (hid, currentQty) => { 
         const v = prompt("Nhập số lượng điều chỉnh (+/-):");
         if(v) { 
             const n = Number(v);
             const newQty = (currentQty || 0) + n;
             const updateData = { batchQty: increment(n) };
+            // Logic quan trọng: Nếu về <= 0 thì tắt đèn ngay
             if (newQty <= 0) { updateData.status = 'EMPTY'; updateData.currentBatch = ''; updateData.batchQty = 0; } 
             else { updateData.status = 'ACTIVE'; }
             await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), updateData); 
@@ -97,7 +96,36 @@ export const SX = {
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    ${houses.filter(h => h.id !== (houseA?.id)).map(h => `<div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden"><div class="absolute top-0 left-0 w-1 h-full ${h.status==='ACTIVE'?'bg-green-500':'bg-slate-300'}"></div><div class="pl-3"><div class="flex justify-between items-start mb-2"><div><div class="font-bold text-slate-700 text-sm">${h.name}</div><div class="text-[10px] text-slate-400 mt-0.5">Lô: <b>${h.currentBatch||'--'}</b></div></div>${isManager?`<button onclick="window.SX_Action.adjust('${h.id}', ${h.batchQty||0})" class="text-slate-300 hover:text-blue-500"><i class="fas fa-pen text-[10px]"></i></button>`:''}</div><div class="text-right"><span class="block font-black text-lg ${h.status==='ACTIVE'?'text-blue-600':'text-slate-400'}">${(h.batchQty||0).toLocaleString()}</span><span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${h.status==='ACTIVE'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-400'}">${h.status==='ACTIVE'?'RUNNING':'EMPTY'}</span></div></div></div>`).join('')}
+                    ${houses.filter(h => h.id !== (houseA?.id)).map(h => {
+                        // --- FIX LỖI Ở ĐÂY ---
+                        // Tính toán trạng thái dựa trên SỐ LƯỢNG THỰC TẾ, không tin vào field 'status' cũ
+                        const isRunning = (h.batchQty > 0); 
+                        // ---------------------
+
+                        return `
+                        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full ${isRunning ? 'bg-green-500' : 'bg-slate-300'}"></div>
+                            <div class="pl-3">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div class="font-bold text-slate-700 text-sm">${h.name}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5">
+                                            Lô: <b>${isRunning ? (h.currentBatch || '--') : ''}</b>
+                                        </div>
+                                    </div>
+                                    ${isManager ? `<button onclick="window.SX_Action.adjust('${h.id}', ${h.batchQty||0})" class="text-slate-300 hover:text-blue-500"><i class="fas fa-pen text-[10px]"></i></button>` : ''}
+                                </div>
+                                <div class="text-right">
+                                    <span class="block font-black text-lg ${isRunning ? 'text-blue-600' : 'text-slate-400'}">
+                                        ${(h.batchQty||0).toLocaleString()}
+                                    </span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${isRunning ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}">
+                                        ${isRunning ? 'RUNNING' : 'EMPTY'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('')}
                 </div>
             </div>
         </div>`;
