@@ -31,15 +31,15 @@ export const THDG = {
         const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => role.includes(r));
         // ------------------
 
-        // FIX 1: Đảm bảo có dữ liệu
         let products = (Array.isArray(data.products) ? data.products : []).sort((a,b) => (a.name||'').localeCompare(b.name||''));
         
-        // Hàm vẽ lại danh sách (để gọi lại khi cập nhật UI)
         const renderProductList = () => {
             const groups = {
                 '1': { title: '🍄 NẤM TƯƠI', color: 'green', items: products.filter(p => String(p.group) === '1') },
                 '2': { title: '🍂 PHỤ PHẨM', color: 'orange', items: products.filter(p => String(p.group) === '2') },
-                '3': { title: '🏭 SƠ CHẾ', color: 'purple', items: products.filter(p => String(p.group) === '3') }
+                '3': { title: '🏭 SƠ CHẾ', color: 'purple', items: products.filter(p => String(p.group) === '3') },
+                // --- THÊM NHÓM MỚI: VẬT TƯ (Bắt tất cả các món còn lại) ---
+                '4': { title: '🛠️ VẬT TƯ & KHÁC', color: 'blue', items: products.filter(p => !['1','2','3'].includes(String(p.group))) }
             };
 
             const renderRow = (p, color) => `
@@ -51,7 +51,7 @@ export const THDG = {
                             <span class="text-[9px] text-slate-400 font-bold">Tồn: <span id="stk-${p.code}" class="text-blue-600 font-black">${(p.stock||0).toLocaleString()}</span></span>
                         </div>
                     </div>
-                    <input type="number" step="0.1" id="in-${p.code}" class="w-16 p-1 text-center font-bold text-slate-700 border border-slate-200 rounded text-xs outline-none focus:border-${color}-500 bg-white transition" placeholder="Nhập...">
+                    <input type="number" step="0.1" id="in-${p.code}" class="w-16 p-1 text-center font-bold text-slate-700 border border-slate-200 rounded text-xs outline-none focus:border-${color}-500 bg-white transition" placeholder="...">
                 </div>`;
 
             const container = document.getElementById('product-groups-container');
@@ -143,7 +143,7 @@ export const THDG = {
             if(isManager) {
                 const btnAdd = document.getElementById('btn-add');
                 if(btnAdd) btnAdd.onclick = () => {
-                    Utils.modal("Tạo Mã Mới", `<input id="n-n" placeholder="Tên (VD: Nấm Hương)" class="w-full p-2 border rounded mb-2"><input id="n-c" placeholder="Mã (Viết liền: namhuong)" class="w-full p-2 border rounded mb-2"><select id="n-g" class="w-full p-2 border rounded"><option value="1">Nấm Tươi</option><option value="2">Phụ Phẩm</option><option value="3">Sơ Chế</option></select>`, [{id:'s-ok', text:'Lưu'}]);
+                    Utils.modal("Tạo Mã Mới", `<input id="n-n" placeholder="Tên (VD: Nấm Hương)" class="w-full p-2 border rounded mb-2"><input id="n-c" placeholder="Mã (Viết liền: namhuong)" class="w-full p-2 border rounded mb-2"><select id="n-g" class="w-full p-2 border rounded"><option value="1">Nấm Tươi</option><option value="2">Phụ Phẩm</option><option value="3">Sơ Chế</option><option value="4">Vật Tư</option></select>`, [{id:'s-ok', text:'Lưu'}]);
                     setTimeout(() => document.getElementById('s-ok').onclick = async () => { const n=document.getElementById('n-n').value, c=document.getElementById('n-c').value, g=document.getElementById('n-g').value; if(n && c) { await addDoc(collection(db, `${ROOT_PATH}/products`), {name:n, code:c, group:g, stock:0}); Utils.modal(null); Utils.toast("Đã thêm!"); } }, 100);
                 }
             }
@@ -162,12 +162,9 @@ export const THDG = {
                     const el = document.getElementById(`in-${p.code}`); 
                     if(el && Number(el.value) > 0) { 
                         const q = Number(el.value); 
-                        
-                        // FIX 3: Sửa p._id thành p.id (Đây là nguyên nhân chính gây lỗi)
                         if(p.id) {
                             batch.update(doc(db, `${ROOT_PATH}/products`, p.id), {stock: increment(q)}); 
                             
-                            // Cập nhật giao diện ngay lập tức
                             p.stock = (p.stock || 0) + q;
                             const stockEl = document.getElementById(`stk-${p.code}`);
                             if(stockEl) stockEl.innerText = p.stock.toLocaleString();
@@ -176,8 +173,6 @@ export const THDG = {
                             totalKg += q; 
                             el.value = ''; 
                             hasData = true; 
-                        } else {
-                            console.error("Lỗi ID sản phẩm:", p);
                         }
                     } 
                 });
@@ -187,7 +182,6 @@ export const THDG = {
                     batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {area: aname, details, total: totalKg, user: user.name, time: new Date(dVal).setHours(12)}); 
                     
                     if(aid !== 'MuaNgoai') {
-                        // Cập nhật số tổng cho Nhà trồng
                         batch.update(doc(db, `${ROOT_PATH}/houses`, aid), { totalYield: increment(totalKg) }); 
                     }
 
@@ -211,13 +205,10 @@ export const THDG = {
                 if(cart.length){ 
                     const batch=writeBatch(db); 
                     batch.set(doc(collection(db,`${ROOT_PATH}/shipping`)),{customer:document.getElementById('s-cust').value,items:cart,total:cart.reduce((a,b)=>a+b.qty*b.price,0),user:user.name, time:Date.now()}); 
-                    
                     cart.forEach(i=>{
                         const p=products.find(x=>x.code===i.code);
-                        // FIX 4: Sửa p._id thành p.id ở đây nữa
                         if(p && p.id) batch.update(doc(db,`${ROOT_PATH}/products`,p.id),{stock:increment(-i.qty)});
                     }); 
-                    
                     await batch.commit(); 
                     Utils.toast("✅ Đã xuất bán!"); cart=[]; upC(); document.getElementById('s-cust').value=''; 
                 } else {Utils.toast("Giỏ trống!","err")} 
