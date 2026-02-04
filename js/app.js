@@ -1,4 +1,4 @@
-import { db, getDocs, collection, query, where, ROOT_PATH } from './config.js';
+import { db, getDocs, collection, query, where, ROOT_PATH } from './config.js?v=force_xiaomi';
 import { Utils } from './utils.js';
 import { SX } from './modules/sx.js';
 import { THDG } from './modules/thdg.js';
