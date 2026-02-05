@@ -40,7 +40,7 @@ export const THDG = {
             const renderRow = (p, color) => `
                 <div class="flex justify-between items-center bg-white p-1.5 rounded border border-slate-200 shadow-sm relative">
                     <div class="flex items-center gap-1 overflow-hidden">
-                        ${isManager ? `<button onclick="window.THDG_Action.delOne('${p.id}', '${p.name}')" class="text-red-400 hover:text-red-600 font-bold px-1 text-xs">×</button>` : ''}
+                        ${isManager ? `<button onclick="window.THDG_Action.delOne('${p.id || p._id}', '${p.name}')" class="text-red-400 hover:text-red-600 font-bold px-1 text-xs">×</button>` : ''}
                         <div>
                             <span class="text-[11px] font-bold text-slate-700 truncate w-24 block" title="${p.name}">${p.name}</span>
                             <span class="text-[9px] text-slate-400 font-bold">Tồn: <span id="stk-${p.code}" class="text-blue-600 font-black">${(p.stock||0).toLocaleString('vi-VN', {maximumFractionDigits: 2})}</span></span>
@@ -154,8 +154,10 @@ export const THDG = {
                     const el = document.getElementById(`in-${p.code}`); 
                     if(el && Number(el.value) > 0) { 
                         const q = parseFloat(el.value); // Hiểu số thập phân
-                        if(p.id) {
-                            batch.update(doc(db, `${ROOT_PATH}/products`, p.id), {stock: increment(q)}); 
+                        // FIX: Lấy ID hoặc _ID cho chắc chắn
+                        const pid = p.id || p._id; 
+                        if(pid) {
+                            batch.update(doc(db, `${ROOT_PATH}/products`, pid), {stock: increment(q)}); 
                             p.stock = (p.stock || 0) + q;
                             const stockEl = document.getElementById(`stk-${p.code}`);
                             if(stockEl) stockEl.innerText = p.stock.toLocaleString('vi-VN', {maximumFractionDigits: 2});
@@ -184,56 +186,27 @@ export const THDG = {
             
             document.getElementById('btn-add-cart').onclick=()=>{ const s=document.getElementById('s-prod'); if(s.value){cart.push({code:s.value,name:s.options[s.selectedIndex].getAttribute('data-name'),qty:parseFloat(document.getElementById('s-qty').value),price:Number(document.getElementById('s-price').value)}); upC(); document.getElementById('s-qty').value='';} };
 
-            // --- CẬP NHẬT HÓA ĐƠN CÓ CHỮ KÝ ---
             document.getElementById('btn-print').onclick = () => {
                 const cust = document.getElementById('s-cust').value; if(!cart.length) return Utils.toast("Giỏ hàng trống!", "err"); if(!cust) return Utils.toast("Nhập tên khách!", "err");
                 const w = window.open('', '', 'height=600,width=400'); 
-                w.document.write(`
-                <html><head><title>HOA DON</title><style>
-                    body{font-family:'Courier New',monospace;font-size:12px;padding:10px}
-                    .c{text-align:center}.r{text-align:right}
-                    table{width:100%;border-collapse:collapse;margin-top:10px}
-                    td,th{padding:4px 0}
-                    .sign-box{margin-top:30px;display:flex;justify-content:space-between;text-align:center;}
-                    .sign-box div{width:30%;}
-                    .sign-space{height:50px;}
-                </style></head><body>
-                    <div class="c">
-                        <div style="font-size:16px;font-weight:bold">${COMPANY_INFO.name}</div>
-                        <div>${COMPANY_INFO.address}</div>
-                        <div>${COMPANY_INFO.hotline}</div>
-                        <div style="border-bottom:1px dashed #000;margin:5px 0"></div>
-                        <b>HÓA ĐƠN BÁN LẺ</b>
-                    </div>
-                    <div>Khách: <b>${cust}</b></div>
-                    <div>Ngày: ${new Date().toLocaleString('vi-VN')}</div>
-                    <div style="border-bottom:1px dashed #000;margin:5px 0"></div>
-                    <table><tr><th align="left">Món</th><th class="c">SL</th><th class="r">Tiền</th></tr>
-                    ${cart.map(i=>`<tr><td>${i.name}</td><td class="c">${i.qty.toLocaleString('vi-VN')}</td><td class="r">${(i.qty*i.price).toLocaleString()}</td></tr>`).join('')}
-                    </table>
-                    <div style="border-bottom:1px dashed #000;margin:5px 0"></div>
-                    <div class="r" style="font-size:14px">TỔNG: <b>${cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()}đ</b></div>
-                    
-                    <div class="sign-box">
-                        <div>Người xuất phiếu<div class="sign-space"></div>${user.name}</div>
-                        <div>Kế toán<div class="sign-space"></div></div>
-                        <div>Giám đốc<div class="sign-space"></div></div>
-                    </div>
-                    
-                    <div class="c" style="margin-top:20px;font-style:italic">Cảm ơn quý khách!</div>
-                </body></html>`); 
-                w.document.close(); w.print();
+                w.document.write(`<html><head><title>HOA DON</title><style>body{font-family:'Courier New',monospace;font-size:12px;padding:10px}.c{text-align:center}.r{text-align:right}table{width:100%;border-collapse:collapse;margin-top:10px}td,th{padding:4px 0}.sign-box{margin-top:30px;display:flex;justify-content:space-between;text-align:center;}.sign-box div{width:30%;}.sign-space{height:50px;}</style></head><body><div class="c"><div style="font-size:16px;font-weight:bold">${COMPANY_INFO.name}</div><div>${COMPANY_INFO.address}</div><div>${COMPANY_INFO.hotline}</div><div style="border-bottom:1px dashed #000;margin:5px 0"></div><b>HÓA ĐƠN BÁN LẺ</b></div><div>Khách: <b>${cust}</b></div><div>Ngày: ${new Date().toLocaleString('vi-VN')}</div><div style="border-bottom:1px dashed #000;margin:5px 0"></div><table><tr><th align="left">Món</th><th class="c">SL</th><th class="r">Tiền</th></tr>${cart.map(i=>`<tr><td>${i.name}</td><td class="c">${i.qty.toLocaleString('vi-VN')}</td><td class="r">${(i.qty*i.price).toLocaleString()}</td></tr>`).join('')}</table><div style="border-bottom:1px dashed #000;margin:5px 0"></div><div class="r" style="font-size:14px">TỔNG: <b>${cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()}đ</b></div><div class="sign-box"><div>Người xuất phiếu<div class="sign-space"></div>${user.name}</div><div>Kế toán<div class="sign-space"></div></div><div>Giám đốc<div class="sign-space"></div></div></div><div class="c" style="margin-top:20px;font-style:italic">Cảm ơn quý khách!</div></body></html>`); w.document.close(); w.print();
             };
 
-            // --- LƯU & TRỪ TỒN KHO ---
+            // --- NÚT BÁN HÀNG ĐÃ SỬA LỖI ---
             document.getElementById('btn-save-sell').onclick=async()=>{ 
                 if(cart.length){ 
                     const batch=writeBatch(db); 
                     batch.set(doc(collection(db,`${ROOT_PATH}/shipping`)),{customer:document.getElementById('s-cust').value,items:cart,total:cart.reduce((a,b)=>a+b.qty*b.price,0),user:user.name, time:Date.now()}); 
+                    
                     cart.forEach(i=>{
-                        const p=products.find(x=>x.code===i.code);
-                        if(p && p.id) batch.update(doc(db,`${ROOT_PATH}/products`,p.id),{stock:increment(-i.qty)});
+                        // FIX: So sánh dạng String để tránh lỗi khác kiểu (số vs chữ)
+                        const p=products.find(x=> String(x.code) === String(i.code));
+                        if(p) {
+                            const pid = p.id || p._id; // Lấy ID chuẩn
+                            if(pid) batch.update(doc(db,`${ROOT_PATH}/products`,pid),{stock:increment(-i.qty)});
+                        }
                     }); 
+                    
                     await batch.commit(); 
                     Utils.toast("✅ Đã xuất bán!"); cart=[]; upC(); document.getElementById('s-cust').value=''; 
                 } else {Utils.toast("Giỏ trống!","err")} 
