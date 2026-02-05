@@ -1,4 +1,4 @@
-import { auth, db, getDocs, collection, query, where, signInAnonymously, onAuthStateChanged, ROOT_PATH } from './config.js?v=final_fix';
+import { auth, db, getDocs, collection, query, where, signInAnonymously, onAuthStateChanged, onSnapshot, ROOT_PATH } from './config.js?v=final_fix_realtime';
 import { SX } from './modules/sx.js';
 import { THDG } from './modules/thdg.js';
 import { HR } from './modules/hr.js';
@@ -7,7 +7,7 @@ import { Utils } from './utils.js';
 // --- BIẾN TOÀN CỤC ---
 let currentUser = null;
 let currentTab = 'tasks';
-let appData = {}; // Bộ nhớ đệm dữ liệu
+let appData = {}; // Bộ nhớ đệm dữ liệu (Tự động cập nhật)
 
 const els = {
     loginOverlay: document.getElementById('login-overlay'),
@@ -26,7 +26,7 @@ const els = {
     }
 };
 
-// --- LOGIC XUẤT BÁO CÁO (CSV) ---
+// --- LOGIC XUẤT BÁO CÁO (Giữ nguyên của bạn) ---
 const exportReport = async (type) => {
     try {
         const now = new Date();
@@ -34,28 +34,23 @@ const exportReport = async (type) => {
         let csv = "data:text/csv;charset=utf-8,\uFEFF"; 
         csv += "Loai,Noi Dung,Nguoi Lam,Thoi Gian,Trang Thai/Ket Qua\n";
 
-        const [tSnap, hSnap] = await Promise.all([
-            getDocs(collection(db, `${ROOT_PATH}/tasks`)),
-            getDocs(collection(db, `${ROOT_PATH}/harvest_logs`))
-        ]);
+        // Lấy dữ liệu mới nhất từ Cache
+        const tasks = appData.tasks || [];
+        const logs = appData.harvest_logs || [];
 
-        tSnap.forEach(d => {
-            const val = d.data();
+        tasks.forEach(val => {
             const t = new Date(val.time);
             const match = type === 'NGAY' 
                 ? (t.getDate() === now.getDate() && t.getMonth() === now.getMonth())
                 : (t.getMonth() === now.getMonth() && t.getFullYear() === now.getFullYear());
-            
             if(match) csv += `CONG VIEC,"${val.title}",${val.by},${t.toLocaleString('vi-VN')},${val.status}\n`;
         });
 
-        hSnap.forEach(d => {
-            const val = d.data();
+        logs.forEach(val => {
             const t = new Date(val.time);
             const match = type === 'NGAY' 
                 ? (t.getDate() === now.getDate() && t.getMonth() === now.getMonth())
                 : (t.getMonth() === now.getMonth() && t.getFullYear() === now.getFullYear());
-
             if(match) csv += `THU HOACH,"${val.area} (${val.total}kg)",${val.user},${t.toLocaleString('vi-VN')},"${Object.keys(val.details).join(', ')}"\n`;
         });
 
@@ -65,32 +60,156 @@ const exportReport = async (type) => {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        
     } catch(e) { alert("Lỗi xuất file: " + e.message); }
 };
 
 const App = {
     init: () => {
         console.log("App Starting...");
-        
-        // BƯỚC 1: Đăng nhập ẩn danh vào Firebase trước
+
+        // 1. TỰ ĐỘNG ĐĂNG NHẬP (Fix lỗi Reload bị thoát)
+        const savedUser = localStorage.getItem('ong5_user');
+        if(savedUser) {
+            currentUser = JSON.parse(savedUser);
+            App.loginSuccess(true); // true = Đăng nhập âm thầm, không cần render lại login form
+        }
+
+        // 2. KẾT NỐI FIREBASE & LẮNG NGHE REALTIME
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                console.log("Firebase Connected:", user.uid);
-                // Kết nối xong mới tải danh sách -> Tránh lỗi Xiaomi
-                App.loadUsers();
+                App.loadUsers(); // Chỉ tải list user để dự phòng
+                App.listenRealtime(); // <--- QUAN TRỌNG: Kích hoạt chế độ tự động cập nhật
             } else {
                 signInAnonymously(auth).catch((e) => alert("Lỗi kết nối: " + e.message));
             }
         });
 
-        // BƯỚC 2: Gắn sự kiện nút bấm
-        els.loginBtn.onclick = App.login;
+        App.bindEvents();
+    },
 
+    // --- HÀM MỚI: LẮNG NGHE DỮ LIỆU TỰ ĐỘNG & RUNG CHUÔNG ---
+    listenRealtime: () => {
+        const collections = ['tasks', 'chat', 'houses', 'supplies', 'products', 'harvest_logs', 'employees'];
+        
+        collections.forEach(colName => {
+            onSnapshot(collection(db, `${ROOT_PATH}/${colName}`), (snap) => {
+                // 1. Rung chuông nếu có dữ liệu mới (Tasks hoặc Chat)
+                snap.docChanges().forEach((change) => {
+                    if (change.type === "added" && !snap.metadata.hasPendingWrites) {
+                        if(colName === 'tasks' || colName === 'chat') Utils.notifySound();
+                    }
+                });
+
+                // 2. Cập nhật dữ liệu vào biến toàn cục appData
+                // LƯU Ý QUAN TRỌNG: Mapping ID chuẩn để khớp với thdg.js
+                appData[colName] = snap.docs.map(d => {
+                    const data = d.data();
+                    return { ...data, id: d.id, _id: d.id }; // Gán cả id và _id để module nào dùng kiểu gì cũng được
+                });
+
+                // 3. Vẽ lại giao diện ngay lập tức
+                App.render();
+            });
+        });
+    },
+
+    loadUsers: async () => {
+        try {
+            if(els.userSelect.options.length > 2) return; // Đã tải rồi thì thôi
+            els.userSelect.innerHTML = '<option>Đang tải...</option>';
+            const s = await getDocs(collection(db, `${ROOT_PATH}/employees`));
+            
+            if (s.empty) throw new Error("Empty list");
+
+            els.userSelect.innerHTML = '<option value="">-- Chọn NV --</option>' + 
+                s.docs.map(d=>`<option value="${d.id}" data-pin="${d.data().pin}" data-role="${d.data().role}">${d.data().name}</option>`).join('');
+        } catch(e) {
+            // --- CHẾ ĐỘ CỨU HỘ (NHẬP TAY) CHO XIAOMI ---
+            els.userSelect.innerHTML = '<option value="">⚠ Lỗi tải danh sách</option>';
+            if (!document.getElementById('manual-login-container')) {
+                const div = document.createElement('div');
+                div.id = 'manual-login-container';
+                div.className = 'mt-4 pt-4 border-t border-slate-700';
+                div.innerHTML = `
+                    <p class="text-white text-xs mb-2 text-center">Không thấy tên? Nhập tay:</p>
+                    <input id="manual-name" placeholder="Tên (VD: Admin)" class="w-full p-3 rounded-xl mb-2 font-bold text-slate-800">
+                    <button id="btn-manual-login" class="w-full bg-slate-600 text-white py-2 rounded-xl font-bold text-sm">VÀO THỦ CÔNG</button>
+                `;
+                els.loginOverlay.querySelector('.w-full.max-w-sm').appendChild(div);
+                
+                document.getElementById('btn-manual-login').onclick = () => {
+                    const name = document.getElementById('manual-name').value;
+                    const pin = els.pinInput.value;
+                    if (!name || !pin) return Utils.toast("Nhập Tên và PIN!", "err");
+                    let role = 'nhân viên';
+                    if (pin === '1234' || pin === '9999') role = 'admin';
+                    currentUser = { _id: 'manual_'+Date.now(), name, role };
+                    App.loginSuccess();
+                };
+            }
+            Utils.toast("Mạng yếu: Đã bật nhập thủ công!", "err");
+        }
+    },
+
+    login: () => {
+        const uid = els.userSelect.value;
+        const pin = els.pinInput.value;
+        
+        // Ưu tiên check nhập tay trước
+        const manualName = document.getElementById('manual-name')?.value;
+        if(manualName && (pin === '1234' || pin === '9999')) {
+             currentUser = { _id: 'manual', name: manualName, role: 'admin' };
+             App.loginSuccess();
+             return;
+        }
+
+        if(!uid) return Utils.toast("Chưa chọn nhân viên!", "err");
+        const opt = els.userSelect.options[els.userSelect.selectedIndex];
+        if(pin !== opt.getAttribute('data-pin')) {
+            els.pinInput.value = '';
+            return Utils.toast("Sai mã PIN!", "err");
+        }
+        
+        currentUser = { _id: uid, name: opt.text, role: opt.getAttribute('data-role') };
+        App.loginSuccess();
+    },
+
+    loginSuccess: (isAuto = false) => {
+        // LƯU LOGIN VÀO MÁY
+        localStorage.setItem('ong5_user', JSON.stringify(currentUser));
+
+        els.loginOverlay.classList.add('hidden');
+        els.headerUser.innerText = currentUser.name;
+        els.headerRole.innerText = (currentUser.role || 'Nhân viên').toUpperCase();
+        
+        if(['admin','quản lý','giám đốc','kế toán'].some(r => (currentUser.role||'').toLowerCase().includes(r))) {
+            els.btnSettings.classList.remove('hidden');
+        }
+
+        if(!isAuto) {
+            document.querySelector('.nav-btn[data-tab="tasks"]').click();
+        }
+    },
+
+    // Hàm render giờ rất gọn nhẹ vì dữ liệu đã có sẵn trong appData
+    render: () => {
+        if(!currentUser) return;
+        const v = els.views[currentTab];
+        if(v && !v.classList.contains('hidden')) {
+            if(currentTab === 'tasks') HR.renderTasks(appData, currentUser);
+            if(currentTab === 'sx') SX.render(appData, currentUser);
+            if(currentTab === 'th') THDG.render(appData, currentUser);
+            if(currentTab === 'team') HR.renderTeam(appData, currentUser);
+        }
+    },
+
+    bindEvents: () => {
+        els.loginBtn.onclick = App.login;
+        
+        // Xử lý nút Settings
         if(els.btnSettings) {
             els.btnSettings.onclick = () => {
                 const isBoss = ['admin','quản lý','giám đốc','kế toán'].some(r => (currentUser?.role||'').toLowerCase().includes(r));
-                
                 let html = `<div class="space-y-3">`;
                 if(isBoss) {
                     html += `
@@ -109,24 +228,25 @@ const App = {
                     const bDay = document.getElementById('btn-rp-day');
                     const bMonth = document.getElementById('btn-rp-month');
                     const bOut = document.getElementById('btn-logout');
-                    
                     if(bDay) bDay.onclick = () => exportReport('NGAY');
                     if(bMonth) bMonth.onclick = () => exportReport('THANG');
-                    if(bOut) bOut.onclick = () => window.location.reload();
+                    if(bOut) bOut.onclick = () => {
+                        localStorage.removeItem('ong5_user'); // Xóa nhớ khi đăng xuất
+                        window.location.reload();
+                    }
                 }, 100);
             };
         }
 
+        // Xử lý chuyển Tab
         els.navBtns.forEach(btn => {
             btn.onclick = () => {
                 els.navBtns.forEach(b => { 
                     b.classList.remove('active'); 
-                    b.querySelector('i').className = b.querySelector('i').className.replace(/text-\w+-\d+/g, 'text-slate-400'); // Reset màu icon
+                    b.querySelector('i').className = b.querySelector('i').className.replace(/text-\w+-\d+/g, 'text-slate-400');
                 });
-                
                 btn.classList.add('active');
                 
-                // Đổi màu icon active
                 const icon = btn.querySelector('i');
                 const tab = btn.getAttribute('data-tab');
                 if(tab === 'tasks') icon.classList.replace('text-slate-400', 'text-blue-600');
@@ -134,124 +254,14 @@ const App = {
                 if(tab === 'th') icon.classList.replace('text-slate-400', 'text-orange-500');
                 if(tab === 'team') icon.classList.replace('text-slate-400', 'text-purple-600');
 
+                // Ẩn hiện view
+                Object.values(els.views).forEach(e => e.classList.add('hidden'));
+                els.views[tab].classList.remove('hidden');
+
                 currentTab = tab;
                 App.render();
             }
         });
-    },
-
-    loadUsers: async () => {
-        try {
-            els.userSelect.innerHTML = '<option>Đang tải...</option>';
-            const s = await getDocs(collection(db, `${ROOT_PATH}/employees`));
-            
-            if (s.empty) throw new Error("Empty list");
-
-            els.userSelect.innerHTML = '<option value="">-- Chọn NV --</option>' + 
-                s.docs.map(d=>`<option value="${d.id}" data-pin="${d.data().pin}" data-role="${d.data().role}">${d.data().name}</option>`).join('');
-        } catch(e) {
-            console.error(e);
-            // --- CHẾ ĐỘ CỨU HỘ (NHẬP TAY) ---
-            els.userSelect.innerHTML = '<option value="">⚠ Lỗi tải danh sách</option>';
-            if (!document.getElementById('manual-login-container')) {
-                const div = document.createElement('div');
-                div.id = 'manual-login-container';
-                div.className = 'mt-4 pt-4 border-t border-slate-700';
-                div.innerHTML = `
-                    <p class="text-white text-xs mb-2 text-center">Không thấy tên? Nhập tay:</p>
-                    <input id="manual-name" placeholder="Tên (VD: Admin)" class="w-full p-3 rounded-xl mb-2 font-bold text-slate-800">
-                    <button id="btn-manual-login" class="w-full bg-slate-600 text-white py-2 rounded-xl font-bold text-sm">VÀO THỦ CÔNG</button>
-                `;
-                els.loginOverlay.querySelector('.w-full.max-w-sm').appendChild(div);
-                
-                document.getElementById('btn-manual-login').onclick = () => {
-                    const name = document.getElementById('manual-name').value;
-                    const pin = els.pinInput.value;
-                    if (!name || !pin) return Utils.toast("Nhập Tên và PIN!", "err");
-                    
-                    // Cấp quyền tạm thời dựa trên PIN
-                    let role = 'nhân viên';
-                    if (pin === '1234' || pin === '9999') role = 'admin';
-                    
-                    currentUser = { _id: 'manual_'+Date.now(), name, role };
-                    App.loginSuccess();
-                };
-            }
-            Utils.toast("Mạng yếu: Đã bật nhập thủ công!", "err");
-        }
-    },
-
-    login: () => {
-        const uid = els.userSelect.value;
-        const pin = els.pinInput.value;
-        
-        if(!uid) return Utils.toast("Chưa chọn nhân viên!", "err");
-        
-        const opt = els.userSelect.options[els.userSelect.selectedIndex];
-        if(pin !== opt.getAttribute('data-pin')) {
-            els.pinInput.value = '';
-            return Utils.toast("Sai mã PIN!", "err");
-        }
-        
-        currentUser = { _id: uid, name: opt.text, role: opt.getAttribute('data-role') };
-        App.loginSuccess();
-    },
-
-    loginSuccess: () => {
-        els.loginOverlay.classList.add('hidden');
-        els.headerUser.innerText = currentUser.name;
-        els.headerRole.innerText = (currentUser.role || 'Nhân viên').toUpperCase();
-        
-        if(['admin','quản lý','giám đốc','kế toán'].some(r => (currentUser.role||'').toLowerCase().includes(r))) {
-            els.btnSettings.classList.remove('hidden');
-        }
-
-        // Mặc định vào tab Việc
-        document.querySelector('.nav-btn[data-tab="tasks"]').click();
-    },
-
-    render: async () => {
-        if(!currentUser) return;
-        
-        // Ẩn tất cả view trước khi load
-        Object.values(els.views).forEach(e => { if(e) e.classList.add('hidden') }); 
-        
-        // Hiện loader (nếu cần)
-        // ...
-
-        try {
-            // Tải dữ liệu song song
-            const [h, s, t, e, p, c] = await Promise.all([
-                getDocs(collection(db, `${ROOT_PATH}/houses`)),
-                getDocs(collection(db, `${ROOT_PATH}/supplies`)),
-                getDocs(collection(db, `${ROOT_PATH}/tasks`)),
-                getDocs(collection(db, `${ROOT_PATH}/employees`)),
-                getDocs(collection(db, `${ROOT_PATH}/products`)),
-                getDocs(collection(db, `${ROOT_PATH}/chat`))
-            ]);
-            
-            // --- KHỚP ID CHO ĐÚNG CHUẨN (Quan trọng) ---
-            appData = {
-                houses: h.docs.map(x=>({id:x.id, ...x.data()})),
-                supplies: s.docs.map(x=>({_id:x.id, ...x.data()})), // Supplies dùng _id
-                tasks: t.docs.map(x=>({id:x.id, ...x.data()})),
-                employees: e.docs.map(x=>({_id:x.id, ...x.data()})), // Employees dùng _id
-                products: p.docs.map(x=>({id:x.id, ...x.data()})),   // QUAN TRỌNG: Products phải dùng id (không gạch dưới) để khớp với thdg.js
-                chat: c.docs.map(x=>({id:x.id, ...x.data()}))
-            };
-
-            const v = els.views[currentTab];
-            if(v) {
-                v.classList.remove('hidden');
-                if(currentTab === 'tasks') HR.renderTasks(appData, currentUser);
-                if(currentTab === 'sx') SX.render(appData, currentUser);
-                if(currentTab === 'th') THDG.render(appData, currentUser);
-                if(currentTab === 'team') HR.renderTeam(appData, currentUser);
-            }
-        } catch(err) {
-            console.error(err);
-            Utils.toast("Lỗi tải dữ liệu: " + err.message, "err");
-        }
     }
 };
 
