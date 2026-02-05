@@ -2,7 +2,6 @@ import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc
 import { Utils } from '../utils.js';
 
 window.SX_Action = {
-    // Xóa nhật ký
     delLog: async (id, qty, houseId) => {
         if(confirm(`⚠️ Xóa lô ${qty} bịch? (Kho sẽ được hoàn tác)`)) {
             try {
@@ -15,7 +14,6 @@ window.SX_Action = {
         }
     },
 
-    // Reset nhà về 0
     reset0: async (hid) => { 
         if(confirm("⚠️ CẢNH BÁO: Xóa trắng nhà này (Về 0 & Tắt đèn)?")) { 
             await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { 
@@ -25,7 +23,6 @@ window.SX_Action = {
         } 
     },
 
-    // Điều chỉnh số lượng
     adjust: async (hid, currentQty) => { 
         const v = prompt("Nhập số lượng điều chỉnh (+/-):");
         if(v) { 
@@ -33,10 +30,7 @@ window.SX_Action = {
             const newQty = (currentQty || 0) + n;
             const updateData = { batchQty: increment(n) };
             if (newQty <= 0) { 
-                updateData.status = 'EMPTY'; 
-                updateData.currentBatch = ''; 
-                updateData.batchQty = 0; 
-                updateData.wateringCount = 0;
+                updateData.status = 'EMPTY'; updateData.currentBatch = ''; updateData.batchQty = 0; updateData.wateringCount = 0;
             } else { 
                 updateData.status = 'ACTIVE'; 
             }
@@ -45,7 +39,6 @@ window.SX_Action = {
         } 
     },
 
-    // --- MỚI: CẬP NHẬT SỐ LẦN TIÊM NƯỚC ---
     setWatering: async (hid, currentVal) => {
         const v = prompt("💧 Cập nhật số lần tiêm nước:", currentVal || 0);
         if(v !== null) {
@@ -57,7 +50,6 @@ window.SX_Action = {
         }
     },
 
-    // Thêm nhà
     addHouse: async () => {
         const name = prompt("Tên nhà mới (VD: Nhà 5):");
         if(name) {
@@ -81,12 +73,23 @@ export const SX = {
         
         const houses = (Array.isArray(data.houses) ? data.houses : []).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
         const supplies = Array.isArray(data.supplies) ? data.supplies : [];
-        
-        // Nhận diện Kho
         const houseA = houses.find(h => ['nhà a','kho a', 'kho phôi', 'kho vật tư', 'kho tổng'].includes((h.name||'').toLowerCase()));
-        
         const logsA = supplies.filter(s => houseA && s.to === houseA.id).sort((a,b)=>b.time-a.time);
-        const uniqueCodes = [...new Set(logsA.filter(l => l.type === 'IMPORT').map(l => l.code).filter(Boolean))];
+
+        // --- TÍNH TOÁN SỐ LƯỢNG THỰC CỦA TỪNG MÃ LÔ ---
+        // Để hiển thị trong dropdown xuất kho
+        const batchStock = {};
+        logsA.forEach(l => {
+            if(l.code) {
+                if(!batchStock[l.code]) batchStock[l.code] = 0;
+                // Nhập thì cộng, Xuất thì trừ
+                if(l.type === 'IMPORT') batchStock[l.code] += Number(l.qty);
+                else if(['EXPORT','DESTROY'].includes(l.type)) batchStock[l.code] -= Number(l.qty);
+            }
+        });
+        // Chỉ lấy các mã còn tồn kho > 0 để hiển thị
+        const availableBatches = Object.keys(batchStock).filter(code => batchStock[code] > 0);
+        // -----------------------------------------------
 
         c.innerHTML = `
         <div class="space-y-6 pb-24">
@@ -102,9 +105,42 @@ export const SX = {
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                     <div class="bg-white p-3 rounded-xl border border-purple-100 shadow-sm"><div class="text-[10px] font-bold text-purple-400 mb-2 uppercase">Nhập Kho</div><div class="flex gap-2 mb-2"><input id="i-name" placeholder="Tên giống (049)" class="w-1/2 p-2 border rounded-lg text-xs"><input type="date" id="i-date" class="w-1/2 p-2 border rounded-lg text-xs"></div><div class="flex gap-2"><input type="number" id="i-qty" placeholder="SL" class="flex-1 p-2 border rounded-lg text-xs text-center"><button id="btn-imp" class="bg-purple-600 text-white px-4 rounded-lg font-bold text-xs shadow-md active:scale-95">+</button></div></div>
-                    <div class="bg-white p-3 rounded-xl border border-green-100 shadow-sm"><div class="text-[10px] font-bold text-green-500 mb-2 uppercase">Xuất Kho</div><div class="flex gap-2 mb-2"><select id="e-house" class="w-1/2 p-2 border rounded-lg text-xs"><option value="">Nhà</option>${houses.filter(h=>h.id!==houseA.id).map(h=>`<option value="${h.id}">${h.name}</option>`).join('')}</select><select id="e-code" class="w-1/2 p-2 border rounded-lg text-xs"><option value="">Mã</option>${uniqueCodes.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div><div class="flex gap-2"><input type="number" id="e-qty" placeholder="SL" class="flex-1 p-2 border rounded-lg text-xs text-center"><input type="date" id="e-date" class="w-1/3 p-2 border rounded-lg text-xs"><button id="btn-exp" class="bg-green-600 text-white px-4 rounded-lg font-bold text-xs shadow-md active:scale-95">-</button></div></div>
+                    <div class="bg-white p-3 rounded-xl border border-green-100 shadow-sm">
+                        <div class="text-[10px] font-bold text-green-500 mb-2 uppercase">Xuất Kho</div>
+                        <div class="flex gap-2 mb-2">
+                            <select id="e-house" class="w-1/2 p-2 border rounded-lg text-xs"><option value="">Nhà</option>${houses.filter(h=>h.id!==houseA.id).map(h=>`<option value="${h.id}">${h.name}</option>`).join('')}</select>
+                            
+                            <select id="e-code" class="w-1/2 p-2 border rounded-lg text-xs">
+                                <option value="">Mã lô</option>
+                                ${availableBatches.map(c => `<option value="${c}">${c} (Còn: ${batchStock[c].toLocaleString()})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="flex gap-2"><input type="number" id="e-qty" placeholder="SL" class="flex-1 p-2 border rounded-lg text-xs text-center"><input type="date" id="e-date" class="w-1/3 p-2 border rounded-lg text-xs"><button id="btn-exp" class="bg-green-600 text-white px-4 rounded-lg font-bold text-xs shadow-md active:scale-95">-</button></div>
+                    </div>
                 </div>
-                <div class="max-h-40 overflow-y-auto space-y-1 bg-white/50 p-1 rounded-lg">${logsA.map(l => `<div class="flex justify-between items-center text-[10px] p-2 bg-white rounded border border-purple-50 mb-1"><div><span class="font-bold text-slate-700 block">${l.code||'--'}</span><span class="text-slate-400">${new Date(l.time).toLocaleDateString('vi-VN')}</span></div><div class="flex items-center gap-2"><span class="font-bold ${l.qty>0?'text-purple-600':'text-red-500'}">${l.qty>0?'+':''}${Number(l.qty).toLocaleString()}</span>${isManager && l.type==='IMPORT'?`<button onclick="window.SX_Action.delLog('${l._id}',${l.qty},'${houseA.id}')" class="text-red-300 hover:text-red-500">×</button>`:''}</div></div>`).join('')}</div>
+
+                <div class="max-h-40 overflow-y-auto space-y-1 bg-white/50 p-1 rounded-lg">
+                    ${logsA.map(l => {
+                        const isExport = l.type === 'EXPORT' || l.type === 'DESTROY';
+                        // Style gạch ngang nếu là Xuất
+                        const textStyle = isExport ? 'line-through text-slate-400 decoration-slate-400' : 'font-bold text-slate-700';
+                        const qtyStyle = isExport ? 'line-through text-slate-400 decoration-slate-400' : 'font-bold text-purple-600';
+                        
+                        return `
+                        <div class="flex justify-between items-center text-[10px] p-2 bg-white rounded border border-purple-50 mb-1">
+                            <div>
+                                <span class="${textStyle} block">${l.code||'--'}</span>
+                                <span class="text-slate-400">${new Date(l.time).toLocaleDateString('vi-VN')}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="${qtyStyle}">
+                                    ${l.type==='IMPORT' ? '+' : '-'}${Number(l.qty).toLocaleString()}
+                                </span>
+                                ${isManager && l.type==='IMPORT' ? `<button onclick="window.SX_Action.delLog('${l._id}',${l.qty},'${houseA.id}')" class="text-red-300 hover:text-red-500">×</button>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
             </div>` : '<div class="p-4 text-center text-slate-400 bg-slate-50 rounded-xl">Chưa tạo Kho Vật Tư (hoặc Nhà A)</div>'}
 
             <div>
@@ -119,7 +155,7 @@ export const SX = {
                 <div class="grid grid-cols-1 gap-3">
                     ${houses.filter(h => h.id !== (houseA?.id)).map(h => {
                         const isRunning = (h.batchQty > 0); 
-                        const wCount = h.wateringCount || 0; // Số lần tiêm nước
+                        const wCount = h.wateringCount || 0;
 
                         return `
                         <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden group">
@@ -162,7 +198,6 @@ export const SX = {
 
         setTimeout(() => {
             if(!houseA) return;
-            // ... (Logic JS gán sự kiện cũ, không thay đổi phần này) ...
             const di=document.getElementById('i-date'); if(di) di.valueAsDate=new Date();
             const de=document.getElementById('e-date'); if(de) de.valueAsDate=new Date();
 
@@ -182,7 +217,9 @@ export const SX = {
             if(bExp) bExp.onclick = async () => {
                 const hid=document.getElementById('e-house').value, c=document.getElementById('e-code').value, q=Number(document.getElementById('e-qty').value), d=document.getElementById('e-date').value;
                 if(hid && c && q>0) {
-                    if(q > houseA.batchQty) return Utils.toast("Không đủ kho!", "err");
+                    // Kiểm tra tồn kho của chính lô đó
+                    if (batchStock[c] < q) return Utils.toast(`Lô ${c} chỉ còn ${batchStock[c]} bịch!`, "err");
+
                     const batch = writeBatch(db);
                     batch.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseA.id, to:hid, code:c, qty:q, user:user.name, time:new Date(d).getTime() });
                     batch.update(doc(db, `${ROOT_PATH}/houses`, houseA.id), { batchQty: increment(-q) });
