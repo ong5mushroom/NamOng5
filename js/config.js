@@ -1,8 +1,21 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
-    getFirestore, initializeFirestore, collection, onSnapshot, addDoc, updateDoc, 
-    doc, deleteDoc, getDoc, increment, writeBatch, getDocs, query, where 
+    getFirestore, 
+    initializeFirestore, 
+    collection, 
+    onSnapshot, 
+    addDoc, 
+    updateDoc, 
+    doc, 
+    deleteDoc, 
+    getDoc, 
+    increment, 
+    writeBatch, 
+    getDocs, 
+    query, 
+    where,
+    enableIndexedDbPersistence // <--- QUAN TRỌNG: Thêm cái này để lưu cache
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const fbConfig = { 
@@ -17,17 +30,27 @@ const fbConfig = {
 const appInstance = initializeApp(fbConfig);
 export const auth = getAuth(appInstance);
 
-// --- SỬA ĐỔI QUAN TRỌNG CHO XIAOMI 13T ---
-// Thay vì dùng getFirestore mặc định, ta dùng cấu hình ép Long Polling
+// --- CẤU HÌNH FIX LỖI XIAOMI 13T & MẠNG YẾU ---
+// 1. Ép dùng Long Polling để xuyên tường lửa/DNS chặn
 export const db = initializeFirestore(appInstance, {
-    experimentalForceLongPolling: true, // Giúp vượt qua lỗi Failed to fetch trên mạng kén
+    experimentalForceLongPolling: true, 
+});
+
+// 2. KÍCH HOẠT CHẾ ĐỘ OFFLINE (BỀN BỈ)
+// Giúp app tải dữ liệu từ bộ nhớ máy ngay lập tức, không cần chờ mạng
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code == 'failed-precondition') {
+        console.log('Nhiều tab đang mở, offline chỉ chạy trên 1 tab.');
+    } else if (err.code == 'unimplemented') {
+        console.log('Trình duyệt không hỗ trợ offline.');
+    }
 });
 
 export const ROOT_PATH = "artifacts/namong5_production/public/data";
 
-// Xuất khẩu đầy đủ công cụ cho các module khác dùng
+// Xuất khẩu công cụ
 export { 
-    signInAnonymously, onAuthStateChanged, 
-    collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, getDoc, increment, 
+    signInAnonymously, onAuthStateChanged, onSnapshot,
+    collection, addDoc, updateDoc, doc, deleteDoc, getDoc, increment, 
     writeBatch, getDocs, query, where 
 };
