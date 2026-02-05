@@ -3,6 +3,8 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 import { 
     getFirestore, 
     initializeFirestore, 
+    persistentLocalCache, // <-- Cấu hình Cache mới
+    indexedDbLocalCache,  // <-- Cấu hình Cache mới
     collection, 
     onSnapshot, 
     addDoc, 
@@ -14,8 +16,7 @@ import {
     writeBatch, 
     getDocs, 
     query, 
-    where,
-    enableIndexedDbPersistence // <--- QUAN TRỌNG: Thêm cái này để lưu cache
+    where 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const fbConfig = { 
@@ -27,25 +28,22 @@ const fbConfig = {
     appId: "1:931399604992:web:134c9bfbddbfef97cd31e5" 
 };
 
+// 1. Khởi tạo App
 const appInstance = initializeApp(fbConfig);
-export const auth = getAuth(appInstance);
 
-// --- CẤU HÌNH FIX LỖI XIAOMI 13T & MẠNG YẾU ---
-// 1. Ép dùng Long Polling để xuyên tường lửa/DNS chặn
+// 2. KHỞI TẠO DB (Gộp chung: Chống chặn mạng + Chế độ Offline)
 export const db = initializeFirestore(appInstance, {
+    // A. Ép dùng Long Polling (Sửa lỗi Xiaomi/Mạng yếu)
     experimentalForceLongPolling: true, 
+    
+    // B. Bật chế độ Offline (Dùng cấu hình mới persistentLocalCache thay cho enableIndexedDbPersistence)
+    // Cách này sẽ KHÔNG bao giờ bị lỗi "Firestore has already been started"
+    localCache: persistentLocalCache({
+        tabManager: undefined 
+    })
 });
 
-// 2. KÍCH HOẠT CHẾ ĐỘ OFFLINE (BỀN BỈ)
-// Giúp app tải dữ liệu từ bộ nhớ máy ngay lập tức, không cần chờ mạng
-enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code == 'failed-precondition') {
-        console.log('Nhiều tab đang mở, offline chỉ chạy trên 1 tab.');
-    } else if (err.code == 'unimplemented') {
-        console.log('Trình duyệt không hỗ trợ offline.');
-    }
-});
-
+export const auth = getAuth(appInstance);
 export const ROOT_PATH = "artifacts/namong5_production/public/data";
 
 // Xuất khẩu công cụ
