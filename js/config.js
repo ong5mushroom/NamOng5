@@ -15,6 +15,7 @@ import {
     getDocs, 
     query, 
     where 
+    // Đã xóa enableIndexedDbPersistence để tránh lỗi crash
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const fbConfig = { 
@@ -29,8 +30,8 @@ const fbConfig = {
 // 1. Khởi tạo App
 const appInstance = initializeApp(fbConfig);
 
-// 2. KHỞI TẠO DB (Chỉ giữ lại cấu hình Long Polling để sửa lỗi mạng)
-// Tạm bỏ qua cấu hình Offline phức tạp để tránh lỗi SyntaxError và lỗi chặn bộ nhớ
+// 2. KHỞI TẠO DB (Chỉ giữ cấu hình Long Polling để Xiaomi vào được mạng)
+// Chúng ta KHÔNG bật enableIndexedDbPersistence nữa để tránh lỗi "Already Started"
 export const db = initializeFirestore(appInstance, {
     experimentalForceLongPolling: true, 
 });
