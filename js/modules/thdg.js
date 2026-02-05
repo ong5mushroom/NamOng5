@@ -25,15 +25,10 @@ window.THDG_Action = {
 export const THDG = {
     render: (data, user) => {
         const c = document.getElementById('view-th'); if (!c || c.classList.contains('hidden')) return;
-
-        // --- PHÂN QUYỀN ---
         const role = (user.role || '').toLowerCase();
         const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => role.includes(r));
-        
-        // Sắp xếp sản phẩm theo tên
         let products = (Array.isArray(data.products) ? data.products : []).sort((a,b) => (a.name||'').localeCompare(b.name||''));
         
-        // Hàm vẽ danh sách sản phẩm (để tái sử dụng khi update số tồn kho)
         const renderProductList = () => {
             const groups = {
                 '1': { title: '🍄 NẤM TƯƠI', color: 'green', items: products.filter(p => String(p.group) === '1') },
@@ -48,10 +43,10 @@ export const THDG = {
                         ${isManager ? `<button onclick="window.THDG_Action.delOne('${p.id}', '${p.name}')" class="text-red-400 hover:text-red-600 font-bold px-1 text-xs">×</button>` : ''}
                         <div>
                             <span class="text-[11px] font-bold text-slate-700 truncate w-24 block" title="${p.name}">${p.name}</span>
-                            <span class="text-[9px] text-slate-400 font-bold">Tồn: <span id="stk-${p.code}" class="text-blue-600 font-black">${(p.stock||0).toLocaleString()}</span></span>
+                            <span class="text-[9px] text-slate-400 font-bold">Tồn: <span id="stk-${p.code}" class="text-blue-600 font-black">${(p.stock||0).toLocaleString('vi-VN', {maximumFractionDigits: 2})}</span></span>
                         </div>
                     </div>
-                    <input type="number" step="0.1" id="in-${p.code}" class="w-16 p-1 text-center font-bold text-slate-700 border border-slate-200 rounded text-xs outline-none focus:border-${color}-500 bg-white transition" placeholder="...">
+                    <input type="number" step="0.01" id="in-${p.code}" class="w-16 p-1 text-center font-bold text-slate-700 border border-slate-200 rounded text-xs outline-none focus:border-${color}-500 bg-white transition" placeholder="...">
                 </div>`;
 
             const container = document.getElementById('product-groups-container');
@@ -67,7 +62,6 @@ export const THDG = {
             }
         };
 
-        // --- GIAO DIỆN HTML CHÍNH ---
         c.innerHTML = `
         <div class="space-y-4 pb-24">
             <div class="flex bg-slate-100 p-1 rounded-xl">
@@ -91,9 +85,7 @@ export const THDG = {
                                 <option value="MuaNgoai" data-name="Mua Ngoài">Mua Ngoài</option>
                             </select>
                         </div>
-
                         <div id="product-groups-container"></div>
-
                         <button id="btn-save-h" class="w-full py-3 bg-green-600 text-white rounded-lg font-bold text-xs shadow-lg shadow-green-200 active:scale-95 transition">LƯU KHO</button>
                     </div>
                 </div>
@@ -105,9 +97,9 @@ export const THDG = {
                     <input id="s-cust" placeholder="Tên Khách Hàng (Bắt buộc)" class="w-full p-2.5 rounded border border-slate-300 text-sm font-bold focus:border-orange-500 outline-none">
                     
                     <div class="bg-orange-50 p-2 rounded border border-orange-100">
-                        <select id="s-prod" class="w-full p-2 mb-2 rounded border border-orange-200 text-xs font-bold bg-white"><option value="">-- Chọn sản phẩm --</option>${products.map(p => `<option value="${p.code}" data-name="${p.name}" data-price="${p.price||0}">${p.name} (Tồn: ${p.stock||0})</option>`).join('')}</select>
+                        <select id="s-prod" class="w-full p-2 mb-2 rounded border border-orange-200 text-xs font-bold bg-white"><option value="">-- Chọn sản phẩm --</option>${products.map(p => `<option value="${p.code}" data-name="${p.name}" data-price="${p.price||0}">${p.name} (Tồn: ${(p.stock||0).toLocaleString('vi-VN', {maximumFractionDigits: 2})})</option>`).join('')}</select>
                         <div class="flex gap-2">
-                            <input id="s-qty" type="number" placeholder="SL" class="w-1/3 p-2 rounded border border-orange-200 text-xs text-center font-bold">
+                            <input id="s-qty" type="number" step="0.01" placeholder="SL" class="w-1/3 p-2 rounded border border-orange-200 text-xs text-center font-bold">
                             <input id="s-price" type="number" placeholder="Giá bán" class="flex-1 p-2 rounded border border-orange-200 text-xs font-bold">
                             <button id="btn-add-cart" class="bg-orange-500 text-white px-4 rounded font-bold text-lg shadow active:scale-90">+</button>
                         </div>
@@ -128,15 +120,10 @@ export const THDG = {
             </div>
         </div>`;
 
-        // Gọi hàm vẽ lần đầu
         renderProductList();
 
-        // --- XỬ LÝ SỰ KIỆN (JAVASCRIPT LOGIC) ---
         setTimeout(() => {
-            // Set ngày hôm nay
             const di = document.getElementById('h-date'); if(di) di.valueAsDate = new Date();
-            
-            // Xử lý chuyển Tab (Nhập Kho <-> Xuất Bán)
             const bIn = document.getElementById('btn-tab-in'), bOut = document.getElementById('btn-tab-out');
             const switchTab = (isIn) => {
                 const zIn = document.getElementById('zone-harvest'), zOut = document.getElementById('zone-sell');
@@ -145,7 +132,6 @@ export const THDG = {
             };
             bIn.onclick = () => switchTab(true); bOut.onclick = () => switchTab(false);
 
-            // Nút Thêm Mã (Chỉ Quản Lý)
             if(isManager) {
                 const btnAdd = document.getElementById('btn-add');
                 if(btnAdd) btnAdd.onclick = () => {
@@ -154,11 +140,9 @@ export const THDG = {
                 }
             }
 
-            // --- NÚT LƯU KHO (QUAN TRỌNG: CÓ LOGIC CỘNG DỒN VÀO NHÀ) ---
             document.getElementById('btn-save-h').onclick = async () => {
                 const aid = document.getElementById('h-area').value; 
                 const dVal = document.getElementById('h-date').value;
-                
                 if(!dVal || !aid) return Utils.toast("Thiếu ngày hoặc nguồn!", "err");
                 
                 const batch = writeBatch(db); 
@@ -168,18 +152,13 @@ export const THDG = {
                 
                 products.forEach(p => { 
                     const el = document.getElementById(`in-${p.code}`); 
-                    // Logic: Chỉ lấy ô có số > 0
                     if(el && Number(el.value) > 0) { 
-                        const q = Number(el.value); 
+                        const q = parseFloat(el.value); // Hiểu số thập phân
                         if(p.id) {
-                            // Cập nhật tồn kho sản phẩm
                             batch.update(doc(db, `${ROOT_PATH}/products`, p.id), {stock: increment(q)}); 
-                            
-                            // Cập nhật giao diện ngay lập tức
                             p.stock = (p.stock || 0) + q;
                             const stockEl = document.getElementById(`stk-${p.code}`);
-                            if(stockEl) stockEl.innerText = p.stock.toLocaleString();
-                            
+                            if(stockEl) stockEl.innerText = p.stock.toLocaleString('vi-VN', {maximumFractionDigits: 2});
                             details[p.code] = q; 
                             totalKg += q; 
                             el.value = ''; 
@@ -190,45 +169,63 @@ export const THDG = {
 
                 if(hasData) { 
                     const aname = document.getElementById('h-area').options[document.getElementById('h-area').selectedIndex].getAttribute('data-name'); 
-                    
-                    // 1. Lưu Nhật Ký Thu Hoạch
-                    batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {
-                        area: aname, 
-                        details, 
-                        total: totalKg, 
-                        user: user.name, 
-                        time: new Date(dVal).setHours(12)
-                    }); 
-                    
-                    // 2. CỘNG DỒN SẢN LƯỢNG VÀO NHÀ TRỒNG
+                    batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {area: aname, details, total: totalKg, user: user.name, time: new Date(dVal).setHours(12)}); 
                     if(aid !== 'MuaNgoai') {
-                        // Đảm bảo aid là ID hợp lệ
-                        if(aid && aid.length > 3) {
-                            batch.update(doc(db, `${ROOT_PATH}/houses`, aid), { 
-                                totalYield: increment(totalKg) // Lệnh này sẽ cộng dồn số cũ + số mới
-                            }); 
-                        }
+                        if(aid && aid.length > 3) batch.update(doc(db, `${ROOT_PATH}/houses`, aid), { totalYield: increment(totalKg) }); 
                     }
-
                     await batch.commit(); 
                     Utils.toast(`✅ Đã lưu ${totalKg}kg!`); 
                     try { Utils.notifySound(); } catch(e){}
-                } else { 
-                    Utils.toast("Chưa nhập số liệu nào!", "err"); 
-                }
+                } else { Utils.toast("Chưa nhập số liệu nào!", "err"); }
             };
             
-            // --- LOGIC GIỎ HÀNG & BÁN HÀNG ---
             let cart=[]; 
-            const upC=()=>{ document.getElementById('cart-list').innerHTML=cart.map((i,x)=>`<div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100"><div class="text-[11px]"><div class="font-bold text-slate-700">${i.name}</div><div class="text-slate-500">${i.qty} x ${i.price.toLocaleString()}</div></div><div class="flex items-center gap-3"><span class="font-bold text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button onclick="document.getElementById('d-${x}').click()" class="text-red-400 hover:text-red-600 font-bold px-1">×</button></div><button id="d-${x}" class="hidden"></button></div>`).join(''); document.getElementById('cart-total').innerText=cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()+'đ'; cart.forEach((_,i)=>document.getElementById(`d-${i}`).onclick=()=>{cart.splice(i,1);upC()}) };
+            const upC=()=>{ document.getElementById('cart-list').innerHTML=cart.map((i,x)=>`<div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100"><div class="text-[11px]"><div class="font-bold text-slate-700">${i.name}</div><div class="text-slate-500">${i.qty.toLocaleString('vi-VN')} x ${i.price.toLocaleString()}</div></div><div class="flex items-center gap-3"><span class="font-bold text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button onclick="document.getElementById('d-${x}').click()" class="text-red-400 hover:text-red-600 font-bold px-1">×</button></div><button id="d-${x}" class="hidden"></button></div>`).join(''); document.getElementById('cart-total').innerText=cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()+'đ'; cart.forEach((_,i)=>document.getElementById(`d-${i}`).onclick=()=>{cart.splice(i,1);upC()}) };
             
-            document.getElementById('btn-add-cart').onclick=()=>{ const s=document.getElementById('s-prod'); if(s.value){cart.push({code:s.value,name:s.options[s.selectedIndex].getAttribute('data-name'),qty:Number(document.getElementById('s-qty').value),price:Number(document.getElementById('s-price').value)}); upC(); document.getElementById('s-qty').value='';} };
+            document.getElementById('btn-add-cart').onclick=()=>{ const s=document.getElementById('s-prod'); if(s.value){cart.push({code:s.value,name:s.options[s.selectedIndex].getAttribute('data-name'),qty:parseFloat(document.getElementById('s-qty').value),price:Number(document.getElementById('s-price').value)}); upC(); document.getElementById('s-qty').value='';} };
 
+            // --- CẬP NHẬT HÓA ĐƠN CÓ CHỮ KÝ ---
             document.getElementById('btn-print').onclick = () => {
                 const cust = document.getElementById('s-cust').value; if(!cart.length) return Utils.toast("Giỏ hàng trống!", "err"); if(!cust) return Utils.toast("Nhập tên khách!", "err");
-                const w = window.open('', '', 'height=600,width=400'); w.document.write(`<html><head><title>HOA DON</title><style>body{font-family:'Courier New',monospace;font-size:12px;padding:10px}.c{text-align:center}.r{text-align:right}table{width:100%;border-collapse:collapse;margin-top:10px}td,th{padding:4px 0}</style></head><body><div class="c"><div style="font-size:16px;font-weight:bold">${COMPANY_INFO.name}</div><div>${COMPANY_INFO.address}</div><div>${COMPANY_INFO.hotline}</div><div style="border-bottom:1px dashed #000;margin:5px 0"></div><b>HÓA ĐƠN BÁN LẺ</b></div><div>Khách: <b>${cust}</b></div><div>Ngày: ${new Date().toLocaleString('vi-VN')}</div><div style="border-bottom:1px dashed #000;margin:5px 0"></div><table><tr><th align="left">Món</th><th class="c">SL</th><th class="r">Tiền</th></tr>${cart.map(i=>`<tr><td>${i.name}</td><td class="c">${i.qty}</td><td class="r">${(i.qty*i.price).toLocaleString()}</td></tr>`).join('')}</table><div style="border-bottom:1px dashed #000;margin:5px 0"></div><div class="r" style="font-size:14px">TỔNG: <b>${cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()}đ</b></div><div class="c" style="margin-top:20px;font-style:italic">Cảm ơn quý khách!</div></body></html>`); w.document.close(); w.print();
+                const w = window.open('', '', 'height=600,width=400'); 
+                w.document.write(`
+                <html><head><title>HOA DON</title><style>
+                    body{font-family:'Courier New',monospace;font-size:12px;padding:10px}
+                    .c{text-align:center}.r{text-align:right}
+                    table{width:100%;border-collapse:collapse;margin-top:10px}
+                    td,th{padding:4px 0}
+                    .sign-box{margin-top:30px;display:flex;justify-content:space-between;text-align:center;}
+                    .sign-box div{width:30%;}
+                    .sign-space{height:50px;}
+                </style></head><body>
+                    <div class="c">
+                        <div style="font-size:16px;font-weight:bold">${COMPANY_INFO.name}</div>
+                        <div>${COMPANY_INFO.address}</div>
+                        <div>${COMPANY_INFO.hotline}</div>
+                        <div style="border-bottom:1px dashed #000;margin:5px 0"></div>
+                        <b>HÓA ĐƠN BÁN LẺ</b>
+                    </div>
+                    <div>Khách: <b>${cust}</b></div>
+                    <div>Ngày: ${new Date().toLocaleString('vi-VN')}</div>
+                    <div style="border-bottom:1px dashed #000;margin:5px 0"></div>
+                    <table><tr><th align="left">Món</th><th class="c">SL</th><th class="r">Tiền</th></tr>
+                    ${cart.map(i=>`<tr><td>${i.name}</td><td class="c">${i.qty.toLocaleString('vi-VN')}</td><td class="r">${(i.qty*i.price).toLocaleString()}</td></tr>`).join('')}
+                    </table>
+                    <div style="border-bottom:1px dashed #000;margin:5px 0"></div>
+                    <div class="r" style="font-size:14px">TỔNG: <b>${cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()}đ</b></div>
+                    
+                    <div class="sign-box">
+                        <div>Người xuất phiếu<div class="sign-space"></div>${user.name}</div>
+                        <div>Kế toán<div class="sign-space"></div></div>
+                        <div>Giám đốc<div class="sign-space"></div></div>
+                    </div>
+                    
+                    <div class="c" style="margin-top:20px;font-style:italic">Cảm ơn quý khách!</div>
+                </body></html>`); 
+                w.document.close(); w.print();
             };
 
+            // --- LƯU & TRỪ TỒN KHO ---
             document.getElementById('btn-save-sell').onclick=async()=>{ 
                 if(cart.length){ 
                     const batch=writeBatch(db); 
