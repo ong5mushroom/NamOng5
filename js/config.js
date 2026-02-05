@@ -3,8 +3,6 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 import { 
     getFirestore, 
     initializeFirestore, 
-    persistentLocalCache, // <-- Cấu hình Cache mới
-    indexedDbLocalCache,  // <-- Cấu hình Cache mới
     collection, 
     onSnapshot, 
     addDoc, 
@@ -31,16 +29,10 @@ const fbConfig = {
 // 1. Khởi tạo App
 const appInstance = initializeApp(fbConfig);
 
-// 2. KHỞI TẠO DB (Gộp chung: Chống chặn mạng + Chế độ Offline)
+// 2. KHỞI TẠO DB (Chỉ giữ lại cấu hình Long Polling để sửa lỗi mạng)
+// Tạm bỏ qua cấu hình Offline phức tạp để tránh lỗi SyntaxError và lỗi chặn bộ nhớ
 export const db = initializeFirestore(appInstance, {
-    // A. Ép dùng Long Polling (Sửa lỗi Xiaomi/Mạng yếu)
     experimentalForceLongPolling: true, 
-    
-    // B. Bật chế độ Offline (Dùng cấu hình mới persistentLocalCache thay cho enableIndexedDbPersistence)
-    // Cách này sẽ KHÔNG bao giờ bị lỗi "Firestore has already been started"
-    localCache: persistentLocalCache({
-        tabManager: undefined 
-    })
 });
 
 export const auth = getAuth(appInstance);
