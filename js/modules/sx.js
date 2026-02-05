@@ -26,7 +26,7 @@ window.SX_Action = {
     adjust: async (hid, currentQty) => { 
         const v = prompt("Nhập số lượng điều chỉnh (+/-):");
         if(v) { 
-            const n = parseFloat(v); // Sửa thành parseFloat để hiểu số lẻ
+            const n = parseFloat(v);
             const newQty = (currentQty || 0) + n;
             const updateData = { batchQty: increment(n) };
             if (newQty <= 0) { 
@@ -47,6 +47,18 @@ window.SX_Action = {
             if(n >= 0) {
                 await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { wateringCount: n });
                 Utils.toast(`Đã cập nhật: ${n} lần tiêm`);
+            }
+        }
+    },
+
+    // --- MỚI: CHỈNH SỬA TỔNG THU HOẠCH ---
+    setTotalYield: async (hid, currentVal) => {
+        const v = prompt("⚖️ Chỉnh sửa tổng sản lượng (kg):", currentVal || 0);
+        if(v !== null) {
+            const n = parseFloat(v);
+            if(n >= 0) {
+                await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { totalYield: n });
+                Utils.toast(`Đã cập nhật: ${n}kg`);
             }
         }
     },
@@ -79,7 +91,6 @@ export const SX = {
         const houseA = houses.find(h => ['nhà a','kho a', 'kho phôi', 'kho vật tư', 'kho tổng'].includes((h.name||'').toLowerCase()));
         const logsA = supplies.filter(s => houseA && s.to === houseA.id).sort((a,b)=>b.time-a.time);
 
-        // Tính tồn kho từng mã lô (Batch Logic)
         const batchStock = {};
         logsA.forEach(l => {
             if(l.code) {
@@ -174,8 +185,9 @@ export const SX = {
                                             💧 Tiêm: ${wCount}
                                             ${isManager && isRunning ? `<button onclick="window.SX_Action.setWatering('${h.id}', ${wCount})" class="ml-1 text-blue-400 hover:text-blue-700 font-black">＋</button>` : ''}
                                         </div>
-                                        <div class="bg-orange-50 text-orange-700 px-2 py-1 rounded text-[10px] font-bold border border-orange-100">
+                                        <div class="bg-orange-50 text-orange-700 px-2 py-1 rounded text-[10px] font-bold border border-orange-100 flex items-center gap-1">
                                             ⚖️ Thu: ${totalKg.toLocaleString('vi-VN', {maximumFractionDigits: 1})} kg
+                                            ${isManager && isRunning ? `<button onclick="window.SX_Action.setTotalYield('${h.id}', ${totalKg})" class="ml-1 text-orange-400 hover:text-orange-700 font-black">✎</button>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -218,10 +230,6 @@ export const SX = {
                     const batch = writeBatch(db);
                     batch.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseA.id, to:hid, code:c, qty:q, user:user.name, time:new Date(d).getTime() });
                     batch.update(doc(db, `${ROOT_PATH}/houses`, houseA.id), { batchQty: increment(-q) });
-                    
-                    // CẬP NHẬT: Thêm lịch sử lô vào mảng (historyBatches) nếu cần thiết, ở đây ta update currentBatch
-                    // Dùng arrayUnion nếu muốn lưu lịch sử: historyBatches: arrayUnion(c) (Cần import arrayUnion)
-                    // Hiện tại chỉ cập nhật currentBatch để đơn giản
                     batch.update(doc(db, `${ROOT_PATH}/houses`, hid), { status:'ACTIVE', batchQty: increment(q), currentBatch:c });
                     await batch.commit(); Utils.toast("Đã xuất!"); document.getElementById('e-qty').value='';
                 } else Utils.toast("Thiếu thông tin!", "err");
