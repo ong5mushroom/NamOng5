@@ -2,6 +2,7 @@ import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc
 import { Utils } from '../utils.js';
 
 window.SX_Action = {
+    // ... (Giữ nguyên các hàm xóa, reset, sửa, thêm nhà...) ...
     delLog: async (id, qty, houseId) => { if(confirm(`Xóa lô ${qty}?`)) { try { const b=writeBatch(db); b.delete(doc(db,`${ROOT_PATH}/supplies`,id)); if(houseId)b.update(doc(db,`${ROOT_PATH}/houses`,houseId),{batchQty:increment(-Number(qty))}); await b.commit(); Utils.toast("Đã xóa!"); } catch(e){alert(e.message)} } },
     reset0: async (hid) => { if(confirm("Reset nhà về 0?")) { await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),{batchQty:0,currentBatch:'',status:'EMPTY'}); Utils.toast("Đã Reset!"); } },
     adjust: async (hid, cQ) => { const v=prompt("Số lượng (+/-):"); if(v){ const n=Number(v), newQ=(cQ||0)+n, u={batchQty:increment(n)}; if(newQ<=0){u.status='EMPTY';u.currentBatch='';u.batchQty=0}else{u.status='ACTIVE'} await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),u); Utils.toast("Đã sửa!"); } },
@@ -15,7 +16,6 @@ export const SX = {
         
         const role = (user.role || '').toLowerCase();
         const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => role.includes(r));
-        const isAccountant = role.includes('kế toán');
         
         const houses = (Array.isArray(data.houses) ? data.houses : []).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
         const supplies = Array.isArray(data.supplies) ? data.supplies : [];
@@ -23,6 +23,9 @@ export const SX = {
         
         const logsA = supplies.filter(s => houseA && s.to === houseA.id).sort((a,b)=>b.time-a.time);
         const uniqueCodes = [...new Set(logsA.filter(l => l.type === 'IMPORT').map(l => l.code).filter(Boolean))];
+        
+        // Lấy danh sách task tiêm nước để đếm
+        const tasks = (Array.isArray(data.tasks) ? data.tasks : []);
 
         c.innerHTML = `
         <div class="space-y-6 pb-24">
@@ -52,6 +55,9 @@ export const SX = {
                 <div class="grid grid-cols-2 gap-3">
                     ${houses.filter(h => h.id !== (houseA?.id)).map(h => {
                         const isRunning = (h.batchQty > 0); 
+                        // Đếm số lần tiêm
+                        const injectCount = tasks.filter(t => t.title === 'Kích Nấm (Tiêm nước)' && t.houseId === h.id && t.status === 'DONE').length;
+
                         return `
                         <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
                             <div class="absolute top-0 left-0 w-1 h-full ${isRunning ? 'bg-green-500' : 'bg-slate-300'}"></div>
@@ -65,6 +71,7 @@ export const SX = {
                                     </div>
                                     ${isManager ? `<button onclick="window.SX_Action.adjust('${h.id}', ${h.batchQty||0})" class="text-slate-300 hover:text-blue-500"><i class="fas fa-pen text-[10px]"></i></button>` : ''}
                                 </div>
+                                
                                 <div class="text-right border-b border-dashed border-slate-100 pb-2 mb-2">
                                     <span class="block font-black text-lg ${isRunning ? 'text-blue-600' : 'text-slate-400'}">
                                         ${(h.batchQty||0).toLocaleString()}
@@ -74,9 +81,15 @@ export const SX = {
                                     </span>
                                 </div>
                                 
-                                <div class="flex justify-between items-center">
-                                    <span class="text-[10px] text-slate-400 font-bold">Tổng thu:</span>
-                                    <span class="text-[11px] font-black text-orange-600">${(h.totalYield||0).toLocaleString()}kg</span>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-[10px] text-slate-400 font-bold">Tiêm nước:</span>
+                                        <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 rounded">${injectCount} lần</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-[10px] text-slate-400 font-bold">Tổng thu:</span>
+                                        <span class="text-[11px] font-black text-orange-600">${(h.totalYield||0).toLocaleString()}kg</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>`;
@@ -84,7 +97,8 @@ export const SX = {
                 </div>
             </div>
         </div>`;
-
+        
+        // ... (Giữ nguyên phần sự kiện onclick ở cuối file) ...
         setTimeout(() => {
             if(!houseA) return;
             const di=document.getElementById('i-date'); if(di) di.valueAsDate=new Date();
