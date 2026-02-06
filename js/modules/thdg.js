@@ -1,8 +1,6 @@
 import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc, writeBatch, getDocs } from '../config.js';
 import { Utils } from '../utils.js';
 
-const COMPANY_INFO = { name: "NẤM ÔNG 5", address: "Thôn Đa Ra Hoa, xã Lạc Dương, Lâm Đồng", hotline: "0899.49.0808", web: "ong5mushroom.com" };
-
 window.THDG_Action = {
     delOne: async (id, name) => {
         if(confirm(`Xóa mã "${name}"?`)) {
@@ -33,7 +31,7 @@ export const THDG = {
         let products = (Array.isArray(data.products) ? data.products : []).sort((a,b) => (a.name||'').localeCompare(b.name||''));
         
         const renderProductList = () => {
-            const groups = {
+             const groups = {
                 '1': { title: '🍄 NẤM TƯƠI', color: 'green', items: products.filter(p => String(p.group) === '1') },
                 '2': { title: '🍂 PHỤ PHẨM', color: 'orange', items: products.filter(p => String(p.group) === '2') },
                 '3': { title: '🏭 SƠ CHẾ', color: 'purple', items: products.filter(p => String(p.group) === '3') },
@@ -65,7 +63,6 @@ export const THDG = {
             }
         };
 
-        // --- GIAO DIỆN CHÍNH (ĐÃ PHỤC HỒI) ---
         c.innerHTML = `
         <div class="space-y-4 pb-24">
             <div class="flex bg-slate-100 p-1 rounded-xl">
@@ -89,9 +86,7 @@ export const THDG = {
                                 <option value="MuaNgoai" data-name="Mua Ngoài">Mua Ngoài</option>
                             </select>
                         </div>
-
                         <div id="product-groups-container"></div>
-
                         <button id="btn-save-h" class="w-full py-3 bg-green-600 text-white rounded-lg font-bold text-xs shadow-lg shadow-green-200 active:scale-95 transition">LƯU KHO</button>
                     </div>
                 </div>
@@ -110,26 +105,25 @@ export const THDG = {
                             <button id="btn-add-cart" class="bg-orange-500 text-white px-4 rounded font-bold text-lg shadow active:scale-90">+</button>
                         </div>
                     </div>
-
                     <div id="cart-list" class="space-y-1 pt-1 max-h-52 overflow-y-auto"></div>
-                    
                     <div class="flex justify-between items-center pt-3 border-t border-dashed border-slate-200">
                         <span class="text-xs font-bold text-slate-500">TỔNG CỘNG:</span>
                         <span class="text-xl font-black text-orange-600" id="cart-total">0đ</span>
                     </div>
                 </div>
-                
                 <div class="grid grid-cols-2 gap-3 mt-4">
                     <button id="btn-print" class="py-3 bg-blue-600 text-white rounded-lg font-bold text-xs shadow-md active:scale-95 transition flex items-center justify-center gap-2"><i class="fas fa-print"></i> IN HÓA ĐƠN</button>
                     <button id="btn-save-sell" class="py-3 bg-orange-600 text-white rounded-lg font-bold text-xs shadow-md active:scale-95 transition flex items-center justify-center gap-2"><i class="fas fa-save"></i> LƯU & TRỪ</button>
                 </div>
             </div>
         </div>`;
-
+        
         renderProductList();
-
+        
         setTimeout(() => {
             const di = document.getElementById('h-date'); if(di) di.valueAsDate = new Date();
+            
+            // Switch Tab
             const bIn = document.getElementById('btn-tab-in'), bOut = document.getElementById('btn-tab-out');
             const switchTab = (isIn) => {
                 const zIn = document.getElementById('zone-harvest'), zOut = document.getElementById('zone-sell');
@@ -141,83 +135,83 @@ export const THDG = {
             if(isManager) {
                 const btnAdd = document.getElementById('btn-add');
                 if(btnAdd) btnAdd.onclick = () => {
-                    Utils.modal("Tạo Mã Mới", `<input id="n-n" placeholder="Tên (VD: Nấm Hương)" class="w-full p-2 border rounded mb-2"><input id="n-c" placeholder="Mã (Viết liền: namhuong)" class="w-full p-2 border rounded mb-2"><select id="n-g" class="w-full p-2 border rounded"><option value="1">Nấm Tươi</option><option value="2">Phụ Phẩm</option><option value="3">Sơ Chế</option><option value="4">Vật Tư</option></select>`, [{id:'s-ok', text:'Lưu'}]);
-                    setTimeout(() => document.getElementById('s-ok').onclick = async () => { const n=document.getElementById('n-n').value, c=document.getElementById('n-c').value, g=document.getElementById('n-g').value; if(n && c) { await addDoc(collection(db, `${ROOT_PATH}/products`), {name:n, code:c, group:g, stock:0}); Utils.modal(null); Utils.toast("Đã thêm!"); } }, 100);
+                     Utils.modal("Tạo Mã Mới", `<input id="n-n" placeholder="Tên (VD: Nấm Hương)" class="w-full p-2 border rounded mb-2"><input id="n-c" placeholder="Mã (Viết liền: namhuong)" class="w-full p-2 border rounded mb-2"><select id="n-g" class="w-full p-2 border rounded"><option value="1">Nấm Tươi</option><option value="2">Phụ Phẩm</option><option value="3">Sơ Chế</option><option value="4">Vật Tư</option></select>`, [{id:'s-ok', text:'Lưu'}]);
+                     setTimeout(() => document.getElementById('s-ok').onclick = async () => { const n=document.getElementById('n-n').value, c=document.getElementById('n-c').value, g=document.getElementById('n-g').value; if(n && c) { await addDoc(collection(db, `${ROOT_PATH}/products`), {name:n, code:c, group:g, stock:0}); Utils.modal(null); Utils.toast("Đã thêm!"); } }, 100);
                 }
             }
 
+            // --- LƯU KHO ---
             document.getElementById('btn-save-h').onclick = async () => {
                 const aid = document.getElementById('h-area').value; 
                 const dVal = document.getElementById('h-date').value;
                 if(!dVal || !aid) return Utils.toast("Thiếu ngày hoặc nguồn!", "err");
                 
-                const batch = writeBatch(db); 
-                let hasData = false; 
-                let totalKg = 0; 
-                let details = {};
-                
-                products.forEach(p => { 
-                    const el = document.getElementById(`in-${p.code}`); 
-                    if(el && Number(el.value) > 0) { 
-                        const q = Number(el.value); 
-                        // Fix lỗi cộng dồn vào NHÀ
-                        if(p.id) {
-                            batch.update(doc(db, `${ROOT_PATH}/products`, p.id), {stock: increment(q)}); 
-                            
-                            // UI Update ngay
-                            p.stock = (p.stock || 0) + q;
-                            const stockEl = document.getElementById(`stk-${p.code}`);
-                            if(stockEl) stockEl.innerText = p.stock.toLocaleString();
-                            
-                            details[p.code] = q; 
-                            totalKg += q; 
-                            el.value = ''; 
-                            hasData = true; 
-                        }
-                    } 
-                });
+                try {
+                    const batch = writeBatch(db); 
+                    let hasData = false; 
+                    let totalKg = 0; 
+                    let details = {};
+                    
+                    products.forEach(p => { 
+                        const el = document.getElementById(`in-${p.code}`); 
+                        if(el && Number(el.value) > 0) { 
+                            const q = Number(el.value); 
+                            if(p.id) {
+                                batch.update(doc(db, `${ROOT_PATH}/products`, p.id), {stock: increment(q)}); 
+                                details[p.code] = q; 
+                                totalKg += q; 
+                                hasData = true; 
+                                // Update UI
+                                p.stock = (p.stock || 0) + q;
+                                const stockEl = document.getElementById(`stk-${p.code}`);
+                                if(stockEl) stockEl.innerText = p.stock.toLocaleString();
+                                el.value = ''; 
+                            }
+                        } 
+                    });
 
-                if(hasData) { 
-                    const aname = document.getElementById('h-area').options[document.getElementById('h-area').selectedIndex].getAttribute('data-name'); 
-                    
-                    // Lưu Nhật Ký
-                    batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {
-                        area: aname, 
-                        details, 
-                        total: totalKg, 
-                        user: user.name, 
-                        time: new Date(dVal).setHours(12)
-                    }); 
-                    
-                    // Cộng dồn vào Nhà (QUAN TRỌNG: Kiểm tra ID nhà hợp lệ)
-                    if(aid !== 'MuaNgoai') {
-                        if(aid && aid.length > 3) {
-                            batch.update(doc(db, `${ROOT_PATH}/houses`, aid), { 
-                                totalYield: increment(totalKg) 
-                            }); 
+                    if(hasData) { 
+                        const aname = document.getElementById('h-area').options[document.getElementById('h-area').selectedIndex].getAttribute('data-name'); 
+                        batch.set(doc(collection(db, `${ROOT_PATH}/harvest_logs`)), {
+                            area: aname, details, total: totalKg, user: user.name, time: new Date(dVal).setHours(12)
+                        }); 
+                        if(aid !== 'MuaNgoai') {
+                             if(aid && aid.length > 3) batch.update(doc(db, `${ROOT_PATH}/houses`, aid), { totalYield: increment(totalKg) });
                         }
+                        await batch.commit(); 
+                        Utils.toast(`✅ Đã lưu ${totalKg}kg!`); 
+                    } else { 
+                        Utils.toast("Chưa nhập số!", "err"); 
                     }
-
-                    await batch.commit(); 
-                    Utils.toast(`✅ Đã lưu ${totalKg}kg!`); 
-                    try { Utils.notifySound(); } catch(e){}
-                } else { 
-                    Utils.toast("Chưa nhập số!", "err"); 
-                }
+                } catch(err) { alert("Lỗi lưu: " + err.message); }
             };
             
-            // Logic Giỏ hàng (Giữ nguyên)
+            // --- GIỎ HÀNG & XUẤT BÁN (ĐÃ SỬA LỖI Ở ĐÂY) ---
             let cart=[]; 
             const upC=()=>{ document.getElementById('cart-list').innerHTML=cart.map((i,x)=>`<div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100"><div class="text-[11px]"><div class="font-bold text-slate-700">${i.name}</div><div class="text-slate-500">${i.qty} x ${i.price.toLocaleString()}</div></div><div class="flex items-center gap-3"><span class="font-bold text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button onclick="document.getElementById('d-${x}').click()" class="text-red-400 hover:text-red-600 font-bold px-1">×</button></div><button id="d-${x}" class="hidden"></button></div>`).join(''); document.getElementById('cart-total').innerText=cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()+'đ'; cart.forEach((_,i)=>document.getElementById(`d-${i}`).onclick=()=>{cart.splice(i,1);upC()}) };
-            
             document.getElementById('btn-add-cart').onclick=()=>{ const s=document.getElementById('s-prod'); if(s.value){cart.push({code:s.value,name:s.options[s.selectedIndex].getAttribute('data-name'),qty:Number(document.getElementById('s-qty').value),price:Number(document.getElementById('s-price').value)}); upC(); document.getElementById('s-qty').value='';} };
 
-            document.getElementById('btn-print').onclick = () => {
-                const cust = document.getElementById('s-cust').value; if(!cart.length) return Utils.toast("Giỏ hàng trống!", "err"); if(!cust) return Utils.toast("Nhập tên khách!", "err");
-                const w = window.open('', '', 'height=600,width=400'); w.document.write(`<html><head><title>HOA DON</title><style>body{font-family:'Courier New',monospace;font-size:12px;padding:10px}.c{text-align:center}.r{text-align:right}table{width:100%;border-collapse:collapse;margin-top:10px}td,th{padding:4px 0}</style></head><body><div class="c"><div style="font-size:16px;font-weight:bold">${COMPANY_INFO.name}</div><div>${COMPANY_INFO.address}</div><div>${COMPANY_INFO.hotline}</div><div style="border-bottom:1px dashed #000;margin:5px 0"></div><b>HÓA ĐƠN BÁN LẺ</b></div><div>Khách: <b>${cust}</b></div><div>Ngày: ${new Date().toLocaleString('vi-VN')}</div><div style="border-bottom:1px dashed #000;margin:5px 0"></div><table><tr><th align="left">Món</th><th class="c">SL</th><th class="r">Tiền</th></tr>${cart.map(i=>`<tr><td>${i.name}</td><td class="c">${i.qty}</td><td class="r">${(i.qty*i.price).toLocaleString()}</td></tr>`).join('')}</table><div style="border-bottom:1px dashed #000;margin:5px 0"></div><div class="r" style="font-size:14px">TỔNG: <b>${cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()}đ</b></div><div class="c" style="margin-top:20px;font-style:italic">Cảm ơn quý khách!</div></body></html>`); w.document.close(); w.print();
+            // Nút Lưu Xuất Bán
+            document.getElementById('btn-save-sell').onclick=async()=>{ 
+                if(cart.length){ 
+                    const batch=writeBatch(db); 
+                    batch.set(doc(collection(db,`${ROOT_PATH}/shipping`)),{customer:document.getElementById('s-cust').value,items:cart,total:cart.reduce((a,b)=>a+b.qty*b.price,0),user:user.name, time:Date.now()}); 
+                    
+                    cart.forEach(i=>{
+                        const p=products.find(x=>x.code===i.code);
+                        if(p && p.id) {
+                            // 1. Trừ DB
+                            batch.update(doc(db,`${ROOT_PATH}/products`,p.id),{stock:increment(-i.qty)});
+                            // 2. Trừ UI NGAY LẬP TỨC (Fix lỗi chưa gạch số)
+                            p.stock = (p.stock || 0) - i.qty;
+                            const stockEl = document.getElementById(`stk-${p.code}`);
+                            if(stockEl) stockEl.innerText = p.stock.toLocaleString();
+                        }
+                    }); 
+                    await batch.commit(); 
+                    Utils.toast("✅ Đã xuất bán!"); cart=[]; upC(); document.getElementById('s-cust').value=''; 
+                } else {Utils.toast("Giỏ trống!","err")} 
             };
-
-            document.getElementById('btn-save-sell').onclick=async()=>{ if(cart.length){ const batch=writeBatch(db); batch.set(doc(collection(db,`${ROOT_PATH}/shipping`)),{customer:document.getElementById('s-cust').value,items:cart,total:cart.reduce((a,b)=>a+b.qty*b.price,0),user:user.name, time:Date.now()}); cart.forEach(i=>{const p=products.find(x=>x.code===i.code);if(p)batch.update(doc(db,`${ROOT_PATH}/products`,p.id),{stock:increment(-i.qty)})}); await batch.commit(); Utils.toast("✅ Đã xuất bán!"); cart=[]; upC(); document.getElementById('s-cust').value=''; } else {Utils.toast("Giỏ trống!","err")} };
         }, 300);
     }
 };
