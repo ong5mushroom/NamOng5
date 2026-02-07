@@ -1,4 +1,4 @@
-import { auth, db, getDocs, collection, query, where, signInAnonymously, onAuthStateChanged, onSnapshot, ROOT_PATH } from './config.js?v=final_fix_realtime';
+import { auth, db, getDocs, collection, query, where, signInAnonymously, onAuthStateChanged, onSnapshot, ROOT_PATH } from './config.js';
 import { SX } from './modules/sx.js';
 import { THDG } from './modules/thdg.js';
 import { HR } from './modules/hr.js';
@@ -7,7 +7,7 @@ import { Utils } from './utils.js';
 // --- BIẾN TOÀN CỤC ---
 let currentUser = null;
 let currentTab = 'tasks';
-let appData = {}; // Bộ nhớ đệm dữ liệu (Tự động cập nhật)
+let appData = {}; 
 
 const els = {
     loginOverlay: document.getElementById('login-overlay'),
@@ -26,88 +26,179 @@ const els = {
     }
 };
 
-// --- LOGIC XUẤT BÁO CÁO (Giữ nguyên của bạn) ---
-const exportReport = async (type) => {
+// --- HÀM XỬ LÝ CSV CHUẨN (Fix lỗi vỡ cột) ---
+const toCSV = (data) => {
+    if (data === null || data === undefined) return '""';
+    // Ép về chuỗi, thay thế dấu " bằng "" (chuẩn CSV), và bao quanh bằng dấu "
+    return `"${String(data).replace(/"/g, '""')}"`;
+};
+
+// --- LOGIC XUẤT 4 LOẠI BÁO CÁO ---
+const exportReport = async (reportType) => {
     try {
+        Utils.toast("⏳ Đang tải dữ liệu...", "info");
+        let csv = "data:text/csv;charset=utf-8,\uFEFF"; // BOM cho Excel tiếng Việt
         const now = new Date();
-        const timeStr = type === 'NGAY' ? `${now.getDate()}_${now.getMonth()+1}` : `${now.getMonth()+1}_${now.getFullYear()}`;
-        let csv = "data:text/csv;charset=utf-8,\uFEFF"; 
-        csv += "Loai,Noi Dung,Nguoi Lam,Thoi Gian,Trang Thai/Ket Qua\n";
+        const timeFileName = `${now.getDate()}_${now.getMonth()+1}_${now.getFullYear()}`;
+        let fileName = "";
 
-        // Lấy dữ liệu mới nhất từ Cache
-        const tasks = appData.tasks || [];
-        const logs = appData.harvest_logs || [];
+        if (reportType === 'PHOI') {
+            // 1. BÁO CÁO KHO PHÔI (Nhập/Xuất Supplies)
+            fileName = `BaoCao_KhoPhoi_${timeFileName}.csv`;
+            csv += "Ngay,Gio,Loai,Ma Lo,So Luong,Tu/Den (Nha),Nguoi Thuc Hien\n"; // Header
+            
+            const snap = await getDocs(collection(db, `${ROOT_PATH}/supplies`));
+            const list = snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time);
+            
+            list.forEach(d => {
+                const date = new Date(d.time);
+                csv += [
+                    toCSV(date.toLocaleDateString('vi-VN')),
+                    toCSV(date.toLocaleTimeString('vi-VN')),
+                    toCSV(d.type === 'IMPORT' ? 'NHẬP' : 'XUẤT'),
+                    toCSV(d.code || ''),
+                    toCSV(d.qty),
+                    toCSV(d.type === 'IMPORT' ? 'Kho Tổng' : (d.to || 'Hủy')), // Logic hiển thị nguồn/đích
+                    toCSV(d.user)
+                ].join(',') + "\n";
+            });
 
-        tasks.forEach(val => {
-            const t = new Date(val.time);
-            const match = type === 'NGAY' 
-                ? (t.getDate() === now.getDate() && t.getMonth() === now.getMonth())
-                : (t.getMonth() === now.getMonth() && t.getFullYear() === now.getFullYear());
-            if(match) csv += `CONG VIEC,"${val.title}",${val.by},${t.toLocaleString('vi-VN')},${val.status}\n`;
-        });
+        } else if (reportType === 'NAM_TUOI') {
+            // 2. BÁO CÁO NẤM TƯƠI (Nhập Kho & Xuất Bán)
+            fileName = `BaoCao_NamTuoi_BanHang_${timeFileName}.csv`;
+            csv += "Ngay,Gio,Loai Giao Dich,Chi Tiet (Ten:SL),Tong (Kg/Tien),Nguon/Khach,Nguoi Thuc Hien\n";
 
-        logs.forEach(val => {
-            const t = new Date(val.time);
-            const match = type === 'NGAY' 
-                ? (t.getDate() === now.getDate() && t.getMonth() === now.getMonth())
-                : (t.getMonth() === now.getMonth() && t.getFullYear() === now.getFullYear());
-            if(match) csv += `THU HOACH,"${val.area} (${val.total}kg)",${val.user},${t.toLocaleString('vi-VN')},"${Object.keys(val.details).join(', ')}"\n`;
-        });
+            // Lấy cả 2 bảng: Harvest (Thu hoạch) và Shipping (Bán)
+            const [hSnap, sSnap] = await Promise.all([
+                getDocs(collection(db, `${ROOT_PATH}/harvest_logs`)),
+                getDocs(collection(db, `${ROOT_PATH}/shipping`))
+            ]);
 
+            let combined = [];
+            hSnap.forEach(d => combined.push({...d.data(), _type: 'NHAP_KHO'}));
+            sSnap.forEach(d => combined.push({...d.data(), _type: 'XUAT_BAN'}));
+            combined.sort((a,b) => b.time - a.time); // Sắp xếp theo thời gian mới nhất
+
+            combined.forEach(d => {
+                const date = new Date(d.time);
+                // Xử lý chi tiết hàng hóa
+                let details = "";
+                if(d._type === 'NHAP_KHO') {
+                    // Harvest logs lưu details dạng object {code: qty}
+                    details = Object.entries(d.details || {}).map(([k,v]) => `${k}: ${v}kg`).join('; ');
+                } else {
+                    // Shipping lưu items dạng array [{name, qty, price}]
+                    details = (d.items || []).map(i => `${i.name} (${i.qty})`).join('; ');
+                }
+
+                csv += [
+                    toCSV(date.toLocaleDateString('vi-VN')),
+                    toCSV(date.toLocaleTimeString('vi-VN')),
+                    toCSV(d._type === 'NHAP_KHO' ? 'THU HOẠCH' : 'BÁN HÀNG'),
+                    toCSV(details),
+                    toCSV(d._type === 'NHAP_KHO' ? d.total + ' kg' : d.total.toLocaleString() + ' đ'),
+                    toCSV(d._type === 'NHAP_KHO' ? d.area : d.customer),
+                    toCSV(d.user)
+                ].join(',') + "\n";
+            });
+
+        } else if (reportType === 'CHAM_CONG') {
+            // 3. BẢNG CHẤM CÔNG (Checkin/Leave)
+            fileName = `Bang_ChamCong_${timeFileName}.csv`;
+            csv += "Ngay,Gio,Nhan Vien,Loai,Ghi Chu\n";
+
+            const q = query(collection(db, `${ROOT_PATH}/tasks`), where("type", "in", ["CHECKIN", "LEAVE"]));
+            const snap = await getDocs(q);
+            const list = snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time);
+
+            list.forEach(d => {
+                const date = new Date(d.time);
+                let typeName = 'Chấm công';
+                if(d.type === 'LEAVE') typeName = 'Xin nghỉ';
+                
+                csv += [
+                    toCSV(date.toLocaleDateString('vi-VN')),
+                    toCSV(date.toLocaleTimeString('vi-VN')),
+                    toCSV(d.by), // Người thực hiện
+                    toCSV(typeName),
+                    toCSV(d.title) // Nội dung (VD: Lý do nghỉ)
+                ].join(',') + "\n";
+            });
+
+        } else if (reportType === 'CONG_VIEC') {
+            // 4. NHẬT KÝ CÔNG VIỆC CHUNG (Tasks)
+            fileName = `NhatKy_CongViec_${timeFileName}.csv`;
+            csv += "Ngay,Gio,Nguoi Lam,Khu Vuc,Ten Cong Viec,Trang Thai,Ghi Chu Bao Cao,Diem\n";
+
+            // Lấy tất cả task trừ checkin/leave/buy
+            const snap = await getDocs(collection(db, `${ROOT_PATH}/tasks`));
+            const list = snap.docs.map(d => d.data())
+                .filter(d => !['CHECKIN', 'LEAVE', 'BUY'].includes(d.type))
+                .sort((a,b) => b.time - a.time);
+
+            list.forEach(d => {
+                const date = new Date(d.time);
+                const statusMap = { 'DONE': 'Đã xong', 'PENDING': 'Chưa xong', 'DOING': 'Đang làm' };
+                
+                csv += [
+                    toCSV(date.toLocaleDateString('vi-VN')),
+                    toCSV(date.toLocaleTimeString('vi-VN')),
+                    toCSV(d.by || d.to), // Người được giao hoặc người làm
+                    toCSV(d.area || 'Chung'),
+                    toCSV(d.title),
+                    toCSV(statusMap[d.status] || d.status),
+                    toCSV(d.note || ''), // Ghi chú báo cáo
+                    toCSV(d.status === 'DONE' ? 'Đã cộng' : '')
+                ].join(',') + "\n";
+            });
+        }
+
+        // Tải xuống
         const link = document.createElement("a");
         link.setAttribute("href", encodeURI(csv));
-        link.setAttribute("download", `BaoCao_${type}_${timeStr}.csv`);
+        link.setAttribute("download", fileName);
         document.body.appendChild(link);
         link.click();
         link.remove();
-    } catch(e) { alert("Lỗi xuất file: " + e.message); }
+        Utils.toast("✅ Đã tải xuống!", "success");
+
+    } catch(e) { 
+        console.error(e);
+        alert("Lỗi xuất file: " + e.message); 
+    }
 };
 
 const App = {
     init: () => {
-        console.log("App Starting...");
-
-        // 1. TỰ ĐỘNG ĐĂNG NHẬP (Fix lỗi Reload bị thoát)
+        // Tự động đăng nhập lại
         const savedUser = localStorage.getItem('ong5_user');
         if(savedUser) {
             currentUser = JSON.parse(savedUser);
-            App.loginSuccess(true); // true = Đăng nhập âm thầm, không cần render lại login form
+            App.loginSuccess(true);
         }
 
-        // 2. KẾT NỐI FIREBASE & LẮNG NGHE REALTIME
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                App.loadUsers(); // Chỉ tải list user để dự phòng
-                App.listenRealtime(); // <--- QUAN TRỌNG: Kích hoạt chế độ tự động cập nhật
+                App.loadUsers();
+                App.listenRealtime();
             } else {
-                signInAnonymously(auth).catch((e) => alert("Lỗi kết nối: " + e.message));
+                signInAnonymously(auth).catch(console.error);
             }
         });
 
         App.bindEvents();
     },
 
-    // --- HÀM MỚI: LẮNG NGHE DỮ LIỆU TỰ ĐỘNG & RUNG CHUÔNG ---
     listenRealtime: () => {
-        const collections = ['tasks', 'chat', 'houses', 'supplies', 'products', 'harvest_logs', 'employees'];
-        
-        collections.forEach(colName => {
-            onSnapshot(collection(db, `${ROOT_PATH}/${colName}`), (snap) => {
-                // 1. Rung chuông nếu có dữ liệu mới (Tasks hoặc Chat)
+        const tables = ['tasks', 'chat', 'houses', 'supplies', 'products', 'harvest_logs'];
+        tables.forEach(tbl => {
+            onSnapshot(collection(db, `${ROOT_PATH}/${tbl}`), (snap) => {
                 snap.docChanges().forEach((change) => {
                     if (change.type === "added" && !snap.metadata.hasPendingWrites) {
-                        if(colName === 'tasks' || colName === 'chat') Utils.notifySound();
+                        if(tbl === 'tasks' || tbl === 'chat') Utils.notifySound();
                     }
                 });
-
-                // 2. Cập nhật dữ liệu vào biến toàn cục appData
-                // LƯU Ý QUAN TRỌNG: Mapping ID chuẩn để khớp với thdg.js
-                appData[colName] = snap.docs.map(d => {
-                    const data = d.data();
-                    return { ...data, id: d.id, _id: d.id }; // Gán cả id và _id để module nào dùng kiểu gì cũng được
-                });
-
-                // 3. Vẽ lại giao diện ngay lập tức
+                appData[tbl] = snap.docs.map(d => ({ ...d.data(), id: d.id, _id: d.id }));
                 App.render();
             });
         });
@@ -115,48 +206,18 @@ const App = {
 
     loadUsers: async () => {
         try {
-            if(els.userSelect.options.length > 2) return; // Đã tải rồi thì thôi
-            els.userSelect.innerHTML = '<option>Đang tải...</option>';
+            if(els.userSelect.options.length > 1) return;
             const s = await getDocs(collection(db, `${ROOT_PATH}/employees`));
-            
-            if (s.empty) throw new Error("Empty list");
-
             els.userSelect.innerHTML = '<option value="">-- Chọn NV --</option>' + 
                 s.docs.map(d=>`<option value="${d.id}" data-pin="${d.data().pin}" data-role="${d.data().role}">${d.data().name}</option>`).join('');
-        } catch(e) {
-            // --- CHẾ ĐỘ CỨU HỘ (NHẬP TAY) CHO XIAOMI ---
-            els.userSelect.innerHTML = '<option value="">⚠ Lỗi tải danh sách</option>';
-            if (!document.getElementById('manual-login-container')) {
-                const div = document.createElement('div');
-                div.id = 'manual-login-container';
-                div.className = 'mt-4 pt-4 border-t border-slate-700';
-                div.innerHTML = `
-                    <p class="text-white text-xs mb-2 text-center">Không thấy tên? Nhập tay:</p>
-                    <input id="manual-name" placeholder="Tên (VD: Admin)" class="w-full p-3 rounded-xl mb-2 font-bold text-slate-800">
-                    <button id="btn-manual-login" class="w-full bg-slate-600 text-white py-2 rounded-xl font-bold text-sm">VÀO THỦ CÔNG</button>
-                `;
-                els.loginOverlay.querySelector('.w-full.max-w-sm').appendChild(div);
-                
-                document.getElementById('btn-manual-login').onclick = () => {
-                    const name = document.getElementById('manual-name').value;
-                    const pin = els.pinInput.value;
-                    if (!name || !pin) return Utils.toast("Nhập Tên và PIN!", "err");
-                    let role = 'nhân viên';
-                    if (pin === '1234' || pin === '9999') role = 'admin';
-                    currentUser = { _id: 'manual_'+Date.now(), name, role };
-                    App.loginSuccess();
-                };
-            }
-            Utils.toast("Mạng yếu: Đã bật nhập thủ công!", "err");
-        }
+        } catch(e) {}
     },
 
     login: () => {
         const uid = els.userSelect.value;
         const pin = els.pinInput.value;
-        
-        // Ưu tiên check nhập tay trước
         const manualName = document.getElementById('manual-name')?.value;
+        
         if(manualName && (pin === '1234' || pin === '9999')) {
              currentUser = { _id: 'manual', name: manualName, role: 'admin' };
              App.loginSuccess();
@@ -165,6 +226,7 @@ const App = {
 
         if(!uid) return Utils.toast("Chưa chọn nhân viên!", "err");
         const opt = els.userSelect.options[els.userSelect.selectedIndex];
+        
         if(pin !== opt.getAttribute('data-pin')) {
             els.pinInput.value = '';
             return Utils.toast("Sai mã PIN!", "err");
@@ -175,9 +237,7 @@ const App = {
     },
 
     loginSuccess: (isAuto = false) => {
-        // LƯU LOGIN VÀO MÁY
         localStorage.setItem('ong5_user', JSON.stringify(currentUser));
-
         els.loginOverlay.classList.add('hidden');
         els.headerUser.innerText = currentUser.name;
         els.headerRole.innerText = (currentUser.role || 'Nhân viên').toUpperCase();
@@ -185,13 +245,9 @@ const App = {
         if(['admin','quản lý','giám đốc','kế toán'].some(r => (currentUser.role||'').toLowerCase().includes(r))) {
             els.btnSettings.classList.remove('hidden');
         }
-
-        if(!isAuto) {
-            document.querySelector('.nav-btn[data-tab="tasks"]').click();
-        }
+        if(!isAuto) App.render();
     },
 
-    // Hàm render giờ rất gọn nhẹ vì dữ liệu đã có sẵn trong appData
     render: () => {
         if(!currentUser) return;
         const v = els.views[currentTab];
@@ -206,39 +262,51 @@ const App = {
     bindEvents: () => {
         els.loginBtn.onclick = App.login;
         
-        // Xử lý nút Settings
+        // --- NÚT SETTINGS: MENU BÁO CÁO MỚI ---
         if(els.btnSettings) {
             els.btnSettings.onclick = () => {
+                // Chỉ quản lý mới thấy Menu báo cáo
                 const isBoss = ['admin','quản lý','giám đốc','kế toán'].some(r => (currentUser?.role||'').toLowerCase().includes(r));
+                
                 let html = `<div class="space-y-3">`;
                 if(isBoss) {
                     html += `
-                    <div class="text-[10px] font-bold text-slate-400 uppercase">BÁO CÁO</div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button id="btn-rp-day" class="p-3 bg-green-50 text-green-700 rounded-lg font-bold text-xs border border-green-200">📅 Báo cáo NGÀY</button>
-                        <button id="btn-rp-month" class="p-3 bg-blue-50 text-blue-700 rounded-lg font-bold text-xs border border-blue-200">🗓️ Báo cáo THÁNG</button>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase text-center mb-1">TRUNG TÂM BÁO CÁO (EXCEL)</div>
+                    <div class="grid grid-cols-1 gap-2">
+                        <button id="rp-1" class="p-3 bg-purple-50 text-purple-700 rounded-lg font-bold text-xs border border-purple-200 flex items-center gap-2">
+                            <i class="fas fa-box"></i> 1. Báo cáo Nhập/Xuất Phôi
+                        </button>
+                        <button id="rp-2" class="p-3 bg-green-50 text-green-700 rounded-lg font-bold text-xs border border-green-200 flex items-center gap-2">
+                            <i class="fas fa-leaf"></i> 2. Báo cáo Nấm Tươi & Bán
+                        </button>
+                        <button id="rp-3" class="p-3 bg-blue-50 text-blue-700 rounded-lg font-bold text-xs border border-blue-200 flex items-center gap-2">
+                            <i class="fas fa-calendar-check"></i> 3. Bảng Chấm Công
+                        </button>
+                        <button id="rp-4" class="p-3 bg-orange-50 text-orange-700 rounded-lg font-bold text-xs border border-orange-200 flex items-center gap-2">
+                            <i class="fas fa-clipboard-list"></i> 4. Nhật Ký Công Việc Chung
+                        </button>
                     </div>
-                    <hr class="border-dashed">`;
+                    <hr class="border-dashed my-2">`;
                 }
                 html += `<button id="btn-logout" class="w-full p-3 bg-red-50 text-red-600 rounded-lg font-bold text-xs flex items-center justify-center gap-2"><i class="fas fa-sign-out-alt"></i> ĐĂNG XUẤT</button></div>`;
 
-                Utils.modal("CÀI ĐẶT", html, []);
+                Utils.modal("CÀI ĐẶT & BÁO CÁO", html, []);
 
                 setTimeout(() => {
-                    const bDay = document.getElementById('btn-rp-day');
-                    const bMonth = document.getElementById('btn-rp-month');
-                    const bOut = document.getElementById('btn-logout');
-                    if(bDay) bDay.onclick = () => exportReport('NGAY');
-                    if(bMonth) bMonth.onclick = () => exportReport('THANG');
-                    if(bOut) bOut.onclick = () => {
-                        localStorage.removeItem('ong5_user'); // Xóa nhớ khi đăng xuất
+                    if(isBoss) {
+                        document.getElementById('rp-1').onclick = () => exportReport('PHOI');
+                        document.getElementById('rp-2').onclick = () => exportReport('NAM_TUOI');
+                        document.getElementById('rp-3').onclick = () => exportReport('CHAM_CONG');
+                        document.getElementById('rp-4').onclick = () => exportReport('CONG_VIEC');
+                    }
+                    document.getElementById('btn-logout').onclick = () => {
+                        localStorage.removeItem('ong5_user');
                         window.location.reload();
                     }
                 }, 100);
             };
         }
 
-        // Xử lý chuyển Tab
         els.navBtns.forEach(btn => {
             btn.onclick = () => {
                 els.navBtns.forEach(b => { 
@@ -246,18 +314,15 @@ const App = {
                     b.querySelector('i').className = b.querySelector('i').className.replace(/text-\w+-\d+/g, 'text-slate-400');
                 });
                 btn.classList.add('active');
-                
                 const icon = btn.querySelector('i');
                 const tab = btn.getAttribute('data-tab');
-                if(tab === 'tasks') icon.classList.replace('text-slate-400', 'text-blue-600');
-                if(tab === 'sx') icon.classList.replace('text-slate-400', 'text-green-600');
-                if(tab === 'th') icon.classList.replace('text-slate-400', 'text-orange-500');
-                if(tab === 'team') icon.classList.replace('text-slate-400', 'text-purple-600');
+                if(tab==='tasks') icon.classList.replace('text-slate-400','text-blue-600');
+                if(tab==='sx') icon.classList.replace('text-slate-400','text-green-600');
+                if(tab==='th') icon.classList.replace('text-slate-400','text-orange-500');
+                if(tab==='team') icon.classList.replace('text-slate-400','text-purple-600');
 
-                // Ẩn hiện view
                 Object.values(els.views).forEach(e => e.classList.add('hidden'));
                 els.views[tab].classList.remove('hidden');
-
                 currentTab = tab;
                 App.render();
             }
