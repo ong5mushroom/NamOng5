@@ -29,7 +29,7 @@ const toCSV = (data) => `"${String(data || '').replace(/"/g, '""')}"`;
 
 const exportReport = async (reportType) => {
     try {
-        Utils.toast("⏳ Đang tải...", "info");
+        Utils.toast("⏳ Đang xử lý dữ liệu...", "info");
         let csv = "data:text/csv;charset=utf-8,\uFEFF"; 
         const now = new Date();
         const timeFileName = `${now.getDate()}_${now.getMonth()+1}_${now.getFullYear()}`;
@@ -40,15 +40,15 @@ const exportReport = async (reportType) => {
             csv += "Ngay,Gio,Loai,Ma Lo,So Luong,Tu/Den (Nha),Nguoi Thuc Hien\n";
             const snap = await getDocs(collection(db, `${ROOT_PATH}/supplies`));
             snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time).forEach(d => {
-                const date = new Date(d.time);
+                const date = new Date(d.time || Date.now());
                 csv += [
                     toCSV(date.toLocaleDateString('vi-VN')),
                     toCSV(date.toLocaleTimeString('vi-VN')),
                     toCSV(d.type === 'IMPORT' ? 'NHẬP' : 'XUẤT'),
                     toCSV(d.code || ''),
-                    toCSV(d.qty),
+                    toCSV(d.qty || 0),
                     toCSV(d.type === 'IMPORT' ? 'Kho Tổng' : (d.to || 'Hủy')),
-                    toCSV(d.user)
+                    toCSV(d.user || 'Unknown')
                 ].join(',') + "\n";
             });
         } else if (reportType === 'NAM_TUOI') {
@@ -62,16 +62,20 @@ const exportReport = async (reportType) => {
             hSnap.forEach(d => combined.push({...d.data(), _type: 'NHAP'}));
             sSnap.forEach(d => combined.push({...d.data(), _type: 'XUAT'}));
             combined.sort((a,b) => b.time - a.time).forEach(d => {
-                const date = new Date(d.time);
+                const date = new Date(d.time || Date.now());
                 let details = d._type === 'NHAP' ? Object.entries(d.details||{}).map(([k,v])=>`${k}: ${v}kg`).join('; ') : (d.items||[]).map(i=>`${i.name} (${i.qty})`).join('; ');
+                
+                // FIX LỖI Ở ĐÂY: Thêm Number(d.total || 0) để bảo vệ mã nếu dữ liệu cũ bị trống
+                const totalText = d._type === 'NHAP' ? `${d.total || 0} kg` : `${Number(d.total || 0).toLocaleString('vi-VN')} đ`;
+
                 csv += [
                     toCSV(date.toLocaleDateString('vi-VN')),
                     toCSV(date.toLocaleTimeString('vi-VN')),
                     toCSV(d._type === 'NHAP' ? 'THU HOẠCH' : 'BÁN HÀNG'),
                     toCSV(details),
-                    toCSV(d._type === 'NHAP' ? d.total + ' kg' : d.total.toLocaleString() + ' đ'),
-                    toCSV(d._type === 'NHAP' ? d.area : d.customer),
-                    toCSV(d.user)
+                    toCSV(totalText),
+                    toCSV(d._type === 'NHAP' ? (d.area || '') : (d.customer || '')),
+                    toCSV(d.user || 'Unknown')
                 ].join(',') + "\n";
             });
         } else if (reportType === 'CHAM_CONG') {
@@ -79,16 +83,16 @@ const exportReport = async (reportType) => {
             csv += "Ngay,Gio,Nhan Vien,Loai,Ghi Chu\n";
             const snap = await getDocs(query(collection(db, `${ROOT_PATH}/tasks`), where("type", "in", ["CHECKIN", "LEAVE"])));
             snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time).forEach(d => {
-                const date = new Date(d.time);
-                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by), toCSV(d.type==='LEAVE'?'Xin nghỉ':'Chấm công'), toCSV(d.title)].join(',') + "\n";
+                const date = new Date(d.time || Date.now());
+                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by || ''), toCSV(d.type==='LEAVE'?'Xin nghỉ':'Chấm công'), toCSV(d.title || '')].join(',') + "\n";
             });
         } else if (reportType === 'CONG_VIEC') {
             fileName = `NhatKy_CongViec_${timeFileName}.csv`;
             csv += "Ngay,Gio,Nguoi Lam,Khu Vuc,Noi Dung,Trang Thai,Ghi Chu,Diem\n";
             const snap = await getDocs(collection(db, `${ROOT_PATH}/tasks`));
             snap.docs.map(d => d.data()).filter(d => !['CHECKIN', 'LEAVE', 'BUY'].includes(d.type)).sort((a,b) => b.time - a.time).forEach(d => {
-                const date = new Date(d.time);
-                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by||d.to), toCSV(d.area||''), toCSV(d.title), toCSV(d.status), toCSV(d.note||''), toCSV(d.status==='DONE'?'Cộng':'')].join(',') + "\n";
+                const date = new Date(d.time || Date.now());
+                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by||d.to||''), toCSV(d.area||''), toCSV(d.title||''), toCSV(d.status||''), toCSV(d.note||''), toCSV(d.status==='DONE'?'Cộng':'')].join(',') + "\n";
             });
         }
 
@@ -98,8 +102,8 @@ const exportReport = async (reportType) => {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        Utils.toast("✅ Đã tải!", "success");
-    } catch(e) { alert("Lỗi: " + e.message); }
+        Utils.toast("✅ Đã tải xuống thành công!", "success");
+    } catch(e) { alert("Lỗi tải báo cáo: " + e.message); }
 };
 
 const App = {
@@ -114,14 +118,13 @@ const App = {
     },
 
     listenRealtime: () => {
-        // --- FIX LỖI Ở ĐÂY: Thêm 'employees' vào danh sách ---
-        const tables = ['employees', 'tasks', 'chat', 'houses', 'supplies', 'products', 'harvest_logs'];
+        const tables = ['employees', 'tasks', 'chat', 'houses', 'supplies', 'products', 'harvest_logs', 'shipping'];
         
         tables.forEach(tbl => {
             onSnapshot(collection(db, `${ROOT_PATH}/${tbl}`), (snap) => {
                 snap.docChanges().forEach((change) => {
                     if (change.type === "added" && !snap.metadata.hasPendingWrites) {
-                        if(tbl === 'tasks' || tbl === 'chat') Utils.notifySound();
+                        if(tbl === 'tasks' || tbl === 'chat') Utils.notifySound(); 
                     }
                 });
                 appData[tbl] = snap.docs.map(d => ({ ...d.data(), id: d.id, _id: d.id }));
