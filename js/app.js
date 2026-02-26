@@ -35,9 +35,10 @@ const exportReport = async (reportType) => {
         const timeFileName = `${now.getDate()}_${now.getMonth()+1}_${now.getFullYear()}`;
         let fileName = "";
 
+        // TẤT CẢ ĐÃ ĐƯỢC ĐỔI SANG DẤU CHẤM PHẨY (;) ĐỂ EXCEL VN HIỂU ĐƯỢC
         if (reportType === 'PHOI') {
             fileName = `BaoCao_KhoPhoi_${timeFileName}.csv`;
-            csv += "Ngay,Gio,Loai,Ma Lo,So Luong,Tu/Den (Nha),Nguoi Thuc Hien\n";
+            csv += "Ngày;Giờ;Loại;Mã Lô;Số Lượng;Từ/Đến (Nhà);Người Thực Hiện\n";
             const snap = await getDocs(collection(db, `${ROOT_PATH}/supplies`));
             snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
@@ -49,11 +50,11 @@ const exportReport = async (reportType) => {
                     toCSV(d.qty || 0),
                     toCSV(d.type === 'IMPORT' ? 'Kho Tổng' : (d.to || 'Hủy')),
                     toCSV(d.user || 'Unknown')
-                ].join(',') + "\n";
+                ].join(';') + "\n";
             });
         } else if (reportType === 'NAM_TUOI') {
             fileName = `BaoCao_NamTuoi_${timeFileName}.csv`;
-            csv += "Ngay,Gio,Loai,Chi Tiet,Tong,Nguon/Khach,Nguoi Thuc Hien\n";
+            csv += "Ngày;Giờ;Loại;Chi Tiết;Tổng;Nguồn/Khách;Người Thực Hiện\n";
             const [hSnap, sSnap] = await Promise.all([
                 getDocs(collection(db, `${ROOT_PATH}/harvest_logs`)),
                 getDocs(collection(db, `${ROOT_PATH}/shipping`))
@@ -63,9 +64,8 @@ const exportReport = async (reportType) => {
             sSnap.forEach(d => combined.push({...d.data(), _type: 'XUAT'}));
             combined.sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
-                let details = d._type === 'NHAP' ? Object.entries(d.details||{}).map(([k,v])=>`${k}: ${v}kg`).join('; ') : (d.items||[]).map(i=>`${i.name} (${i.qty})`).join('; ');
+                let details = d._type === 'NHAP' ? Object.entries(d.details||{}).map(([k,v])=>`${k}: ${v}kg`).join(', ') : (d.items||[]).map(i=>`${i.name} (${i.qty})`).join(', ');
                 
-                // FIX LỖI Ở ĐÂY: Thêm Number(d.total || 0) để bảo vệ mã nếu dữ liệu cũ bị trống
                 const totalText = d._type === 'NHAP' ? `${d.total || 0} kg` : `${Number(d.total || 0).toLocaleString('vi-VN')} đ`;
 
                 csv += [
@@ -76,23 +76,23 @@ const exportReport = async (reportType) => {
                     toCSV(totalText),
                     toCSV(d._type === 'NHAP' ? (d.area || '') : (d.customer || '')),
                     toCSV(d.user || 'Unknown')
-                ].join(',') + "\n";
+                ].join(';') + "\n";
             });
         } else if (reportType === 'CHAM_CONG') {
             fileName = `Bang_ChamCong_${timeFileName}.csv`;
-            csv += "Ngay,Gio,Nhan Vien,Loai,Ghi Chu\n";
+            csv += "Ngày;Giờ;Nhân Viên;Loại;Ghi Chú\n";
             const snap = await getDocs(query(collection(db, `${ROOT_PATH}/tasks`), where("type", "in", ["CHECKIN", "LEAVE"])));
             snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
-                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by || ''), toCSV(d.type==='LEAVE'?'Xin nghỉ':'Chấm công'), toCSV(d.title || '')].join(',') + "\n";
+                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by || ''), toCSV(d.type==='LEAVE'?'Xin nghỉ':'Chấm công'), toCSV(d.title || '')].join(';') + "\n";
             });
         } else if (reportType === 'CONG_VIEC') {
             fileName = `NhatKy_CongViec_${timeFileName}.csv`;
-            csv += "Ngay,Gio,Nguoi Lam,Khu Vuc,Noi Dung,Trang Thai,Ghi Chu,Diem\n";
+            csv += "Ngày;Giờ;Người Làm;Khu Vực;Nội Dung;Trạng Thái;Ghi Chú;Điểm\n";
             const snap = await getDocs(collection(db, `${ROOT_PATH}/tasks`));
             snap.docs.map(d => d.data()).filter(d => !['CHECKIN', 'LEAVE', 'BUY'].includes(d.type)).sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
-                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by||d.to||''), toCSV(d.area||''), toCSV(d.title||''), toCSV(d.status||''), toCSV(d.note||''), toCSV(d.status==='DONE'?'Cộng':'')].join(',') + "\n";
+                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by||d.to||''), toCSV(d.area||''), toCSV(d.title||''), toCSV(d.status||''), toCSV(d.note||''), toCSV(d.status==='DONE'?'Cộng':'')].join(';') + "\n";
             });
         }
 
@@ -183,10 +183,10 @@ const App = {
                 if(isBoss) {
                     html += `<div class="text-[10px] font-bold text-slate-400 uppercase text-center mb-1">BÁO CÁO (EXCEL)</div>
                     <div class="grid grid-cols-1 gap-2">
-                        <button id="rp-1" class="p-3 bg-purple-50 text-purple-700 rounded-lg font-bold text-xs border border-purple-200">1. Kho Phôi</button>
-                        <button id="rp-2" class="p-3 bg-green-50 text-green-700 rounded-lg font-bold text-xs border border-green-200">2. Nấm Tươi/Bán</button>
-                        <button id="rp-3" class="p-3 bg-blue-50 text-blue-700 rounded-lg font-bold text-xs border border-blue-200">3. Chấm Công</button>
-                        <button id="rp-4" class="p-3 bg-orange-50 text-orange-700 rounded-lg font-bold text-xs border border-orange-200">4. Công Việc Chung</button>
+                        <button id="rp-1" class="p-3 bg-purple-50 text-purple-700 rounded-lg font-bold text-xs border border-purple-200 flex items-center gap-2"><i class="fas fa-box"></i> 1. Kho Phôi</button>
+                        <button id="rp-2" class="p-3 bg-green-50 text-green-700 rounded-lg font-bold text-xs border border-green-200 flex items-center gap-2"><i class="fas fa-leaf"></i> 2. Nấm Tươi & Bán</button>
+                        <button id="rp-3" class="p-3 bg-blue-50 text-blue-700 rounded-lg font-bold text-xs border border-blue-200 flex items-center gap-2"><i class="fas fa-calendar-check"></i> 3. Chấm Công</button>
+                        <button id="rp-4" class="p-3 bg-orange-50 text-orange-700 rounded-lg font-bold text-xs border border-orange-200 flex items-center gap-2"><i class="fas fa-clipboard-list"></i> 4. Công Việc Chung</button>
                     </div><hr class="border-dashed my-2">`;
                 }
                 html += `<button id="btn-logout" class="w-full p-3 bg-red-50 text-red-600 rounded-lg font-bold text-xs flex items-center justify-center gap-2">ĐĂNG XUẤT</button></div>`;
