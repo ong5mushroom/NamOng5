@@ -2,14 +2,14 @@ import { auth, db, getDocs, collection, query, where, signInAnonymously, onAuthS
 import { SX } from './modules/sx.js';
 import { THDG } from './modules/thdg.js';
 import { HR } from './modules/hr.js';
-import { NuoiSoi } from './modules/nuoisoi.js'; // Nhập module mới
+import { NuoiSoi } from './modules/nuoisoi.js';
 import { Utils } from './utils.js';
 
 let currentUser = null;
 let currentTab = 'tasks';
 let appData = {}; 
 
-const els = {}; // Khởi tạo rỗng, sẽ tự động gán ở init()
+const els = {}; 
 
 const toCSV = (data) => `"${String(data || '').replace(/"/g, '""')}"`;
 
@@ -71,7 +71,6 @@ const exportReport = async (reportType) => {
 
 const App = {
     init: () => {
-        // TỰ ĐỘNG BƠM GIAO DIỆN "NUÔI SỢI" VÀO HTML (Không cần sửa index.html)
         const mainContainer = document.getElementById('view-tasks')?.parentElement;
         if(mainContainer && !document.getElementById('view-nuoisoi')) {
             mainContainer.insertAdjacentHTML('beforeend', '<div id="view-nuoisoi" class="hidden"></div>');
@@ -79,13 +78,13 @@ const App = {
         
         const navBar = document.querySelector('nav .flex');
         if(navBar && !document.querySelector('[data-tab="nuoisoi"]')) {
-            const nsBtnHTML = `<button class="nav-btn flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-600 transition" data-tab="nuoisoi"><i class="fas fa-boxes text-lg mb-0.5"></i><span class="text-[9px] font-bold">Nuôi Sợi</span></button>`;
+            // Mặc định ẩn nút Nuôi sợi (display: none)
+            const nsBtnHTML = `<button class="nav-btn flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-600 transition" data-tab="nuoisoi" style="display: none;"><i class="fas fa-boxes text-lg mb-0.5"></i><span class="text-[9px] font-bold">Nuôi Sợi</span></button>`;
             const teamBtn = document.querySelector('[data-tab="team"]');
             if(teamBtn) teamBtn.insertAdjacentHTML('beforebegin', nsBtnHTML);
             else navBar.insertAdjacentHTML('beforeend', nsBtnHTML);
         }
 
-        // Gán Els
         els.loginOverlay = document.getElementById('login-overlay');
         els.userSelect = document.getElementById('login-user');
         els.pinInput = document.getElementById('login-pin');
@@ -112,9 +111,7 @@ const App = {
     },
 
     listenRealtime: () => {
-        // ĐÃ THÊM 'nuoisoi_A' VÀO DANH SÁCH LẮNG NGHE DỮ LIỆU
         const tables = ['employees', 'tasks', 'chat', 'houses', 'supplies', 'products', 'harvest_logs', 'shipping', 'nuoisoi_A'];
-        
         tables.forEach(tbl => {
             onSnapshot(collection(db, `${ROOT_PATH}/${tbl}`), (snap) => {
                 snap.docChanges().forEach((change) => {
@@ -154,7 +151,17 @@ const App = {
         els.loginOverlay.classList.add('hidden');
         els.headerUser.innerText = currentUser.name;
         els.headerRole.innerText = (currentUser.role || 'Nhân viên').toUpperCase();
-        if(['admin','quản lý','giám đốc','kế toán'].some(r => (currentUser.role||'').toLowerCase().includes(r))) els.btnSettings.classList.remove('hidden');
+        
+        // KIỂM TRA QUYỀN VÀ HIỂN THỊ CÁC CHỨC NĂNG BÍ MẬT
+        const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => (currentUser.role || '').toLowerCase().includes(r));
+        if(isManager && els.btnSettings) els.btnSettings.classList.remove('hidden');
+        
+        // Hiện thẻ Nuôi sợi nếu là quản lý
+        const nsBtn = document.querySelector('[data-tab="nuoisoi"]');
+        if(nsBtn) {
+            nsBtn.style.display = isManager ? 'flex' : 'none';
+        }
+
         if(!isAuto) App.render();
     },
 
@@ -205,7 +212,6 @@ const App = {
                 const icon = btn.querySelector('i');
                 const tab = btn.getAttribute('data-tab');
                 
-                // Cập nhật màu active cho từng thẻ
                 if(tab==='tasks') icon.classList.replace('text-slate-400','text-blue-600');
                 if(tab==='sx') icon.classList.replace('text-slate-400','text-green-600');
                 if(tab==='nuoisoi') icon.classList.replace('text-slate-400','text-cyan-600');
