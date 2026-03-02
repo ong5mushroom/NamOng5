@@ -2,28 +2,14 @@ import { auth, db, getDocs, collection, query, where, signInAnonymously, onAuthS
 import { SX } from './modules/sx.js';
 import { THDG } from './modules/thdg.js';
 import { HR } from './modules/hr.js';
+import { NuoiSoi } from './modules/nuoisoi.js'; // Nhập module mới
 import { Utils } from './utils.js';
 
 let currentUser = null;
 let currentTab = 'tasks';
 let appData = {}; 
 
-const els = {
-    loginOverlay: document.getElementById('login-overlay'),
-    userSelect: document.getElementById('login-user'),
-    pinInput: document.getElementById('login-pin'),
-    loginBtn: document.getElementById('login-btn'),
-    headerUser: document.getElementById('head-user'),
-    headerRole: document.getElementById('head-role'),
-    btnSettings: document.getElementById('btn-settings'),
-    navBtns: document.querySelectorAll('.nav-btn'),
-    views: {
-        tasks: document.getElementById('view-tasks'),
-        sx: document.getElementById('view-sx'),
-        th: document.getElementById('view-th'),
-        team: document.getElementById('view-team')
-    }
-};
+const els = {}; // Khởi tạo rỗng, sẽ tự động gán ở init()
 
 const toCSV = (data) => `"${String(data || '').replace(/"/g, '""')}"`;
 
@@ -35,48 +21,25 @@ const exportReport = async (reportType) => {
         const timeFileName = `${now.getDate()}_${now.getMonth()+1}_${now.getFullYear()}`;
         let fileName = "";
 
-        // TẤT CẢ ĐÃ ĐƯỢC ĐỔI SANG DẤU CHẤM PHẨY (;) ĐỂ EXCEL VN HIỂU ĐƯỢC
         if (reportType === 'PHOI') {
             fileName = `BaoCao_KhoPhoi_${timeFileName}.csv`;
             csv += "Ngày;Giờ;Loại;Mã Lô;Số Lượng;Từ/Đến (Nhà);Người Thực Hiện\n";
             const snap = await getDocs(collection(db, `${ROOT_PATH}/supplies`));
             snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
-                csv += [
-                    toCSV(date.toLocaleDateString('vi-VN')),
-                    toCSV(date.toLocaleTimeString('vi-VN')),
-                    toCSV(d.type === 'IMPORT' ? 'NHẬP' : 'XUẤT'),
-                    toCSV(d.code || ''),
-                    toCSV(d.qty || 0),
-                    toCSV(d.type === 'IMPORT' ? 'Kho Tổng' : (d.to || 'Hủy')),
-                    toCSV(d.user || 'Unknown')
-                ].join(';') + "\n";
+                csv += [toCSV(date.toLocaleDateString('vi-VN')),toCSV(date.toLocaleTimeString('vi-VN')),toCSV(d.type === 'IMPORT' ? 'NHẬP' : 'XUẤT'),toCSV(d.code || ''),toCSV(d.qty || 0),toCSV(d.type === 'IMPORT' ? 'Kho Tổng' : (d.to || 'Hủy')),toCSV(d.user || 'Unknown')].join(';') + "\n";
             });
         } else if (reportType === 'NAM_TUOI') {
             fileName = `BaoCao_NamTuoi_${timeFileName}.csv`;
             csv += "Ngày;Giờ;Loại;Chi Tiết;Tổng;Nguồn/Khách;Người Thực Hiện\n";
-            const [hSnap, sSnap] = await Promise.all([
-                getDocs(collection(db, `${ROOT_PATH}/harvest_logs`)),
-                getDocs(collection(db, `${ROOT_PATH}/shipping`))
-            ]);
+            const [hSnap, sSnap] = await Promise.all([getDocs(collection(db, `${ROOT_PATH}/harvest_logs`)), getDocs(collection(db, `${ROOT_PATH}/shipping`))]);
             let combined = [];
-            hSnap.forEach(d => combined.push({...d.data(), _type: 'NHAP'}));
-            sSnap.forEach(d => combined.push({...d.data(), _type: 'XUAT'}));
+            hSnap.forEach(d => combined.push({...d.data(), _type: 'NHAP'})); sSnap.forEach(d => combined.push({...d.data(), _type: 'XUAT'}));
             combined.sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
                 let details = d._type === 'NHAP' ? Object.entries(d.details||{}).map(([k,v])=>`${k}: ${v}kg`).join(', ') : (d.items||[]).map(i=>`${i.name} (${i.qty})`).join(', ');
-                
                 const totalText = d._type === 'NHAP' ? `${d.total || 0} kg` : `${Number(d.total || 0).toLocaleString('vi-VN')} đ`;
-
-                csv += [
-                    toCSV(date.toLocaleDateString('vi-VN')),
-                    toCSV(date.toLocaleTimeString('vi-VN')),
-                    toCSV(d._type === 'NHAP' ? 'THU HOẠCH' : 'BÁN HÀNG'),
-                    toCSV(details),
-                    toCSV(totalText),
-                    toCSV(d._type === 'NHAP' ? (d.area || '') : (d.customer || '')),
-                    toCSV(d.user || 'Unknown')
-                ].join(';') + "\n";
+                csv += [toCSV(date.toLocaleDateString('vi-VN')),toCSV(date.toLocaleTimeString('vi-VN')),toCSV(d._type === 'NHAP' ? 'THU HOẠCH' : 'BÁN HÀNG'),toCSV(details),toCSV(totalText),toCSV(d._type === 'NHAP' ? (d.area || '') : (d.customer || '')),toCSV(d.user || 'Unknown')].join(';') + "\n";
             });
         } else if (reportType === 'CHAM_CONG') {
             fileName = `Bang_ChamCong_${timeFileName}.csv`;
@@ -108,6 +71,37 @@ const exportReport = async (reportType) => {
 
 const App = {
     init: () => {
+        // TỰ ĐỘNG BƠM GIAO DIỆN "NUÔI SỢI" VÀO HTML (Không cần sửa index.html)
+        const mainContainer = document.getElementById('view-tasks')?.parentElement;
+        if(mainContainer && !document.getElementById('view-nuoisoi')) {
+            mainContainer.insertAdjacentHTML('beforeend', '<div id="view-nuoisoi" class="hidden"></div>');
+        }
+        
+        const navBar = document.querySelector('nav .flex');
+        if(navBar && !document.querySelector('[data-tab="nuoisoi"]')) {
+            const nsBtnHTML = `<button class="nav-btn flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-600 transition" data-tab="nuoisoi"><i class="fas fa-boxes text-lg mb-0.5"></i><span class="text-[9px] font-bold">Nuôi Sợi</span></button>`;
+            const teamBtn = document.querySelector('[data-tab="team"]');
+            if(teamBtn) teamBtn.insertAdjacentHTML('beforebegin', nsBtnHTML);
+            else navBar.insertAdjacentHTML('beforeend', nsBtnHTML);
+        }
+
+        // Gán Els
+        els.loginOverlay = document.getElementById('login-overlay');
+        els.userSelect = document.getElementById('login-user');
+        els.pinInput = document.getElementById('login-pin');
+        els.loginBtn = document.getElementById('login-btn');
+        els.headerUser = document.getElementById('head-user');
+        els.headerRole = document.getElementById('head-role');
+        els.btnSettings = document.getElementById('btn-settings');
+        els.navBtns = document.querySelectorAll('.nav-btn');
+        els.views = {
+            tasks: document.getElementById('view-tasks'),
+            sx: document.getElementById('view-sx'),
+            th: document.getElementById('view-th'),
+            nuoisoi: document.getElementById('view-nuoisoi'),
+            team: document.getElementById('view-team')
+        };
+
         const savedUser = localStorage.getItem('ong5_user');
         if(savedUser) { currentUser = JSON.parse(savedUser); App.loginSuccess(true); }
         onAuthStateChanged(auth, (user) => {
@@ -118,7 +112,8 @@ const App = {
     },
 
     listenRealtime: () => {
-        const tables = ['employees', 'tasks', 'chat', 'houses', 'supplies', 'products', 'harvest_logs', 'shipping'];
+        // ĐÃ THÊM 'nuoisoi_A' VÀO DANH SÁCH LẮNG NGHE DỮ LIỆU
+        const tables = ['employees', 'tasks', 'chat', 'houses', 'supplies', 'products', 'harvest_logs', 'shipping', 'nuoisoi_A'];
         
         tables.forEach(tbl => {
             onSnapshot(collection(db, `${ROOT_PATH}/${tbl}`), (snap) => {
@@ -169,6 +164,7 @@ const App = {
         if(v && !v.classList.contains('hidden')) {
             if(currentTab === 'tasks') HR.renderTasks(appData, currentUser);
             if(currentTab === 'sx') SX.render(appData, currentUser);
+            if(currentTab === 'nuoisoi') NuoiSoi.render(appData, currentUser);
             if(currentTab === 'th') THDG.render(appData, currentUser);
             if(currentTab === 'team') HR.renderTeam(appData, currentUser);
         }
@@ -208,12 +204,16 @@ const App = {
                 btn.classList.add('active');
                 const icon = btn.querySelector('i');
                 const tab = btn.getAttribute('data-tab');
+                
+                // Cập nhật màu active cho từng thẻ
                 if(tab==='tasks') icon.classList.replace('text-slate-400','text-blue-600');
                 if(tab==='sx') icon.classList.replace('text-slate-400','text-green-600');
+                if(tab==='nuoisoi') icon.classList.replace('text-slate-400','text-cyan-600');
                 if(tab==='th') icon.classList.replace('text-slate-400','text-orange-500');
                 if(tab==='team') icon.classList.replace('text-slate-400','text-purple-600');
+                
                 Object.values(els.views).forEach(e => e.classList.add('hidden'));
-                els.views[tab].classList.remove('hidden');
+                if(els.views[tab]) els.views[tab].classList.remove('hidden');
                 currentTab = tab;
                 App.render();
             }
