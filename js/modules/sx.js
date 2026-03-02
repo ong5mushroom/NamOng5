@@ -3,10 +3,33 @@ import { Utils } from '../utils.js';
 
 window.SX_Action = {
     delLog: async (id, qty, houseId) => { if(confirm(`Xóa lô ${qty}?`)) { try { const b=writeBatch(db); b.delete(doc(db,`${ROOT_PATH}/supplies`,id)); if(houseId)b.update(doc(db,`${ROOT_PATH}/houses`,houseId),{batchQty:increment(-Number(qty))}); await b.commit(); Utils.toast("Đã xóa!"); } catch(e){alert(e.message)} } },
-    reset0: async (hid) => { if(confirm("Reset nhà về 0?")) { await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),{batchQty:0,currentBatch:'',status:'EMPTY',injectCount:0}); Utils.toast("Đã Reset!"); } },
+    
+    // --- TÍNH NĂNG MỚI: DỌN SẠCH NHÀ (HẾT VỤ) ---
+    reset0: async (hid) => { 
+        if(confirm("⚠️ XÁC NHẬN HẾT VỤ (DỌN NHÀ)?\nHệ thống sẽ dọn sạch: Mã lô, Số lượng phôi, Số lần tiêm, và Tổng số kg nấm thu hoạch.")) { 
+            await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),{
+                batchQty: 0,
+                currentBatch: '',
+                status: 'EMPTY',
+                injectCount: '',
+                totalYield: 0,
+                lastClearTime: Date.now() // Cột mốc để bỏ qua các lịch sử phôi cũ
+            }); 
+            Utils.toast("✅ Đã dọn sạch nhà!"); 
+        } 
+    },
+    
     adjust: async (hid, cQ) => { const v=prompt("Số lượng (+/-):"); if(v){ const n=Number(v), newQ=(cQ||0)+n, u={batchQty:increment(n)}; if(newQ<=0){u.status='EMPTY';u.currentBatch='';u.batchQty=0}else{u.status='ACTIVE'} await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),u); Utils.toast("Đã sửa!"); } },
-    addHouse: async () => { const n=prompt("Tên nhà:"); if(n) { await addDoc(collection(db,`${ROOT_PATH}/houses`),{name:n,status:'EMPTY',batchQty:0,currentBatch:'',startDate:Date.now(),totalYield:0,injectCount:0}); Utils.toast("Đã thêm!"); } },
-    setInject: async (hid, currentVal) => { const v = prompt("Nhập số lần tiêm nước:", currentVal || 0); if(v !== null) { await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { injectCount: Number(v) }); Utils.toast("Đã lưu!"); } },
+    addHouse: async () => { const n=prompt("Tên nhà:"); if(n) { await addDoc(collection(db,`${ROOT_PATH}/houses`),{name:n,status:'EMPTY',batchQty:0,currentBatch:'',startDate:Date.now(),totalYield:0,injectCount:''}); Utils.toast("Đã thêm!"); } },
+    
+    // --- FIX Ô TIÊM NƯỚC: Cho phép nhập chữ thoải mái ---
+    setInject: async (hid, currentVal) => { 
+        const v = prompt("Nhập thông tin tiêm (VD: 3 lần - 02/03):", currentVal || ""); 
+        if(v !== null) { 
+            await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { injectCount: v }); 
+            Utils.toast("Đã lưu!"); 
+        } 
+    },
     exportReport: () => alert("Tính năng đang phát triển")
 };
 
@@ -19,18 +42,18 @@ export const SX = {
         const supplies = Array.isArray(data.supplies) ? data.supplies : [];
         const houseA = houses.find(h => ['nhà a','kho a', 'kho phôi', 'kho vật tư', 'kho tổng'].includes((h.name||'').toLowerCase()));
         
-        const logsA = supplies.filter(s => houseA && s.to === houseA.id).sort((a,b)=>b.time-a.time);
+        // Bỏ qua các log cũ trước khi Dọn Kho
+        const clearTimeA = houseA?.lastClearTime || 0;
+        const logsA = supplies.filter(s => houseA && s.to === houseA.id && s.time >= clearTimeA).sort((a,b)=>b.time-a.time);
         
-        // --- TÍNH TỒN KHO THỰC TẾ CHO KHO A (FIX LỖI 0) ---
         const stockMapA = {};
-        const logsRelatedA = supplies.filter(s => s.to === houseA?.id || s.from === houseA?.id);
+        const logsRelatedA = supplies.filter(s => (s.to === houseA?.id || s.from === houseA?.id) && s.time >= clearTimeA);
         logsRelatedA.forEach(l => {
             if(!l.code) return;
             if(!stockMapA[l.code]) stockMapA[l.code] = 0;
-            if(l.to === houseA.id) stockMapA[l.code] += Number(l.qty);
-            if(l.from === houseA.id) stockMapA[l.code] -= Number(l.qty);
+            if(l.to === houseA?.id) stockMapA[l.code] += Number(l.qty);
+            if(l.from === houseA?.id) stockMapA[l.code] -= Number(l.qty);
         });
-        // Tính tổng tồn kho A từ map (thay vì lấy từ DB có thể bị sai)
         const totalStockA = Object.values(stockMapA).reduce((a,b) => a+b, 0);
         const availableCodes = Object.keys(stockMapA).filter(code => stockMapA[code] > 0);
 
@@ -42,7 +65,7 @@ export const SX = {
                     <div><h3 class="font-black text-purple-800 text-sm uppercase flex items-center gap-2"><i class="fas fa-warehouse"></i> ${houseA.name}</h3><div class="text-[10px] text-purple-400 font-bold mt-1 tracking-wider">KHO TỔNG HỢP</div></div>
                     <div class="text-right">
                         <span class="text-3xl font-black text-purple-700 block tracking-tight">${totalStockA.toLocaleString()}</span>
-                        ${isManager ? `<div class="flex gap-2 justify-end mt-1 opacity-80"><button onclick="window.SX_Action.reset0('${houseA.id}')" class="text-[9px] font-bold text-red-500 hover:underline">RESET 0</button><button onclick="window.SX_Action.adjust('${houseA.id}', ${houseA.batchQty||0})" class="text-[9px] font-bold text-purple-500 hover:underline">SỬA</button></div>` : ''}
+                        ${isManager ? `<div class="flex gap-2 justify-end mt-1 opacity-80"><button onclick="window.SX_Action.reset0('${houseA.id}')" class="text-[9px] font-bold text-red-500 hover:underline"><i class="fas fa-broom"></i> DỌN KHO</button><button onclick="window.SX_Action.adjust('${houseA.id}', ${houseA.batchQty||0})" class="text-[9px] font-bold text-purple-500 hover:underline ml-2">SỬA</button></div>` : ''}
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -66,7 +89,11 @@ export const SX = {
                 <div class="grid grid-cols-2 gap-3">
                     ${houses.filter(h => h.id !== (houseA?.id)).map(h => {
                         const isRunning = (h.batchQty > 0);
-                        const hLogs = supplies.filter(s => s.to === h.id || s.from === h.id);
+                        
+                        // Bỏ qua các log cũ khi dọn nhà
+                        const clearTime = h.lastClearTime || 0;
+                        const hLogs = supplies.filter(s => (s.to === h.id || s.from === h.id) && s.time >= clearTime);
+                        
                         const batchMap = {};
                         hLogs.forEach(log => {
                             if(!log.code) return;
@@ -81,7 +108,12 @@ export const SX = {
                             <div class="pl-3 w-full">
                                 <div class="flex justify-between items-start mb-1">
                                     <div class="font-bold text-slate-700 text-sm">${h.name}</div>
-                                    ${isManager ? `<button onclick="window.SX_Action.adjust('${h.id}', ${h.batchQty||0})" class="text-slate-300 hover:text-blue-500"><i class="fas fa-pen text-[10px]"></i></button>` : ''}
+                                    <div class="flex gap-2 items-center">
+                                        ${isManager ? `
+                                        <button onclick="window.SX_Action.reset0('${h.id}')" class="text-slate-300 hover:text-red-500" title="Dọn nhà (Hết vụ)"><i class="fas fa-broom text-[10px]"></i></button>
+                                        <button onclick="window.SX_Action.adjust('${h.id}', ${h.batchQty||0})" class="text-slate-300 hover:text-blue-500" title="Sửa số lượng"><i class="fas fa-pen text-[10px]"></i></button>
+                                        ` : ''}
+                                    </div>
                                 </div>
                                 <div class="bg-slate-50 rounded p-1 mb-2">${detailBatches || '<span class="text-[10px] text-slate-300 italic">Nhà trống</span>'}</div>
                                 <div class="text-right border-b border-dashed border-slate-100 pb-2 mb-2">
@@ -89,9 +121,9 @@ export const SX = {
                                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${isRunning ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}">${isRunning ? 'RUNNING' : 'EMPTY'}</span>
                                 </div>
                                 <div class="space-y-1 mt-auto">
-                                    <div class="flex justify-between items-center cursor-pointer active:scale-95 transition" onclick="window.SX_Action.setInject('${h.id}', ${h.injectCount||0})">
-                                        <span class="text-[10px] text-slate-400 font-bold">Tiêm nước:</span>
-                                        <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 rounded flex items-center gap-1">${h.injectCount || 0} lần <i class="fas fa-pen text-[8px] opacity-50"></i></span>
+                                    <div class="flex justify-between items-center cursor-pointer active:scale-95 transition" onclick="window.SX_Action.setInject('${h.id}', '${h.injectCount || ''}')">
+                                        <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap">Tiêm:</span>
+                                        <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 rounded flex items-center gap-1 max-w-[90px] truncate" title="${h.injectCount || '0'}">${h.injectCount || '0'} <i class="fas fa-pen text-[8px] opacity-50"></i></span>
                                     </div>
                                     <div class="flex justify-between items-center">
                                         <span class="text-[10px] text-slate-400 font-bold">Tổng thu:</span>
