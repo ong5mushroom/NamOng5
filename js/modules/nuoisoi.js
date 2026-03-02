@@ -21,7 +21,6 @@ window.NuoiSoi_Action = {
                 const b = document.getElementById('ns-batch').value.toUpperCase();
                 const q = document.getElementById('ns-qty').value;
                 try {
-                    // FIX: Dùng writeBatch (đã có sẵn trong config.js) thay cho setDoc
                     const batch = writeBatch(db);
                     batch.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), {
                         qty: Number(q),
@@ -48,27 +47,29 @@ export const NuoiSoi = {
         const racks = Array.isArray(data.nuoisoi_A) ? data.nuoisoi_A : [];
         const getRack = (id) => racks.find(r => r.id === id) || {qty: '', batch: ''};
 
-        // VẼ SƠ ĐỒ THEO BẢN VẼ BẠN CUNG CẤP (Chia 3 cột)
+        // VẼ SƠ ĐỒ BẢN VẼ: Trái 1 phần, Giữa lối đi (rộng hơn chút), Phải 1 phần
         let grid = `
-            <div class="grid grid-cols-[1fr_30px_1fr] gap-1 bg-slate-50 p-2 rounded-xl border border-slate-200">
+            <div class="grid grid-cols-[1fr_40px_1fr] gap-1 bg-slate-50 p-2 rounded-xl border border-slate-200">
                 <div class="bg-blue-100 text-blue-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-blue-200">Hệ quạt</div>
-                <div class="row-span-17 flex items-center justify-center border-x border-slate-300 bg-slate-200/50">
-                    <span class="rotate-90 text-slate-400 font-black tracking-widest text-[10px] whitespace-nowrap">LỐI ĐI</span>
+                
+                <div class="flex items-center justify-center border-x border-slate-300 bg-slate-200/50" style="grid-row: 1 / span 27;">
+                    <span class="rotate-90 text-slate-400 font-black tracking-widest text-[10px] whitespace-nowrap">LỐI ĐI XE NỘI BỘ</span>
                 </div>
+                
                 <div class="bg-blue-100 text-blue-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-blue-200">Hệ quạt</div>
         `;
 
-        // VẼ 15 HÀNG GIÀN (Bên Trái L1->L15, Bên Phải R1->R15)
-        const totalRows = 15;
+        // VẼ 25 HÀNG GIÀN (Bên Trái A1->A25, Bên Phải B1->B25)
+        const totalRows = 25;
         for(let i=1; i<=totalRows; i++) {
-            const lId = `L${i}`; const rId = `R${i}`;
-            const lData = getRack(lId); const rData = getRack(rId);
+            const aId = `A${i}`; const bId = `B${i}`;
+            const aData = getRack(aId); const bData = getRack(bId);
 
             const renderCell = (id, rack) => {
                 const hasData = rack.qty || rack.batch;
                 return `
                 <div onclick="window.NuoiSoi_Action.edit('${id}', '${rack.qty}', '${rack.batch}')" 
-                     class="bg-white border ${hasData ? 'border-blue-300 shadow-sm' : 'border-slate-200'} p-1.5 rounded cursor-pointer active:scale-95 transition flex flex-col justify-center min-h-[45px] hover:border-blue-400">
+                     class="bg-white border ${hasData ? 'border-blue-400 shadow-md bg-blue-50/30' : 'border-slate-200'} p-1.5 rounded cursor-pointer active:scale-95 transition flex flex-col justify-center min-h-[45px] hover:border-blue-400">
                     <div class="flex justify-between items-center border-b border-slate-100 pb-0.5 mb-1">
                         <span class="text-[10px] font-black text-slate-700">Giàn ${id}</span>
                         ${hasData ? `<span class="text-[8px] bg-green-100 text-green-700 px-1 rounded font-bold">${rack.batch}</span>` : '<span class="text-[8px] text-slate-300">Trống</span>'}
@@ -77,8 +78,8 @@ export const NuoiSoi = {
                 </div>`;
             };
 
-            grid += renderCell(lId, lData);
-            grid += renderCell(rId, rData);
+            grid += renderCell(aId, aData); // Nhét vào cột Trái
+            grid += renderCell(bId, bData); // Nhét vào cột Phải
         }
 
         // HÀNG DƯỚI CÙNG
