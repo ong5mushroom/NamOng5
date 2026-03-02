@@ -42,11 +42,17 @@ export const NuoiSoi = {
         const c = document.getElementById('view-nuoisoi'); 
         if(!c || c.classList.contains('hidden')) return;
 
-        // Lấy dữ liệu các giàn
+        // BẢO MẬT: Chặn nhân viên không có quyền (phòng ngừa việc họ cố tình gọi hàm)
+        const role = (user.role || '').toLowerCase();
+        const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => role.includes(r));
+        if(!isManager) {
+            c.innerHTML = '<div class="p-10 text-center text-red-500 font-bold">Bạn không có quyền xem khu vực này.</div>';
+            return;
+        }
+
         const racks = Array.isArray(data.nuoisoi_A) ? data.nuoisoi_A : [];
         const getRack = (id) => racks.find(r => r.id === id) || {qty: '', batch: ''};
 
-        // --- KHỞI TẠO BẢN VẼ LƯỚI ---
         let grid = `
             <div class="grid grid-cols-[1fr_50px_1fr] gap-y-1.5 gap-x-2 bg-slate-50 p-2 rounded-xl border border-slate-200 relative overflow-hidden">
                 
@@ -59,14 +65,17 @@ export const NuoiSoi = {
                 </div>
         `;
 
-        // --- HÀNG 2 -> 26: VẼ 25 GIÀN ---
+        // --- VẼ 25 GIÀN (ĐẾM LÙI TỪ 25 -> 1) ---
         const totalRows = 25;
-        for(let i=1; i<=totalRows; i++) {
-            const aId = `A${i}`; 
-            const bId = `B${i}`;
-            const aData = getRack(aId); 
-            const bData = getRack(bId);
-            const currentRow = i + 1; // Vì hàng 1 là Quạt
+        for(let i = totalRows; i >= 1; i--) {
+            const bId = `B${i}`; // Đổi: Dãy B nằm bên trái
+            const aId = `A${i}`; // Đổi: Dãy A nằm bên phải
+            
+            const bData = getRack(bId); 
+            const aData = getRack(aId);
+            
+            // Tính toán hàng cho Grid (Giàn 25 -> Hàng 2, Giàn 1 -> Hàng 26)
+            const currentRow = totalRows - i + 2; 
 
             const renderCell = (id, rack, col, row) => {
                 const hasData = rack.qty || rack.batch;
@@ -82,8 +91,8 @@ export const NuoiSoi = {
                 </div>`;
             };
 
-            grid += renderCell(aId, aData, 1, currentRow); // Cột 1 (Bên Trái)
-            grid += renderCell(bId, bData, 3, currentRow); // Cột 3 (Bên Phải)
+            grid += renderCell(bId, bData, 1, currentRow); // Cột 1 (Bên Trái) là Dãy B
+            grid += renderCell(aId, aData, 3, currentRow); // Cột 3 (Bên Phải) là Dãy A
         }
 
         // --- HÀNG 27: HỆ COOLING ---
@@ -98,7 +107,7 @@ export const NuoiSoi = {
             <div class="flex justify-between items-center bg-blue-50 p-4 rounded-2xl border border-blue-100 shadow-sm">
                 <div>
                     <h2 class="font-black text-blue-800 text-lg uppercase">SƠ ĐỒ NHÀ NUÔI SỢI A</h2>
-                    <p class="text-[10px] text-blue-500 font-bold">Chạm vào từng giàn để cập nhật số lượng & lô cấy</p>
+                    <p class="text-[10px] text-blue-500 font-bold">Dãy B (Trái) - Dãy A (Phải). Đếm từ quạt vào.</p>
                 </div>
             </div>
             ${grid}
