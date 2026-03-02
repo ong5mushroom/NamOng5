@@ -29,7 +29,6 @@ window.NuoiSoi_Action = {
                     }, { merge: true });
                     
                     await batch.commit();
-                    
                     Utils.modal(null);
                     Utils.toast("✅ Đã cập nhật Giàn!");
                 } catch(e) { alert(e.message); }
@@ -47,28 +46,33 @@ export const NuoiSoi = {
         const racks = Array.isArray(data.nuoisoi_A) ? data.nuoisoi_A : [];
         const getRack = (id) => racks.find(r => r.id === id) || {qty: '', batch: ''};
 
-        // VẼ SƠ ĐỒ BẢN VẼ: Trái 1 phần, Giữa lối đi (rộng hơn chút), Phải 1 phần
+        // --- KHỞI TẠO BẢN VẼ LƯỚI ---
         let grid = `
-            <div class="grid grid-cols-[1fr_40px_1fr] gap-1 bg-slate-50 p-2 rounded-xl border border-slate-200">
-                <div class="bg-blue-100 text-blue-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-blue-200">Hệ quạt</div>
+            <div class="grid grid-cols-[1fr_50px_1fr] gap-y-1.5 gap-x-2 bg-slate-50 p-2 rounded-xl border border-slate-200 relative overflow-hidden">
                 
-                <div class="flex items-center justify-center border-x border-slate-300 bg-slate-200/50" style="grid-row: 1 / span 27;">
-                    <span class="rotate-90 text-slate-400 font-black tracking-widest text-[10px] whitespace-nowrap">LỐI ĐI XE NỘI BỘ</span>
+                <div class="bg-blue-100 text-blue-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-blue-200" style="grid-column: 1; grid-row: 1;">Hệ quạt</div>
+                <div class="bg-blue-100 text-blue-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-blue-200" style="grid-column: 3; grid-row: 1;">Hệ quạt</div>
+                
+                <div class="flex items-center justify-center bg-stone-300 border-x-2 border-stone-400 shadow-inner relative" style="grid-column: 2; grid-row: 1 / span 27;">
+                    <div class="absolute inset-0 w-0.5 border-l-2 border-dashed border-white mx-auto opacity-70"></div>
+                    <span class="rotate-90 text-stone-600 font-black tracking-widest text-[10px] whitespace-nowrap z-10 bg-stone-300 px-3 py-1 rounded-full border border-stone-400/50 shadow-sm">LỐI ĐI XE NỘI BỘ</span>
                 </div>
-                
-                <div class="bg-blue-100 text-blue-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-blue-200">Hệ quạt</div>
         `;
 
-        // VẼ 25 HÀNG GIÀN (Bên Trái A1->A25, Bên Phải B1->B25)
+        // --- HÀNG 2 -> 26: VẼ 25 GIÀN ---
         const totalRows = 25;
         for(let i=1; i<=totalRows; i++) {
-            const aId = `A${i}`; const bId = `B${i}`;
-            const aData = getRack(aId); const bData = getRack(bId);
+            const aId = `A${i}`; 
+            const bId = `B${i}`;
+            const aData = getRack(aId); 
+            const bData = getRack(bId);
+            const currentRow = i + 1; // Vì hàng 1 là Quạt
 
-            const renderCell = (id, rack) => {
+            const renderCell = (id, rack, col, row) => {
                 const hasData = rack.qty || rack.batch;
                 return `
-                <div onclick="window.NuoiSoi_Action.edit('${id}', '${rack.qty}', '${rack.batch}')" 
+                <div style="grid-column: ${col}; grid-row: ${row};" 
+                     onclick="window.NuoiSoi_Action.edit('${id}', '${rack.qty}', '${rack.batch}')" 
                      class="bg-white border ${hasData ? 'border-blue-400 shadow-md bg-blue-50/30' : 'border-slate-200'} p-1.5 rounded cursor-pointer active:scale-95 transition flex flex-col justify-center min-h-[45px] hover:border-blue-400">
                     <div class="flex justify-between items-center border-b border-slate-100 pb-0.5 mb-1">
                         <span class="text-[10px] font-black text-slate-700">Giàn ${id}</span>
@@ -78,14 +82,14 @@ export const NuoiSoi = {
                 </div>`;
             };
 
-            grid += renderCell(aId, aData); // Nhét vào cột Trái
-            grid += renderCell(bId, bData); // Nhét vào cột Phải
+            grid += renderCell(aId, aData, 1, currentRow); // Cột 1 (Bên Trái)
+            grid += renderCell(bId, bData, 3, currentRow); // Cột 3 (Bên Phải)
         }
 
-        // HÀNG DƯỚI CÙNG
+        // --- HÀNG 27: HỆ COOLING ---
         grid += `
-                <div class="bg-cyan-100 text-cyan-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-cyan-200">Hệ cooling</div>
-                <div class="bg-cyan-100 text-cyan-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-cyan-200">Hệ cooling</div>
+                <div class="bg-cyan-100 text-cyan-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-cyan-200" style="grid-column: 1; grid-row: 27;">Hệ cooling</div>
+                <div class="bg-cyan-100 text-cyan-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-cyan-200" style="grid-column: 3; grid-row: 27;">Hệ cooling</div>
             </div>
         `;
 
