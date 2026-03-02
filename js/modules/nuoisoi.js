@@ -1,4 +1,4 @@
-import { doc, setDoc, collection, db, ROOT_PATH } from '../config.js';
+import { doc, collection, db, ROOT_PATH, writeBatch } from '../config.js';
 import { Utils } from '../utils.js';
 
 window.NuoiSoi_Action = {
@@ -21,12 +21,16 @@ window.NuoiSoi_Action = {
                 const b = document.getElementById('ns-batch').value.toUpperCase();
                 const q = document.getElementById('ns-qty').value;
                 try {
-                    // Lưu dữ liệu vào collection riêng cho Nhà Nuôi Sợi A
-                    await setDoc(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), {
+                    // FIX: Dùng writeBatch (đã có sẵn trong config.js) thay cho setDoc
+                    const batch = writeBatch(db);
+                    batch.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), {
                         qty: Number(q),
                         batch: b,
                         time: Date.now()
-                    }, {merge: true});
+                    }, { merge: true });
+                    
+                    await batch.commit();
+                    
                     Utils.modal(null);
                     Utils.toast("✅ Đã cập nhật Giàn!");
                 } catch(e) { alert(e.message); }
