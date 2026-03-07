@@ -2,98 +2,116 @@ import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc
 import { Utils } from '../utils.js';
 
 window.SX_Action = {
-    delLog: async (id, qty, houseId) => { if(confirm(`Xóa lô ${qty}?`)) { try { const b=writeBatch(db); b.delete(doc(db,`${ROOT_PATH}/supplies`,id)); if(houseId)b.update(doc(db,`${ROOT_PATH}/houses`,houseId),{batchQty:increment(-Number(qty))}); await b.commit(); Utils.toast("Đã xóa!"); } catch(e){alert(e.message)} } },
-    
-    // --- TÍNH NĂNG MỚI: DỌN SẠCH NHÀ (HẾT VỤ) ---
-    reset0: async (hid) => { 
-        if(confirm("⚠️ XÁC NHẬN HẾT VỤ (DỌN NHÀ)?\nHệ thống sẽ dọn sạch: Mã lô, Số lượng phôi, Số lần tiêm, và Tổng số kg nấm thu hoạch.")) { 
-            await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),{
-                batchQty: 0,
-                currentBatch: '',
-                status: 'EMPTY',
-                injectCount: '',
-                totalYield: 0,
-                lastClearTime: Date.now() // Cột mốc để bỏ qua các lịch sử phôi cũ
-            }); 
-            Utils.toast("✅ Đã dọn sạch nhà!"); 
+    delLog: async (id, adjustQty, houseId) => { 
+        if(confirm(`Hủy lệnh này? (Sẽ trừ lại số lượng trong Nhà Trồng)`)) { 
+            try { 
+                const b = writeBatch(db); b.delete(doc(db,`${ROOT_PATH}/supplies`,id)); 
+                if(houseId && houseId !== 'HUY') b.update(doc(db,`${ROOT_PATH}/houses`,houseId), {batchQty: increment(adjustQty)}); 
+                await b.commit(); Utils.toast("Đã hủy lệnh!"); 
+            } catch(e){alert(e.message)} 
         } 
     },
-    
+    reset0: async (hid) => { 
+        if(confirm("⚠️ XÁC NHẬN HẾT VỤ (DỌN NHÀ)?")) { 
+            await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),{ batchQty: 0, currentBatch: '', status: 'EMPTY', injectCount: '', totalYield: 0, lastClearTime: Date.now() }); Utils.toast("✅ Đã dọn sạch nhà!"); 
+        } 
+    },
     adjust: async (hid, cQ) => { const v=prompt("Số lượng (+/-):"); if(v){ const n=Number(v), newQ=(cQ||0)+n, u={batchQty:increment(n)}; if(newQ<=0){u.status='EMPTY';u.currentBatch='';u.batchQty=0}else{u.status='ACTIVE'} await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),u); Utils.toast("Đã sửa!"); } },
     addHouse: async () => { const n=prompt("Tên nhà:"); if(n) { await addDoc(collection(db,`${ROOT_PATH}/houses`),{name:n,status:'EMPTY',batchQty:0,currentBatch:'',startDate:Date.now(),totalYield:0,injectCount:''}); Utils.toast("Đã thêm!"); } },
-    
-    // --- FIX Ô TIÊM NƯỚC: Cho phép nhập chữ thoải mái ---
-    setInject: async (hid, currentVal) => { 
-        const v = prompt("Nhập thông tin tiêm (VD: 3 lần - 02/03):", currentVal || ""); 
-        if(v !== null) { 
-            await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { injectCount: v }); 
-            Utils.toast("Đã lưu!"); 
-        } 
-    },
+    setInject: async (hid, currentVal) => { const v = prompt("Nhập thông tin tiêm:", currentVal || ""); if(v !== null) { await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { injectCount: v }); Utils.toast("Đã lưu!"); } },
     exportReport: () => alert("Tính năng đang phát triển")
 };
 
 export const SX = {
     render: (data, user) => {
         const c = document.getElementById('view-sx'); if(!c || c.classList.contains('hidden')) return;
-        const role = (user.role || '').toLowerCase();
-        const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => role.includes(r));
+        const role = (user.role || '').toLowerCase(); const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => role.includes(r));
         const houses = (Array.isArray(data.houses) ? data.houses : []).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
         const supplies = Array.isArray(data.supplies) ? data.supplies : [];
-        const houseA = houses.find(h => ['nhà a','kho a', 'kho phôi', 'kho vật tư', 'kho tổng'].includes((h.name||'').toLowerCase()));
+        const houseA = houses.find(h => ['nhà a','kho a', 'kho phôi', 'kho tổng', 'nuôi sợi'].some(n => (h.name||'').toLowerCase().includes(n)));
         
-        // Bỏ qua các log cũ trước khi Dọn Kho
-        const clearTimeA = houseA?.lastClearTime || 0;
-        const logsA = supplies.filter(s => houseA && s.to === houseA.id && s.time >= clearTimeA).sort((a,b)=>b.time-a.time);
-        
-        const stockMapA = {};
-        const logsRelatedA = supplies.filter(s => (s.to === houseA?.id || s.from === houseA?.id) && s.time >= clearTimeA);
-        logsRelatedA.forEach(l => {
-            if(!l.code) return;
-            if(!stockMapA[l.code]) stockMapA[l.code] = 0;
-            if(l.to === houseA?.id) stockMapA[l.code] += Number(l.qty);
-            if(l.from === houseA?.id) stockMapA[l.code] -= Number(l.qty);
+        const racks = Array.isArray(data.nuoisoi_A) ? data.nuoisoi_A : [];
+        const stockMapA = {}; let totalStockA = 0;
+        racks.forEach(r => {
+            if(r.batch && Number(r.qty) > 0) {
+                const bCode = r.batch.toUpperCase();
+                if(!stockMapA[bCode]) stockMapA[bCode] = 0;
+                stockMapA[bCode] += Number(r.qty); totalStockA += Number(r.qty);
+            }
         });
-        const totalStockA = Object.values(stockMapA).reduce((a,b) => a+b, 0);
-        const availableCodes = Object.keys(stockMapA).filter(code => stockMapA[code] > 0);
+        const availableCodes = Object.keys(stockMapA).sort();
+
+        const exportLogsA = supplies.filter(s => houseA && s.from === houseA.id).sort((a,b)=>b.time-a.time).slice(0, 20);
 
         c.innerHTML = `
         <div class="space-y-6 pb-24">
             ${houseA ? `
-            <div class="bg-gradient-to-br from-purple-50 to-white p-5 rounded-2xl border border-purple-100 shadow-sm">
+            <div class="bg-gradient-to-br from-blue-50 to-white p-5 rounded-2xl border border-blue-100 shadow-sm">
                 <div class="flex justify-between items-start mb-4">
-                    <div><h3 class="font-black text-purple-800 text-sm uppercase flex items-center gap-2"><i class="fas fa-warehouse"></i> ${houseA.name}</h3><div class="text-[10px] text-purple-400 font-bold mt-1 tracking-wider">KHO TỔNG HỢP</div></div>
+                    <div>
+                        <h3 class="font-black text-blue-800 text-sm uppercase flex items-center gap-2"><i class="fas fa-boxes"></i> KHU NUÔI SỢI (NHÀ A)</h3>
+                        <div class="text-[10px] text-blue-500 font-bold mt-1 tracking-wider">TỔNG HỢP TỪ CÁC GIÀN</div>
+                    </div>
                     <div class="text-right">
-                        <span class="text-3xl font-black text-purple-700 block tracking-tight">${totalStockA.toLocaleString()}</span>
-                        ${isManager ? `<div class="flex gap-2 justify-end mt-1 opacity-80"><button onclick="window.SX_Action.reset0('${houseA.id}')" class="text-[9px] font-bold text-red-500 hover:underline"><i class="fas fa-broom"></i> DỌN KHO</button><button onclick="window.SX_Action.adjust('${houseA.id}', ${houseA.batchQty||0})" class="text-[9px] font-bold text-purple-500 hover:underline ml-2">SỬA</button></div>` : ''}
+                        <span class="text-3xl font-black text-blue-700 block tracking-tight">${totalStockA.toLocaleString()}</span>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                    <div class="bg-white p-3 rounded-xl border border-purple-100 shadow-sm"><div class="text-[10px] font-bold text-purple-400 mb-2 uppercase">Nhập Kho</div><div class="flex gap-2 mb-2"><input id="i-name" placeholder="Tên giống" class="w-1/2 p-2 border rounded-lg text-xs"><input type="date" id="i-date" class="w-1/2 p-2 border rounded-lg text-xs"></div><div class="flex gap-2"><input type="number" id="i-qty" placeholder="SL" class="flex-1 p-2 border rounded-lg text-xs text-center"><button id="btn-imp" class="bg-purple-600 text-white px-4 rounded-lg font-bold text-xs shadow-md active:scale-95">+</button></div></div>
-                    <div class="bg-white p-3 rounded-xl border border-green-100 shadow-sm"><div class="text-[10px] font-bold text-green-500 mb-2 uppercase">Xuất Kho</div><div class="flex gap-2 mb-2"><select id="e-house" class="w-1/2 p-2 border rounded-lg text-xs"><option value="">Nhà</option>${houses.filter(h=>h.id!==houseA.id).map(h=>`<option value="${h.id}">${h.name}</option>`).join('')}</select><select id="e-code" class="w-1/2 p-2 border rounded-lg text-xs font-bold text-purple-700"><option value="">Mã (Tồn)</option>${availableCodes.map(c => `<option value="${c}">${c} (${stockMapA[c]})</option>`).join('')}</select></div><div class="flex gap-2"><input type="number" id="e-qty" placeholder="SL" class="flex-1 p-2 border rounded-lg text-xs text-center"><input type="date" id="e-date" class="w-1/3 p-2 border rounded-lg text-xs"><button id="btn-exp" class="bg-green-600 text-white px-4 rounded-lg font-bold text-xs shadow-md active:scale-95">-</button></div></div>
+                
+                <div class="bg-white p-3 rounded-xl border border-blue-100 shadow-sm flex flex-col mb-4">
+                    <div class="text-[10px] font-bold text-blue-500 mb-2 uppercase border-b border-dashed border-blue-100 pb-1">Tồn kho theo Mã Lô (Đang trên giàn)</div>
+                    <div class="flex-1 overflow-y-auto max-h-32 space-y-1 mt-1 pr-1">
+                        ${availableCodes.length ? availableCodes.map(code => `<div class="flex justify-between text-xs py-1 border-b border-slate-50"><span class="font-bold text-slate-700">${code}</span><span class="text-blue-600 font-black">${stockMapA[code].toLocaleString()}</span></div>`).join('') : '<div class="text-xs text-slate-400 italic text-center py-4">Các giàn đang trống</div>'}
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-slate-100 text-[10px] text-blue-600 bg-blue-50/50 p-2 rounded italic text-center font-bold">
+                        👉 ĐỂ XUẤT LÊN NHÀ TRỒNG HOẶC LỌC HƯ HỎNG: <br>Hãy qua thẻ NUÔI SỢI và bấm trực tiếp vào Giàn.
+                    </div>
                 </div>
-                <div class="max-h-40 overflow-y-auto space-y-1 bg-white/50 p-1 rounded-lg">
-                    ${Object.entries(stockMapA).map(([code, remain]) => {
-                        const importLog = logsA.find(l => l.code === code && l.type === 'IMPORT');
-                        const dateStr = importLog ? new Date(importLog.time).toLocaleDateString('vi-VN') : '--';
-                        return `<div class="flex justify-between items-center text-[10px] p-2 bg-white rounded border border-purple-50 mb-1"><div><span class="font-bold text-slate-700 block">${code}</span><span class="text-slate-400">${dateStr}</span></div><div class="text-right"><span class="block font-bold ${remain > 0 ? 'text-green-600' : 'text-red-400'}">Còn: ${remain.toLocaleString()}</span>${isManager ? `<button onclick="window.SX_Action.delLog('${importLog?._id}', ${importLog?.qty}, '${houseA.id}')" class="text-red-300 hover:text-red-500 text-[9px] underline">Xóa gốc</button>` : ''}</div></div>`;
-                    }).join('')}
+
+                <div class="text-[10px] font-bold text-slate-400 mb-1 uppercase pl-1">Lịch sử xuất / lọc phôi gần đây</div>
+                <div class="max-h-48 overflow-y-auto space-y-1.5 bg-white/60 p-1.5 rounded-lg border border-blue-50">
+                    ${exportLogsA.length ? exportLogsA.map(l => {
+                        let targetName = 'Không rõ'; let color = 'text-slate-600'; let icon = '';
+                        
+                        // Phân biệt màu và Icon dựa theo ký hiệu mã lô (TD-, HUY-, D-)
+                        if(l.to === 'HUY' || (l.code && l.code.includes('HUY-'))) { 
+                            targetName = 'Hủy bỏ'; color = 'text-red-600 bg-red-50'; icon = '🗑️'; 
+                        } else { 
+                            targetName = houses.find(h => h.id === l.to)?.name || l.to; 
+                            if(l.code && l.code.includes('TD-')) {
+                                color = 'text-orange-600 bg-orange-50'; icon = '♻️'; 
+                            } else {
+                                color = 'text-green-600 bg-green-50'; icon = '🍄'; 
+                            }
+                        }
+
+                        const canCancel = isManager && l.to !== 'HUY';
+
+                        return `
+                        <div class="flex justify-between items-center text-[10px] p-2.5 bg-white rounded-lg border border-slate-100 shadow-sm">
+                            <div>
+                                <span class="font-bold text-slate-700 block text-xs mb-0.5">Mã: <span class="text-blue-600">${l.code||'--'}</span> ➔ <span class="font-black ${color} px-1 rounded">${icon} ${targetName}</span></span>
+                                <span class="text-slate-400">Bởi: ${l.user||'--'} • ${new Date(l.time).toLocaleString('vi-VN')}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="block font-black text-lg ${color.split(' ')[0]}">${Number(l.qty).toLocaleString()}</span>
+                                ${canCancel ? `<button onclick="window.SX_Action.delLog('${l._id}', ${-l.qty}, '${l.to}')" class="text-slate-400 hover:text-red-600 text-[9px] underline font-bold mt-1 block">Hủy lệnh</button>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('') : '<div class="text-xs text-slate-400 italic text-center py-3">Chưa có dữ liệu</div>'}
                 </div>
-            </div>` : '<div class="p-4 text-center text-slate-400 bg-slate-50 rounded-xl">Chưa có dữ liệu Kho</div>'}
+            </div>` : '<div class="p-4 text-center text-slate-400 bg-slate-50 rounded-xl">Chưa có dữ liệu Nhà Nuôi Sợi</div>'}
 
             <div>
-                <div class="flex justify-between items-center mb-4 px-1">
-                    <h3 class="font-bold text-slate-600 text-xs uppercase tracking-wide">CÁC NHÀ TRỒNG</h3>
-                    <div class="flex gap-2">${isManager ? `<button onclick="window.SX_Action.addHouse()" class="bg-blue-600 text-white px-3 py-1.5 rounded-full text-[10px] font-bold shadow-md active:scale-95 flex items-center gap-1"><i class="fas fa-plus"></i> NHÀ</button>` : ''}</div>
+                <div class="flex justify-between items-center mb-4 px-1 mt-2">
+                    <h3 class="font-bold text-slate-600 text-xs uppercase tracking-wide">CÁC NHÀ TRỒNG NẤM</h3>
+                    <div class="flex gap-2">${isManager ? `<button onclick="window.SX_Action.addHouse()" class="bg-slate-700 text-white px-3 py-1.5 rounded-full text-[10px] font-bold shadow-md active:scale-95 flex items-center gap-1"><i class="fas fa-plus"></i> THÊM NHÀ</button>` : ''}</div>
                 </div>
+                
                 <div class="grid grid-cols-2 gap-3">
                     ${houses.filter(h => h.id !== (houseA?.id)).map(h => {
                         const isRunning = (h.batchQty > 0);
-                        
-                        // Bỏ qua các log cũ khi dọn nhà
                         const clearTime = h.lastClearTime || 0;
                         const hLogs = supplies.filter(s => (s.to === h.id || s.from === h.id) && s.time >= clearTime);
-                        
                         const batchMap = {};
                         hLogs.forEach(log => {
                             if(!log.code) return;
@@ -101,33 +119,40 @@ export const SX = {
                             if(log.to === h.id) batchMap[log.code] += Number(log.qty);
                             else if (log.from === h.id) batchMap[log.code] -= Number(log.qty);
                         });
-                        const detailBatches = Object.entries(batchMap).filter(([code, qty]) => qty > 0).map(([code, qty]) => `<div class="flex justify-between text-[10px] text-slate-500 border-b border-dashed border-slate-100 py-1"><span>${code}</span><span class="font-bold text-slate-700">${qty.toLocaleString()}</span></div>`).join('');
+                        
+                        // Đổi màu hiển thị lô Tận dụng (Cam) vs Lô Đạt (Xanh lá)
+                        const detailBatches = Object.entries(batchMap).filter(([code, qty]) => qty > 0).map(([code, qty]) => {
+                            let textColor = 'text-slate-700 font-bold';
+                            if(code.includes('TD-')) textColor = 'text-orange-600 font-black';
+                            else if(code.includes('D-')) textColor = 'text-green-700 font-bold';
+                            
+                            return `<div class="flex justify-between text-[10px] text-slate-500 border-b border-dashed border-slate-100 py-1"><span class="${textColor}">${code}</span><span class="${textColor}">${qty.toLocaleString()}</span></div>`
+                        }).join('');
 
-                        return `<div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden h-auto min-h-[140px] flex flex-col justify-between">
-                            <div class="absolute top-0 left-0 w-1 h-full ${isRunning ? 'bg-green-500' : 'bg-slate-300'}"></div>
+                        return `<div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden h-auto min-h-[140px] flex flex-col justify-between">
+                            <div class="absolute top-0 left-0 w-1.5 h-full ${isRunning ? 'bg-green-500' : 'bg-slate-200'}"></div>
                             <div class="pl-3 w-full">
                                 <div class="flex justify-between items-start mb-1">
-                                    <div class="font-bold text-slate-700 text-sm">${h.name}</div>
+                                    <div class="font-black text-slate-700 text-sm">${h.name}</div>
                                     <div class="flex gap-2 items-center">
                                         ${isManager ? `
-                                        <button onclick="window.SX_Action.reset0('${h.id}')" class="text-slate-300 hover:text-red-500" title="Dọn nhà (Hết vụ)"><i class="fas fa-broom text-[10px]"></i></button>
+                                        <button onclick="window.SX_Action.reset0('${h.id}')" class="text-slate-300 hover:text-red-500" title="Dọn nhà (Hết vụ)"><i class="fas fa-broom text-[11px]"></i></button>
                                         <button onclick="window.SX_Action.adjust('${h.id}', ${h.batchQty||0})" class="text-slate-300 hover:text-blue-500" title="Sửa số lượng"><i class="fas fa-pen text-[10px]"></i></button>
                                         ` : ''}
                                     </div>
                                 </div>
-                                <div class="bg-slate-50 rounded p-1 mb-2">${detailBatches || '<span class="text-[10px] text-slate-300 italic">Nhà trống</span>'}</div>
-                                <div class="text-right border-b border-dashed border-slate-100 pb-2 mb-2">
-                                    <span class="block font-black text-lg ${isRunning ? 'text-blue-600' : 'text-slate-400'}">${(h.batchQty||0).toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">tổng</span></span>
-                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${isRunning ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}">${isRunning ? 'RUNNING' : 'EMPTY'}</span>
+                                <div class="bg-slate-50/80 rounded p-1 mb-2 border border-slate-100">${detailBatches || '<span class="text-[10px] text-slate-400 italic block text-center py-1">Nhà trống</span>'}</div>
+                                <div class="text-right border-b border-dashed border-slate-200 pb-2 mb-2">
+                                    <span class="block font-black text-xl ${isRunning ? 'text-green-600' : 'text-slate-300'}">${(h.batchQty||0).toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">bịch</span></span>
                                 </div>
-                                <div class="space-y-1 mt-auto">
+                                <div class="space-y-1.5 mt-auto">
                                     <div class="flex justify-between items-center cursor-pointer active:scale-95 transition" onclick="window.SX_Action.setInject('${h.id}', '${h.injectCount || ''}')">
                                         <span class="text-[10px] text-slate-400 font-bold whitespace-nowrap">Tiêm:</span>
-                                        <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 rounded flex items-center gap-1 max-w-[90px] truncate" title="${h.injectCount || '0'}">${h.injectCount || '0'} <i class="fas fa-pen text-[8px] opacity-50"></i></span>
+                                        <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded flex items-center gap-1 max-w-[90px] truncate" title="${h.injectCount || 'Chưa tiêm'}">${h.injectCount || 'Chưa tiêm'} <i class="fas fa-pen text-[8px] opacity-50"></i></span>
                                     </div>
                                     <div class="flex justify-between items-center">
-                                        <span class="text-[10px] text-slate-400 font-bold">Tổng thu:</span>
-                                        <span class="text-[11px] font-black text-orange-600">${(h.totalYield||0).toLocaleString()}kg</span>
+                                        <span class="text-[10px] text-slate-400 font-bold">Thu hoạch:</span>
+                                        <span class="text-[11px] font-black text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">${(h.totalYield||0).toLocaleString()} kg</span>
                                     </div>
                                 </div>
                             </div>
@@ -136,34 +161,5 @@ export const SX = {
                 </div>
             </div>
         </div>`;
-        
-        setTimeout(() => {
-            if(!houseA) return;
-            const di=document.getElementById('i-date'); if(di) di.valueAsDate=new Date();
-            const de=document.getElementById('e-date'); if(de) de.valueAsDate=new Date();
-            const bImp = document.getElementById('btn-imp');
-            if(bImp) bImp.onclick = async () => {
-                const n=document.getElementById('i-name').value, q=Number(document.getElementById('i-qty').value), d=document.getElementById('i-date').value;
-                if(n && q>0 && d) {
-                    const code = `${n}-${new Date(d).getDate()}${new Date(d).getMonth()+1}${new Date(d).getFullYear()}`;
-                    const b = writeBatch(db);
-                    b.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'IMPORT', to:houseA.id, code, qty:q, user:user.name, time:new Date(d).getTime() });
-                    b.update(doc(db, `${ROOT_PATH}/houses`, houseA.id), { batchQty: increment(q) });
-                    await b.commit(); Utils.toast(`Đã nhập ${code}`); document.getElementById('i-qty').value='';
-                } else Utils.toast("Thiếu tin!", "err");
-            };
-            const bExp = document.getElementById('btn-exp');
-            if(bExp) bExp.onclick = async () => {
-                const hid=document.getElementById('e-house').value, c=document.getElementById('e-code').value, q=Number(document.getElementById('e-qty').value), d=document.getElementById('e-date').value;
-                if(hid && c && q>0) {
-                    if(q > (stockMapA[c]||0)) return Utils.toast("Lô này không đủ!", "err");
-                    const b = writeBatch(db);
-                    b.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseA.id, to:hid, code:c, qty:q, user:user.name, time:new Date(d).getTime() });
-                    b.update(doc(db, `${ROOT_PATH}/houses`, houseA.id), { batchQty: increment(-q) });
-                    b.update(doc(db, `${ROOT_PATH}/houses`, hid), { status:'ACTIVE', batchQty: increment(q), currentBatch:c });
-                    await b.commit(); Utils.toast("Đã xuất!"); document.getElementById('e-qty').value='';
-                } else Utils.toast("Thiếu tin hoặc chưa chọn lô!", "err");
-            };
-        }, 300);
     }
 };
