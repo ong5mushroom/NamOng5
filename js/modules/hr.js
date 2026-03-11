@@ -84,7 +84,10 @@ window.HR_Action = {
                             const q = query(collection(db, `${ROOT_PATH}/tasks`), where("to", "==", uid), where("time", ">=", start.getTime()));
                             const snap = await getDocs(q);
                             const count = snap.docs.filter(d => d.data().type === 'TASK').length || 1;
-                            const points = Math.round((10 / count) * 10) / 10;
+                            
+                            // FIX: Làm tròn điểm thành số nguyên (Không còn số thập phân)
+                            const points = Math.round(10 / count);
+                            
                             const batch = writeBatch(db);
                             batch.update(doc(db, `${ROOT_PATH}/tasks`, id), { status: 'DONE', note: noteVal });
                             batch.update(doc(db, `${ROOT_PATH}/employees`, uid), { score: increment(points) });
@@ -161,48 +164,28 @@ export const HR = {
             const fSel=document.getElementById('filter-emp'); if(fSel) fSel.onchange=renderList;
             const chkAll=document.getElementById('check-all'); if(chkAll) chkAll.onchange=(e)=>document.querySelectorAll('.ec').forEach(cb=>cb.checked=e.target.checked);
             
-            // Script cho nút chọn tất cả nhà
             const chkAllHouses = document.getElementById('check-all-houses');
             if(chkAllHouses) chkAllHouses.onchange=(e)=>document.querySelectorAll('.hc').forEach(cb=>cb.checked=e.target.checked);
 
-            // LOGIC MỚI: Tách dòng tạo nhiều việc
             const btn=document.getElementById('btn-tsk'); 
             if(btn) btn.onclick=async()=>{
                 const rawTasks = document.getElementById('t-t').value; 
-                // Gộp các tên nhà đã chọn thành chuỗi: "Nhà 1, Nhà 2"
                 const hChecked = document.querySelectorAll('.hc:checked');
                 const areaStr = Array.from(hChecked).map(c => c.value).join(', ') || 'Chung';
-
                 const chk = document.querySelectorAll('.ec:checked'); 
 
                 if(rawTasks.trim() && chk.length) {
-                    // Tách nội dung thành nhiều dòng (Mỗi dòng 1 công việc)
                     const taskLines = rawTasks.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-                    
-                    const batch = writeBatch(db); 
-                    const names = []; 
+                    const batch = writeBatch(db); const names = []; 
                     
                     chk.forEach(c => {
                         names.push(c.getAttribute('data-name'));
-                        // Tạo task cho TỪNG người + TỪNG việc đã tách dòng
                         taskLines.forEach(taskTitle => {
                             const ref = doc(collection(db, `${ROOT_PATH}/tasks`)); 
-                            batch.set(ref, {
-                                title: taskTitle, 
-                                area: areaStr, // Gán danh sách các nhà vào đây
-                                to: c.value, 
-                                by: user.name, 
-                                status: 'PENDING', 
-                                time: Date.now(), 
-                                type: 'TASK'
-                            }); 
+                            batch.set(ref, { title: taskTitle, area: areaStr, to: c.value, by: user.name, status: 'PENDING', time: Date.now(), type: 'TASK' }); 
                         });
                     }); 
-                    
-                    await batch.commit(); 
-                    window.HR_Action.chat(user.name, `📢 Đã giao ${taskLines.length} việc tại (${areaStr}) cho ${names.join(', ')}`, true); 
-                    Utils.toast("Đã giao!"); 
-                    setTimeout(()=>window.location.reload(), 500); 
+                    await batch.commit(); window.HR_Action.chat(user.name, `📢 Đã giao ${taskLines.length} việc tại (${areaStr}) cho ${names.join(', ')}`, true); Utils.toast("Đã giao!"); setTimeout(()=>window.location.reload(), 500); 
                 } else Utils.toast("Nhập thiếu việc hoặc chưa chọn người!","err");
             };
         }, 100);
@@ -228,9 +211,9 @@ export const HR = {
             <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 text-center shadow-sm">
                 <h3 class="font-black text-yellow-600 text-xs uppercase mb-3">🏆 TOP 3 XUẤT SẮC</h3>
                 <div class="flex justify-center items-end gap-2">
-                    ${top3[1] ? `<div class="flex flex-col items-center"><div class="w-8 h-8 rounded-full bg-white border border-slate-300 flex items-center justify-center font-bold text-xs">${top3[1].name.charAt(0)}</div><div class="h-12 w-12 bg-slate-200 rounded-t flex flex-col justify-end pb-1 border-t-2 border-slate-400"><span class="text-[9px] font-bold">${top3[1].score||0}</span><span class="text-xs">🥈</span></div><div class="text-[8px] font-bold mt-1 truncate w-12">${top3[1].name}</div></div>` : ''}
-                    ${top3[0] ? `<div class="flex flex-col items-center z-10"><div class="w-10 h-10 rounded-full bg-yellow-100 border border-yellow-400 flex items-center justify-center font-bold text-sm mb-1">${top3[0].name.charAt(0)}</div><div class="h-16 w-14 bg-yellow-100 rounded-t flex flex-col justify-end pb-1 border-t-4 border-yellow-400 shadow"><span class="text-[10px] font-bold text-yellow-700">${top3[0].score||0}</span><span class="text-sm">🥇</span></div><div class="text-[9px] font-bold text-yellow-700 mt-1 truncate w-14">${top3[0].name}</div></div>` : '<div class="text-xs text-slate-400 italic">Chưa có dữ liệu</div>'}
-                    ${top3[2] ? `<div class="flex flex-col items-center"><div class="w-8 h-8 rounded-full bg-white border border-orange-300 flex items-center justify-center font-bold text-xs">${top3[2].name.charAt(0)}</div><div class="h-10 w-12 bg-orange-100 rounded-t flex flex-col justify-end pb-1 border-t-2 border-orange-400"><span class="text-[9px] font-bold">${top3[2].score||0}</span><span class="text-xs">🥉</span></div><div class="text-[8px] font-bold mt-1 truncate w-12">${top3[2].name}</div></div>` : ''}
+                    ${top3[1] ? `<div class="flex flex-col items-center"><div class="w-8 h-8 rounded-full bg-white border border-slate-300 flex items-center justify-center font-bold text-xs">${top3[1].name.charAt(0)}</div><div class="h-12 w-12 bg-slate-200 rounded-t flex flex-col justify-end pb-1 border-t-2 border-slate-400"><span class="text-[9px] font-bold">${Math.round(top3[1].score||0)}</span><span class="text-xs">🥈</span></div><div class="text-[8px] font-bold mt-1 truncate w-12">${top3[1].name}</div></div>` : ''}
+                    ${top3[0] ? `<div class="flex flex-col items-center z-10"><div class="w-10 h-10 rounded-full bg-yellow-100 border border-yellow-400 flex items-center justify-center font-bold text-sm mb-1">${top3[0].name.charAt(0)}</div><div class="h-16 w-14 bg-yellow-100 rounded-t flex flex-col justify-end pb-1 border-t-4 border-yellow-400 shadow"><span class="text-[10px] font-bold text-yellow-700">${Math.round(top3[0].score||0)}</span><span class="text-sm">🥇</span></div><div class="text-[9px] font-bold text-yellow-700 mt-1 truncate w-14">${top3[0].name}</div></div>` : '<div class="text-xs text-slate-400 italic">Chưa có dữ liệu</div>'}
+                    ${top3[2] ? `<div class="flex flex-col items-center"><div class="w-8 h-8 rounded-full bg-white border border-orange-300 flex items-center justify-center font-bold text-xs">${top3[2].name.charAt(0)}</div><div class="h-10 w-12 bg-orange-100 rounded-t flex flex-col justify-end pb-1 border-t-2 border-orange-400"><span class="text-[9px] font-bold">${Math.round(top3[2].score||0)}</span><span class="text-xs">🥉</span></div><div class="text-[8px] font-bold mt-1 truncate w-12">${top3[2].name}</div></div>` : ''}
                 </div>
             </div>
 
@@ -258,7 +241,7 @@ export const HR = {
                     ${employees.map((e,i) => {
                         const nameEnc = encodeURIComponent(e.name);
                         return `<div id="emp-${e._id}" class="bg-slate-50 p-2 rounded border border-slate-100 flex justify-between items-center opacity-80 hover:opacity-100 transition">
-                            <div class="flex gap-2 items-center"><div class="w-6 h-6 rounded-full bg-white flex items-center justify-center font-bold text-slate-500 text-[10px] border">${e.name.charAt(0)}</div><div><div class="font-bold text-xs text-slate-600">${e.name}</div><div class="text-[9px] text-slate-400">Điểm: <b>${e.score||0}</b></div></div></div>
+                            <div class="flex gap-2 items-center"><div class="w-6 h-6 rounded-full bg-white flex items-center justify-center font-bold text-slate-500 text-[10px] border">${e.name.charAt(0)}</div><div><div class="font-bold text-xs text-slate-600">${e.name}</div><div class="text-[9px] text-slate-400">Điểm: <b><span id="score-${e._id}">${Math.round(e.score||0)}</span></b></div></div></div>
                             <div class="flex gap-1 items-center">
                                 ${isAdmin?`<button onclick="window.HR_Action.score('${e._id}','${nameEnc}',10,'${adminEnc}')" class="text-green-600 font-bold text-xs px-1">+</button><button onclick="window.HR_Action.score('${e._id}','${nameEnc}',-10,'${adminEnc}')" class="text-red-600 font-bold text-xs px-1">-</button><button onclick="window.HR_Action.delEmp('${e._id}', '${nameEnc}')" class="ml-1 text-slate-300 hover:text-red-500"><i class="fas fa-trash-alt text-[10px]"></i></button>`:''}
                             </div>
