@@ -25,19 +25,30 @@ window.SX_Action = {
 export const SX = {
     render: (data, user) => {
         const c = document.getElementById('view-sx'); if(!c || c.classList.contains('hidden')) return;
-        const role = (user.role || '').toLowerCase(); const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => role.includes(r));
+        
+        // Cấp quyền Quản lý Thẻ SX cho Tổ Trưởng
+        const role = (user.role || '').toLowerCase(); 
+        const isManager = ['admin', 'giám đốc', 'quản lý', 'tổ trưởng'].some(r => role.includes(r));
+        
         const houses = (Array.isArray(data.houses) ? data.houses : []).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
         const supplies = Array.isArray(data.supplies) ? data.supplies : [];
         const houseA = houses.find(h => ['nhà a','kho a', 'kho phôi', 'kho tổng', 'nuôi sợi'].some(n => (h.name||'').toLowerCase().includes(n)));
         
+        // Quét cấu trúc dữ liệu Lô mới từ tất cả các giàn
         const racks = Array.isArray(data.nuoisoi_A) ? data.nuoisoi_A : [];
         const stockMapA = {}; let totalStockA = 0;
+        
         racks.forEach(r => {
-            if(r.batch && Number(r.qty) > 0) {
-                const bCode = r.batch.toUpperCase();
-                if(!stockMapA[bCode]) stockMapA[bCode] = 0;
-                stockMapA[bCode] += Number(r.qty); totalStockA += Number(r.qty);
-            }
+            let bMap = r.batches || {};
+            if(r.batch && r.qty) bMap[r.batch] = (bMap[r.batch]||0) + Number(r.qty); 
+            
+            Object.entries(bMap).forEach(([bCode, q]) => {
+                if(q > 0) {
+                    bCode = bCode.toUpperCase();
+                    if(!stockMapA[bCode]) stockMapA[bCode] = 0;
+                    stockMapA[bCode] += Number(q); totalStockA += Number(q);
+                }
+            });
         });
         const availableCodes = Object.keys(stockMapA).sort();
 
@@ -72,7 +83,6 @@ export const SX = {
                     ${exportLogsA.length ? exportLogsA.map(l => {
                         let targetName = 'Không rõ'; let color = 'text-slate-600'; let icon = '';
                         
-                        // Phân biệt màu và Icon dựa theo ký hiệu mã lô (TD-, HUY-, D-)
                         if(l.to === 'HUY' || (l.code && l.code.includes('HUY-'))) { 
                             targetName = 'Hủy bỏ'; color = 'text-red-600 bg-red-50'; icon = '🗑️'; 
                         } else { 
@@ -83,7 +93,6 @@ export const SX = {
                                 color = 'text-green-600 bg-green-50'; icon = '🍄'; 
                             }
                         }
-
                         const canCancel = isManager && l.to !== 'HUY';
 
                         return `
@@ -120,12 +129,10 @@ export const SX = {
                             else if (log.from === h.id) batchMap[log.code] -= Number(log.qty);
                         });
                         
-                        // Đổi màu hiển thị lô Tận dụng (Cam) vs Lô Đạt (Xanh lá)
                         const detailBatches = Object.entries(batchMap).filter(([code, qty]) => qty > 0).map(([code, qty]) => {
                             let textColor = 'text-slate-700 font-bold';
                             if(code.includes('TD-')) textColor = 'text-orange-600 font-black';
                             else if(code.includes('D-')) textColor = 'text-green-700 font-bold';
-                            
                             return `<div class="flex justify-between text-[10px] text-slate-500 border-b border-dashed border-slate-100 py-1"><span class="${textColor}">${code}</span><span class="${textColor}">${qty.toLocaleString()}</span></div>`
                         }).join('');
 
