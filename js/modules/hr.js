@@ -7,13 +7,26 @@ window.HR_Action = {
         if (!name) return;
         const pin = prompt("Mã PIN (4 số):", "1234");
         if (!pin) return;
-        const role = prompt("Chức vụ (admin/quản lý/nhân viên):", "nhân viên");
+        const role = prompt("Chức vụ (admin/quản lý/tổ trưởng/nhân viên):", "nhân viên");
         try {
             await addDoc(collection(db, `${ROOT_PATH}/employees`), { name, pin, role: role.toLowerCase(), score: 0 });
             Utils.toast("✅ Đã thêm (Load lại để thấy)!");
             setTimeout(() => window.location.reload(), 1000); 
         } catch(e) { alert("Lỗi: " + e.message); }
     },
+    
+    // --- TÍNH NĂNG MỚI: ĐỔI CHỨC VỤ ---
+    editEmp: async (id, nameEnc, currentRole) => {
+        const name = decodeURIComponent(nameEnc);
+        const newRole = prompt(`Thay đổi chức vụ cho ${name}:\n(Nhập: admin, giám đốc, quản lý, tổ trưởng, nhân viên, hoặc kế toán)`, currentRole);
+        if(newRole && newRole.trim() !== "") {
+            try {
+                await updateDoc(doc(db, `${ROOT_PATH}/employees`, id), { role: newRole.toLowerCase().trim() });
+                Utils.toast(`✅ Đã thăng chức cho ${name} thành ${newRole.toUpperCase()}!`);
+            } catch(e) { alert("Lỗi: " + e.message); }
+        }
+    },
+
     delEmp: async (id, name) => {
         if(confirm(`⚠️ XÓA VĨNH VIỄN ${name}?`)) {
             const el = document.getElementById(`emp-${id}`); if(el) el.remove();
@@ -85,7 +98,6 @@ window.HR_Action = {
                             const snap = await getDocs(q);
                             const count = snap.docs.filter(d => d.data().type === 'TASK').length || 1;
                             
-                            // FIX: Làm tròn điểm thành số nguyên (Không còn số thập phân)
                             const points = Math.round(10 / count);
                             
                             const batch = writeBatch(db);
@@ -114,12 +126,9 @@ export const HR = {
             ${isAdmin ? `
             <div class="bg-white p-4 rounded-xl shadow-sm border border-blue-100">
                 <h3 class="font-black text-blue-600 text-xs uppercase mb-3">GIAO VIỆC (NHIỀU NGƯỜI, NHIỀU NHÀ, NHIỀU VIỆC)</h3>
-                
                 <textarea id="t-t" placeholder="Nội dung công việc...&#10;(Nếu có nhiều việc, hãy gõ mỗi việc trên 1 dòng)" class="w-full p-2 border rounded mb-2 text-xs" rows="3"></textarea>
-                
                 <div class="mb-3">
                     <input type="date" id="t-date" class="w-full p-2 border rounded text-xs mb-2">
-                    
                     <div class="text-[10px] font-bold text-slate-500 mb-1">Chọn Khu Vực / Nhà:</div>
                     <div class="bg-slate-50 p-2 border rounded max-h-24 overflow-y-auto flex flex-wrap gap-2">
                         <label class="flex items-center gap-1 text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200"><input type="checkbox" id="check-all-houses"> Tất cả</label>
@@ -127,16 +136,13 @@ export const HR = {
                         <label class="flex items-center gap-1 text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200"><input type="checkbox" class="hc" value="Khác"> Khác</label>
                     </div>
                 </div>
-
                 <div class="text-[10px] font-bold text-slate-500 mb-1">Chọn Nhân Viên:</div>
                 <div class="bg-slate-50 p-2 border rounded max-h-32 overflow-y-auto grid grid-cols-2 gap-2 mb-3">
                     <label class="col-span-2 text-xs font-bold"><input type="checkbox" id="check-all"> Tất cả NV</label>
                     ${employees.map(e=>`<label class="flex items-center gap-1 text-xs"><input type="checkbox" class="ec" value="${e._id}" data-name="${e.name}"> ${e.name}</label>`).join('')}
                 </div>
-                
                 <button id="btn-tsk" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold">GIAO VIỆC NGAY</button>
             </div>` : ''}
-            
             <div><div class="flex justify-between items-center mb-2 px-1"><h2 class="font-black text-xs uppercase">NHẬT KÝ</h2><select id="filter-emp" class="text-[10px] border rounded p-1"><option value="ALL">Tất cả</option>${employees.map(e=>`<option value="${e._id}">${e.name}</option>`).join('')}</select></div><div id="lst" class="space-y-2"></div></div>
         </div>`;
 
@@ -163,9 +169,7 @@ export const HR = {
             renderList(); const dIn=document.getElementById('t-date'); if(dIn) dIn.valueAsDate=new Date();
             const fSel=document.getElementById('filter-emp'); if(fSel) fSel.onchange=renderList;
             const chkAll=document.getElementById('check-all'); if(chkAll) chkAll.onchange=(e)=>document.querySelectorAll('.ec').forEach(cb=>cb.checked=e.target.checked);
-            
-            const chkAllHouses = document.getElementById('check-all-houses');
-            if(chkAllHouses) chkAllHouses.onchange=(e)=>document.querySelectorAll('.hc').forEach(cb=>cb.checked=e.target.checked);
+            const chkAllHouses = document.getElementById('check-all-houses'); if(chkAllHouses) chkAllHouses.onchange=(e)=>document.querySelectorAll('.hc').forEach(cb=>cb.checked=e.target.checked);
 
             const btn=document.getElementById('btn-tsk'); 
             if(btn) btn.onclick=async()=>{
@@ -177,7 +181,6 @@ export const HR = {
                 if(rawTasks.trim() && chk.length) {
                     const taskLines = rawTasks.split('\n').map(line => line.trim()).filter(line => line.length > 0);
                     const batch = writeBatch(db); const names = []; 
-                    
                     chk.forEach(c => {
                         names.push(c.getAttribute('data-name'));
                         taskLines.forEach(taskTitle => {
@@ -241,9 +244,20 @@ export const HR = {
                     ${employees.map((e,i) => {
                         const nameEnc = encodeURIComponent(e.name);
                         return `<div id="emp-${e._id}" class="bg-slate-50 p-2 rounded border border-slate-100 flex justify-between items-center opacity-80 hover:opacity-100 transition">
-                            <div class="flex gap-2 items-center"><div class="w-6 h-6 rounded-full bg-white flex items-center justify-center font-bold text-slate-500 text-[10px] border">${e.name.charAt(0)}</div><div><div class="font-bold text-xs text-slate-600">${e.name}</div><div class="text-[9px] text-slate-400">Điểm: <b><span id="score-${e._id}">${Math.round(e.score||0)}</span></b></div></div></div>
-                            <div class="flex gap-1 items-center">
-                                ${isAdmin?`<button onclick="window.HR_Action.score('${e._id}','${nameEnc}',10,'${adminEnc}')" class="text-green-600 font-bold text-xs px-1">+</button><button onclick="window.HR_Action.score('${e._id}','${nameEnc}',-10,'${adminEnc}')" class="text-red-600 font-bold text-xs px-1">-</button><button onclick="window.HR_Action.delEmp('${e._id}', '${nameEnc}')" class="ml-1 text-slate-300 hover:text-red-500"><i class="fas fa-trash-alt text-[10px]"></i></button>`:''}
+                            <div class="flex gap-2 items-center">
+                                <div class="w-6 h-6 rounded-full bg-white flex items-center justify-center font-bold text-slate-500 text-[10px] border">${e.name.charAt(0)}</div>
+                                <div>
+                                    <div class="font-bold text-xs text-slate-600 flex items-center gap-1">${e.name} <span class="text-[8px] font-normal text-white bg-slate-400 px-1 rounded-sm">${(e.role || 'nhân viên').toUpperCase()}</span></div>
+                                    <div class="text-[9px] text-slate-400">Điểm: <b><span id="score-${e._id}">${Math.round(e.score||0)}</span></b></div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 items-center">
+                                ${isAdmin?`
+                                <button onclick="window.HR_Action.score('${e._id}','${nameEnc}',10,'${adminEnc}')" class="text-green-600 hover:bg-green-100 w-5 h-5 rounded flex items-center justify-center font-black text-xs">+</button>
+                                <button onclick="window.HR_Action.score('${e._id}','${nameEnc}',-10,'${adminEnc}')" class="text-red-600 hover:bg-red-100 w-5 h-5 rounded flex items-center justify-center font-black text-xs">-</button>
+                                <button onclick="window.HR_Action.editEmp('${e._id}', '${nameEnc}', '${e.role || 'nhân viên'}')" class="text-slate-400 hover:text-blue-500 ml-1" title="Đổi chức vụ"><i class="fas fa-pen text-[10px]"></i></button>
+                                <button onclick="window.HR_Action.delEmp('${e._id}', '${nameEnc}')" class="text-slate-300 hover:text-red-500 ml-1"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                `:''}
                             </div>
                         </div>`;
                     }).join('')}
