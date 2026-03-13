@@ -57,6 +57,21 @@ const exportReport = async (reportType) => {
                 const date = new Date(d.time || Date.now());
                 csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by||d.to||''), toCSV(d.area||''), toCSV(d.title||''), toCSV(d.status||''), toCSV(d.note||''), toCSV(d.status==='DONE'?'Cộng':'')].join(';') + "\n";
             });
+        } else if (reportType === 'NUOI_SOI') {
+            // --- TÍNH NĂNG MỚI: BÁO CÁO TỒN KHO KHU NUÔI SỢI ---
+            fileName = `BaoCao_TonKho_NuoiSoi_${timeFileName}.csv`;
+            csv += "Giàn;Mã Lô;Số Lượng Đang Tồn\n";
+            const snap = await getDocs(collection(db, `${ROOT_PATH}/nuoisoi_A`));
+            let dataList = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            dataList.sort((a,b) => a.id.localeCompare(b.id, 'en', {numeric: true}));
+            
+            dataList.forEach(d => {
+                let bMap = d.batches || {};
+                if(d.batch && d.qty) bMap[d.batch] = (bMap[d.batch]||0) + Number(d.qty); // Kéo dữ liệu cũ
+                Object.entries(bMap).forEach(([code, q]) => {
+                    if(q > 0) csv += [toCSV(d.id), toCSV(code), toCSV(q)].join(';') + "\n";
+                });
+            });
         }
 
         const link = document.createElement("a");
@@ -78,7 +93,6 @@ const App = {
         
         const navBar = document.querySelector('nav .flex');
         if(navBar && !document.querySelector('[data-tab="nuoisoi"]')) {
-            // Mặc định ẩn nút Nuôi sợi (display: none)
             const nsBtnHTML = `<button class="nav-btn flex-1 flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-600 transition" data-tab="nuoisoi" style="display: none;"><i class="fas fa-boxes text-lg mb-0.5"></i><span class="text-[9px] font-bold">Nuôi Sợi</span></button>`;
             const teamBtn = document.querySelector('[data-tab="team"]');
             if(teamBtn) teamBtn.insertAdjacentHTML('beforebegin', nsBtnHTML);
@@ -152,11 +166,10 @@ const App = {
         els.headerUser.innerText = currentUser.name;
         els.headerRole.innerText = (currentUser.role || 'Nhân viên').toUpperCase();
         
-        // KIỂM TRA QUYỀN VÀ HIỂN THỊ CÁC CHỨC NĂNG BÍ MẬT
-        const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => (currentUser.role || '').toLowerCase().includes(r));
+        // KIỂM TRA QUYỀN VÀ HIỂN THỊ CHỨC NĂNG BÍ MẬT (Thêm "Tổ trưởng")
+        const isManager = ['admin', 'giám đốc', 'quản lý', 'tổ trưởng'].some(r => (currentUser.role || '').toLowerCase().includes(r));
         if(isManager && els.btnSettings) els.btnSettings.classList.remove('hidden');
         
-        // Hiện thẻ Nuôi sợi nếu là quản lý
         const nsBtn = document.querySelector('[data-tab="nuoisoi"]');
         if(nsBtn) {
             nsBtn.style.display = isManager ? 'flex' : 'none';
@@ -181,15 +194,16 @@ const App = {
         els.loginBtn.onclick = App.login;
         if(els.btnSettings) {
             els.btnSettings.onclick = () => {
-                const isBoss = ['admin','quản lý','giám đốc','kế toán'].some(r => (currentUser?.role||'').toLowerCase().includes(r));
+                const isBoss = ['admin','quản lý','giám đốc','tổ trưởng','kế toán'].some(r => (currentUser?.role||'').toLowerCase().includes(r));
                 let html = `<div class="space-y-3">`;
                 if(isBoss) {
                     html += `<div class="text-[10px] font-bold text-slate-400 uppercase text-center mb-1">BÁO CÁO (EXCEL)</div>
                     <div class="grid grid-cols-1 gap-2">
-                        <button id="rp-1" class="p-3 bg-purple-50 text-purple-700 rounded-lg font-bold text-xs border border-purple-200 flex items-center gap-2"><i class="fas fa-box"></i> 1. Kho Phôi</button>
-                        <button id="rp-2" class="p-3 bg-green-50 text-green-700 rounded-lg font-bold text-xs border border-green-200 flex items-center gap-2"><i class="fas fa-leaf"></i> 2. Nấm Tươi & Bán</button>
-                        <button id="rp-3" class="p-3 bg-blue-50 text-blue-700 rounded-lg font-bold text-xs border border-blue-200 flex items-center gap-2"><i class="fas fa-calendar-check"></i> 3. Chấm Công</button>
-                        <button id="rp-4" class="p-3 bg-orange-50 text-orange-700 rounded-lg font-bold text-xs border border-orange-200 flex items-center gap-2"><i class="fas fa-clipboard-list"></i> 4. Công Việc Chung</button>
+                        <button id="rp-1" class="p-3 bg-purple-50 text-purple-700 rounded-lg font-bold text-xs border border-purple-200 flex items-center gap-2"><i class="fas fa-box"></i> 1. Kho Phôi Chung</button>
+                        <button id="rp-5" class="p-3 bg-cyan-50 text-cyan-700 rounded-lg font-bold text-xs border border-cyan-200 flex items-center gap-2"><i class="fas fa-boxes"></i> 2. Kho Khu Nuôi Sợi</button>
+                        <button id="rp-2" class="p-3 bg-green-50 text-green-700 rounded-lg font-bold text-xs border border-green-200 flex items-center gap-2"><i class="fas fa-leaf"></i> 3. Nấm Tươi & Bán</button>
+                        <button id="rp-3" class="p-3 bg-blue-50 text-blue-700 rounded-lg font-bold text-xs border border-blue-200 flex items-center gap-2"><i class="fas fa-calendar-check"></i> 4. Chấm Công</button>
+                        <button id="rp-4" class="p-3 bg-orange-50 text-orange-700 rounded-lg font-bold text-xs border border-orange-200 flex items-center gap-2"><i class="fas fa-clipboard-list"></i> 5. Công Việc Chung</button>
                     </div><hr class="border-dashed my-2">`;
                 }
                 html += `<button id="btn-logout" class="w-full p-3 bg-red-50 text-red-600 rounded-lg font-bold text-xs flex items-center justify-center gap-2">ĐĂNG XUẤT</button></div>`;
@@ -197,6 +211,7 @@ const App = {
                 setTimeout(() => {
                     if(isBoss) {
                         document.getElementById('rp-1').onclick = () => exportReport('PHOI');
+                        document.getElementById('rp-5').onclick = () => exportReport('NUOI_SOI');
                         document.getElementById('rp-2').onclick = () => exportReport('NAM_TUOI');
                         document.getElementById('rp-3').onclick = () => exportReport('CHAM_CONG');
                         document.getElementById('rp-4').onclick = () => exportReport('CONG_VIEC');
