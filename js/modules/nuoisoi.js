@@ -2,26 +2,78 @@ import { doc, collection, db, ROOT_PATH, writeBatch, increment } from '../config
 import { Utils } from '../utils.js';
 
 window.NuoiSoi_Action = {
+    // TÍNH NĂNG MỚI 1: GOM MÃ TỪ CÁC GIÀN KHÁC VỀ 1 GIÀN
+    merge: async (targetRackId, batchCode) => {
+        if(!confirm(`⚠️ GOM MÃ LÔ: "${batchCode}"\nHệ thống sẽ quét và hút toàn bộ phôi mã này từ các giàn khác về giàn ${targetRackId}. Bạn có chắc chắn?`)) return;
+        
+        const allRacks = window._tempNuoiSoiData || [];
+        let totalToAdd = 0;
+        const batchDb = writeBatch(db);
+        let foundOther = false;
+
+        allRacks.forEach(r => {
+            if(r.id !== targetRackId) {
+                let bMap = r.batches || {};
+                if (r.batch && r.qty) bMap[r.batch] = (bMap[r.batch]||0) + Number(r.qty); // Xử lý dữ liệu cũ
+                
+                if(bMap[batchCode] && bMap[batchCode] > 0) {
+                    foundOther = true;
+                    totalToAdd += bMap[batchCode];
+                    delete bMap[batchCode]; // Trừ sạch mã này khỏi giàn cũ
+                    
+                    let extra = { batches: bMap, time: Date.now() };
+                    if (r.batch === batchCode) { extra.batch = ''; extra.qty = 0; }
+                    batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, r.id), extra, { merge: true });
+                }
+            }
+        });
+
+        if(foundOther) {
+            let targetRack = allRacks.find(r => r.id === targetRackId) || { batches: {} };
+            let tMap = targetRack.batches || {};
+            if (targetRack.batch && targetRack.qty) tMap[targetRack.batch] = (tMap[targetRack.batch]||0) + Number(targetRack.qty);
+            
+            tMap[batchCode] = (tMap[batchCode] || 0) + totalToAdd; // Cộng dồn về giàn hiện tại
+            batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, targetRackId), { batches: tMap, batch: '', qty: 0, time: Date.now() }, { merge: true });
+            
+            await batchDb.commit();
+            Utils.modal(null);
+            Utils.toast(`✅ Đã gom thêm ${totalToAdd} bịch phôi về giàn ${targetRackId}!`);
+        } else {
+            Utils.toast(`Không có giàn nào khác chứa mã ${batchCode} để gom.`, "info");
+        }
+    },
+
+    // TÍNH NĂNG MỚI 2: XÓA SẠCH GIÀN
+    clearRack: async (id) => {
+        if(!confirm(`⚠️ BẠN CHẮC CHẮN MUỐN XÓA SẠCH GIÀN ${id}?\nToàn bộ phôi trên giàn này sẽ bị xóa khỏi hệ thống.`)) return;
+        const batchDb = writeBatch(db);
+        batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: {}, batch: '', qty: 0, time: Date.now() }, { merge: true });
+        await batchDb.commit();
+        Utils.modal(null);
+        Utils.toast(`✅ Đã dọn sạch giàn ${id}!`);
+    },
+
     edit: (id, rackDataStr, userName) => {
-        // Giải mã dữ liệu Giàn để lấy Danh sách các lô (batches)
         let rack = JSON.parse(decodeURIComponent(rackDataStr));
         let batches = rack.batches || {};
-        
-        // Hỗ trợ chuyển đổi dữ liệu cũ đang lưu 1 mã
         if(rack.batch && rack.qty) batches[rack.batch] = (batches[rack.batch]||0) + Number(rack.qty);
 
-        // Tạo giao diện List Lô
         const batchKeys = Object.keys(batches).filter(k => batches[k] > 0);
         let firstBatchQty = batchKeys.length ? batches[batchKeys[0]] : 0;
 
         let listHtml = batchKeys.length ? batchKeys.map(k => `
-            <div class="flex justify-between items-center text-xs bg-white p-2 mb-1 border border-slate-100 rounded shadow-sm">
-                <span class="font-bold text-slate-700">${k}</span>
-                <span class="font-black text-blue-600 bg-blue-50 px-2 rounded">${batches[k].toLocaleString()} bịch</span>
+            <div class="flex flex-col gap-1 bg-white p-2 mb-2 border border-slate-200 rounded shadow-sm">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-bold text-slate-700">${k}</span>
+                    <span class="font-black text-blue-600 bg-blue-50 px-2 rounded">${batches[k].toLocaleString()} bịch</span>
+                </div>
+                <div class="flex justify-end border-t border-slate-50 pt-1.5 mt-0.5">
+                    <button onclick="window.NuoiSoi_Action.merge('${id}', '${k}')" class="text-[9px] bg-indigo-50 text-indigo-700 font-bold px-2 py-1.5 rounded hover:bg-indigo-100 flex items-center gap-1 shadow-sm"><i class="fas fa-magnet"></i> Gom các giàn khác về đây</button>
+                </div>
             </div>
         `).join('') : '<div class="text-[10px] text-center text-slate-400 py-2 italic">Giàn đang trống, chưa có lô nào!</div>';
 
-        // Dropdown cho mục Xuất kho
         let selectHtml = batchKeys.length ? batchKeys.map(k => `<option value="${k}" data-qty="${batches[k]}">Lô: ${k}</option>`).join('') : '<option value="">-- Trống --</option>';
 
         const houses = window._tempHouses || [];
@@ -29,14 +81,14 @@ window.NuoiSoi_Action = {
 
         Utils.modal(`THAO TÁC GIÀN ${id}`, `
             <div class="flex gap-1 bg-slate-100 p-1 rounded-lg mb-3">
-                <button id="btn-tab-nhap" class="flex-1 py-2 text-xs font-bold bg-white text-blue-600 rounded shadow-sm transition">XẾP PHÔI VÀO GIÀN</button>
+                <button id="btn-tab-nhap" class="flex-1 py-2 text-xs font-bold bg-white text-blue-600 rounded shadow-sm transition">QUẢN LÝ GIÀN</button>
                 <button id="btn-tab-xuat" class="flex-1 py-2 text-xs font-bold text-slate-500 rounded transition">LỌC & XUẤT PHÔI</button>
             </div>
 
             <div id="tab-nhap" class="space-y-3 animate-fade-in">
                 <div class="bg-slate-50 p-2 rounded-xl border border-slate-200">
                     <div class="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wide">📦 Các lô đang có trên giàn:</div>
-                    <div class="max-h-24 overflow-y-auto pr-1">${listHtml}</div>
+                    <div class="max-h-36 overflow-y-auto pr-1">${listHtml}</div>
                 </div>
                 
                 <div class="border-t border-dashed border-slate-300 pt-3">
@@ -47,6 +99,8 @@ window.NuoiSoi_Action = {
                     </div>
                     <button id="btn-save-nhap" class="w-full py-2.5 bg-blue-600 active:bg-blue-700 text-white font-bold rounded-lg mt-2 shadow-md flex justify-center items-center gap-2"><i class="fas fa-plus-circle"></i> CỘNG VÀO GIÀN NÀY</button>
                 </div>
+
+                <button onclick="window.NuoiSoi_Action.clearRack('${id}')" class="w-full py-2 bg-red-50 text-red-600 font-bold rounded-lg mt-2 border border-red-200 flex justify-center items-center gap-2 transition hover:bg-red-100"><i class="fas fa-trash-alt"></i> XÓA SẠCH GIÀN NÀY</button>
             </div>
 
             <div id="tab-xuat" class="hidden space-y-3 animate-fade-in">
@@ -94,7 +148,6 @@ window.NuoiSoi_Action = {
             btnTNhap.onclick = () => { tabNhap.classList.remove('hidden'); tabXuat.classList.add('hidden'); btnTNhap.className = "flex-1 py-2 text-xs font-bold bg-white text-blue-600 rounded shadow-sm transition"; btnTXuat.className = "flex-1 py-2 text-xs font-bold text-slate-500 rounded transition"; };
             btnTXuat.onclick = () => { tabXuat.classList.remove('hidden'); tabNhap.classList.add('hidden'); btnTXuat.className = "flex-1 py-2 text-xs font-bold bg-white text-blue-600 rounded shadow-sm transition"; btnTNhap.className = "flex-1 py-2 text-xs font-bold text-slate-500 rounded transition"; };
 
-            // Nút Thêm lô vào giàn
             document.getElementById('btn-save-nhap').onclick = async () => {
                 const b = document.getElementById('ns-add-batch').value.toUpperCase().trim(); 
                 const q = Number(document.getElementById('ns-add-qty').value);
@@ -107,7 +160,6 @@ window.NuoiSoi_Action = {
                 Utils.modal(null); Utils.toast("✅ Đã xếp phôi lên giàn!");
             };
 
-            // Nút Xuất lô
             document.getElementById('btn-save-xuat').onclick = async () => {
                 const sourceBatch = document.getElementById('ns-x-source').value;
                 if(!sourceBatch) return Utils.toast("Chưa chọn Mã Lô để xuất!", "err");
@@ -125,7 +177,6 @@ window.NuoiSoi_Action = {
                 const batchDb = writeBatch(db);
                 const houseAId = houseA?.id || 'KHO_TONG';
 
-                // Trừ số lượng lô trên giàn, nếu hết thì xóa khỏi danh sách
                 batches[sourceBatch] -= totalExport;
                 if(batches[sourceBatch] <= 0) delete batches[sourceBatch];
                 batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 }, { merge: true });
@@ -160,7 +211,6 @@ export const NuoiSoi = {
     render: (data, user) => {
         const c = document.getElementById('view-nuoisoi'); if(!c || c.classList.contains('hidden')) return;
         
-        // Mở quyền cho Tổ Trưởng
         const role = (user.role || '').toLowerCase(); 
         const isManager = ['admin', 'giám đốc', 'quản lý', 'tổ trưởng'].some(r => role.includes(r));
         if(!isManager) { c.innerHTML = '<div class="p-10 text-center text-red-500 font-bold">Bạn không có quyền xem khu vực này.</div>'; return; }
@@ -169,6 +219,8 @@ export const NuoiSoi = {
         window._tempHouseA = window._tempHouses.find(h => ['nhà a','kho a', 'kho phôi', 'kho tổng', 'nuôi sợi'].some(n => (h.name||'').toLowerCase().includes(n)));
 
         const racks = Array.isArray(data.nuoisoi_A) ? data.nuoisoi_A : [];
+        window._tempNuoiSoiData = racks; // Lưu dữ liệu tạm để phục vụ hàm merge
+
         const getRack = (id) => racks.find(r => r.id === id) || { batches: {} };
 
         let grid = `<div class="grid grid-cols-[1fr_50px_1fr] gap-y-1.5 gap-x-2 bg-slate-50 p-2 rounded-xl border border-slate-200 relative overflow-hidden"><div class="bg-blue-100 text-blue-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-blue-200" style="grid-column: 1; grid-row: 1;">Hệ quạt</div><div class="bg-blue-100 text-blue-700 text-center text-[10px] font-bold py-2 rounded shadow-sm border border-blue-200" style="grid-column: 3; grid-row: 1;">Hệ quạt</div><div class="flex items-center justify-center bg-stone-300 border-x-2 border-stone-400 shadow-inner relative" style="grid-column: 2; grid-row: 1 / span 27;"><div class="absolute inset-0 w-0.5 border-l-2 border-dashed border-white mx-auto opacity-70"></div><span class="rotate-90 text-stone-600 font-black tracking-widest text-[10px] whitespace-nowrap z-10 bg-stone-300 px-3 py-1 rounded-full border border-stone-400/50 shadow-sm">LỐI ĐI XE NỘI BỘ</span></div>`;
@@ -179,18 +231,35 @@ export const NuoiSoi = {
             
             const renderCell = (id, rack, col, row) => {
                 let bMap = rack.batches || {};
-                if(rack.batch && rack.qty) bMap[rack.batch] = (bMap[rack.batch]||0) + Number(rack.qty); // Hỗ trợ data cũ
+                if(rack.batch && rack.qty) bMap[rack.batch] = (bMap[rack.batch]||0) + Number(rack.qty); 
 
                 let totalQ = 0; let codes = [];
                 Object.entries(bMap).forEach(([c, q]) => { if(q > 0) { totalQ += q; codes.push(c); } });
                 
                 const hasData = totalQ > 0;
+                const isReady = totalQ >= 1000; // TÍNH NĂNG ĐỔI MÀU: Số lượng >= 1000 thì Đổi màu Tím đậm
                 const displayCode = codes.length > 1 ? `${codes.length} Lô phôi` : (codes[0] || 'Trống');
                 
-                // Đóng gói mảng batches để gửi sang Form Edit
+                // Khởi tạo Class CSS dựa theo trạng thái Giàn
+                let cellClass = 'border-slate-200';
+                let badgeHtml = '<span class="text-[8px] text-slate-300">Trống</span>';
+                let qtyHtml = '<span class="text-slate-300">--</span>';
+
+                if(hasData) {
+                    if(isReady) {
+                        cellClass = 'border-purple-500 shadow-md bg-purple-50';
+                        badgeHtml = `<span class="text-[8px] bg-purple-200 text-purple-800 px-1 rounded font-bold truncate max-w-[65px]">${displayCode}</span>`;
+                        qtyHtml = `<span class="text-purple-700 font-black">${totalQ.toLocaleString()}</span>`;
+                    } else {
+                        cellClass = 'border-blue-400 shadow-md bg-blue-50/30';
+                        badgeHtml = `<span class="text-[8px] bg-green-100 text-green-700 px-1 rounded font-bold truncate max-w-[65px]">${displayCode}</span>`;
+                        qtyHtml = `<span class="text-blue-600 font-black">${totalQ.toLocaleString()}</span>`;
+                    }
+                }
+
                 const rackDataStr = encodeURIComponent(JSON.stringify({ batches: bMap }));
 
-                return `<div style="grid-column: ${col}; grid-row: ${row};" onclick="window.NuoiSoi_Action.edit('${id}', '${rackDataStr}', '${user.name}')" class="bg-white border ${hasData ? 'border-blue-400 shadow-md bg-blue-50/30' : 'border-slate-200'} p-1.5 rounded cursor-pointer active:scale-95 transition flex flex-col justify-center min-h-[45px] hover:border-blue-400"><div class="flex justify-between items-center border-b border-slate-100 pb-0.5 mb-1"><span class="text-[10px] font-black text-slate-700">Giàn ${id}</span>${hasData ? `<span class="text-[8px] bg-green-100 text-green-700 px-1 rounded font-bold truncate max-w-[65px]">${displayCode}</span>` : '<span class="text-[8px] text-slate-300">Trống</span>'}</div><div class="text-[10px] text-slate-500 font-bold">SL: <span class="${hasData ? 'text-blue-600 font-black' : 'text-slate-300'}">${totalQ || '--'}</span></div></div>`;
+                return `<div style="grid-column: ${col}; grid-row: ${row};" onclick="window.NuoiSoi_Action.edit('${id}', '${rackDataStr}', '${user.name}')" class="bg-white border ${cellClass} p-1.5 rounded cursor-pointer active:scale-95 transition flex flex-col justify-center min-h-[45px] hover:border-purple-400"><div class="flex justify-between items-center border-b border-slate-100 pb-0.5 mb-1"><span class="text-[10px] font-black text-slate-700">Giàn ${id}</span>${badgeHtml}</div><div class="text-[10px] text-slate-500 font-bold">SL: ${qtyHtml}</div></div>`;
             };
             grid += renderCell(bId, bData, 1, currentRow); grid += renderCell(aId, aData, 3, currentRow); 
         }
