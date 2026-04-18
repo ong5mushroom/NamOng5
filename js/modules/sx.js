@@ -52,7 +52,8 @@ export const SX = {
         });
         const availableCodes = Object.keys(stockMapA).sort();
 
-        const exportLogsA = supplies.filter(s => houseA && s.from === houseA.id).sort((a,b)=>b.time-a.time).slice(0, 20);
+        // LỌC CẢ LOG NHẬP VÀ XUẤT CỦA NHÀ A
+        const logsA = supplies.filter(s => houseA && (s.from === houseA.id || s.to === houseA.id)).sort((a,b)=>b.time-a.time).slice(0, 30);
 
         c.innerHTML = `
         <div class="space-y-6 pb-24">
@@ -74,16 +75,19 @@ export const SX = {
                         ${availableCodes.length ? availableCodes.map(code => `<div class="flex justify-between text-xs py-1 border-b border-slate-50"><span class="font-bold text-slate-700">${code}</span><span class="text-blue-600 font-black">${stockMapA[code].toLocaleString()}</span></div>`).join('') : '<div class="text-xs text-slate-400 italic text-center py-4">Các giàn đang trống</div>'}
                     </div>
                     <div class="mt-2 pt-2 border-t border-slate-100 text-[10px] text-blue-600 bg-blue-50/50 p-2 rounded italic text-center font-bold">
-                        👉 ĐỂ XUẤT LÊN NHÀ TRỒNG HOẶC LỌC HƯ HỎNG: <br>Hãy qua thẻ NUÔI SỢI và bấm trực tiếp vào Giàn.
+                        👉 ĐỂ NHẬP / XUẤT LÊN NHÀ TRỒNG HOẶC LỌC HƯ HỎNG: <br>Hãy qua thẻ NUÔI SỢI và bấm trực tiếp vào Giàn.
                     </div>
                 </div>
 
-                <div class="text-[10px] font-bold text-slate-400 mb-1 uppercase pl-1">Lịch sử xuất / lọc phôi gần đây</div>
+                <div class="text-[10px] font-bold text-slate-400 mb-1 uppercase pl-1">Nhật ký Nhập/Xuất phôi gần đây</div>
                 <div class="max-h-48 overflow-y-auto space-y-1.5 bg-white/60 p-1.5 rounded-lg border border-blue-50">
-                    ${exportLogsA.length ? exportLogsA.map(l => {
+                    ${logsA.length ? logsA.map(l => {
                         let targetName = 'Không rõ'; let color = 'text-slate-600'; let icon = '';
-                        
-                        if(l.to === 'HUY' || (l.code && l.code.includes('HUY-'))) { 
+                        const isImport = l.type === 'IMPORT';
+
+                        if(isImport) {
+                            targetName = `Nhập lên ${l.note || 'giàn'}`; color = 'text-purple-600 bg-purple-50'; icon = '📥';
+                        } else if(l.to === 'HUY' || (l.code && l.code.includes('HUY-'))) { 
                             targetName = 'Hủy bỏ'; color = 'text-red-600 bg-red-50'; icon = '🗑️'; 
                         } else { 
                             targetName = houses.find(h => h.id === l.to)?.name || l.to; 
@@ -93,16 +97,20 @@ export const SX = {
                                 color = 'text-green-600 bg-green-50'; icon = '🍄'; 
                             }
                         }
-                        const canCancel = isManager && l.to !== 'HUY';
+
+                        const canCancel = isManager && !isImport && l.to !== 'HUY';
 
                         return `
                         <div class="flex justify-between items-center text-[10px] p-2.5 bg-white rounded-lg border border-slate-100 shadow-sm">
                             <div>
-                                <span class="font-bold text-slate-700 block text-xs mb-0.5">Mã: <span class="text-blue-600">${l.code||'--'}</span> ➔ <span class="font-black ${color} px-1 rounded">${icon} ${targetName}</span></span>
-                                <span class="text-slate-400">Bởi: ${l.user||'--'} • ${new Date(l.time).toLocaleString('vi-VN')}</span>
+                                <span class="font-bold text-slate-700 block text-xs mb-0.5">
+                                    ${isImport ? `<span class="font-black ${color} px-1 rounded mr-1">${icon} NHẬP MỚI</span> Mã: <span class="text-blue-600">${l.code||'--'}</span>` 
+                                               : `Mã: <span class="text-blue-600">${l.code||'--'}</span> ➔ <span class="font-black ${color} px-1 rounded">${icon} ${targetName}</span>`}
+                                </span>
+                                <span class="text-slate-400">Bởi: ${l.user||'--'} • ${new Date(l.time).toLocaleString('vi-VN')} ${l.note && !isImport ? `(${l.note})` : ''}</span>
                             </div>
                             <div class="text-right">
-                                <span class="block font-black text-lg ${color.split(' ')[0]}">${Number(l.qty).toLocaleString()}</span>
+                                <span class="block font-black text-lg ${color.split(' ')[0]}">${isImport ? '+' : '-'}${Number(l.qty).toLocaleString()}</span>
                                 ${canCancel ? `<button onclick="window.SX_Action.delLog('${l._id}', ${-l.qty}, '${l.to}')" class="text-slate-400 hover:text-red-600 text-[9px] underline font-bold mt-1 block">Hủy lệnh</button>` : ''}
                             </div>
                         </div>`;
