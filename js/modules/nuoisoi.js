@@ -148,6 +148,7 @@ window.NuoiSoi_Action = {
             btnTNhap.onclick = () => { tabNhap.classList.remove('hidden'); tabXuat.classList.add('hidden'); btnTNhap.className = "flex-1 py-2 text-xs font-bold bg-white text-blue-600 rounded shadow-sm transition"; btnTXuat.className = "flex-1 py-2 text-xs font-bold text-slate-500 rounded transition"; };
             btnTXuat.onclick = () => { tabXuat.classList.remove('hidden'); tabNhap.classList.add('hidden'); btnTXuat.className = "flex-1 py-2 text-xs font-bold bg-white text-blue-600 rounded shadow-sm transition"; btnTNhap.className = "flex-1 py-2 text-xs font-bold text-slate-500 rounded transition"; };
 
+            // --- CHỈ SỬA Ở ĐOẠN NÀY: THÊM LỆNH GHI SỔ NHẬT KÝ NHẬP (supplies) ---
             document.getElementById('btn-save-nhap').onclick = async () => {
                 const b = document.getElementById('ns-add-batch').value.toUpperCase().trim(); 
                 const q = Number(document.getElementById('ns-add-qty').value);
@@ -156,9 +157,23 @@ window.NuoiSoi_Action = {
                 batches[b] = (batches[b] || 0) + q;
                 const batchDb = writeBatch(db); 
                 batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 }, { merge: true });
+                
+                // Lệnh ghi sổ nhật ký:
+                const houseAId = houseA?.id || 'KHO_TONG';
+                batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { 
+                    type: 'IMPORT', 
+                    to: houseAId, 
+                    code: b, 
+                    qty: q, 
+                    user: userName, 
+                    time: Date.now(),
+                    note: `Nhập lên Giàn ${id}` 
+                });
+
                 await batchDb.commit(); 
-                Utils.modal(null); Utils.toast("✅ Đã xếp phôi lên giàn!");
+                Utils.modal(null); Utils.toast("✅ Đã xếp phôi lên giàn & Ghi sổ!");
             };
+            // --- KẾT THÚC CHỖ SỬA ---
 
             document.getElementById('btn-save-xuat').onclick = async () => {
                 const sourceBatch = document.getElementById('ns-x-source').value;
