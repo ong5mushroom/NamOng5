@@ -58,7 +58,6 @@ const exportReport = async (reportType) => {
                 csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by||d.to||''), toCSV(d.area||''), toCSV(d.title||''), toCSV(d.status||''), toCSV(d.note||''), toCSV(d.status==='DONE'?'Cộng':'')].join(';') + "\n";
             });
         } else if (reportType === 'NUOI_SOI') {
-            // --- TÍNH NĂNG MỚI: BÁO CÁO TỒN KHO KHU NUÔI SỢI ---
             fileName = `BaoCao_TonKho_NuoiSoi_${timeFileName}.csv`;
             csv += "Giàn;Mã Lô;Số Lượng Đang Tồn\n";
             const snap = await getDocs(collection(db, `${ROOT_PATH}/nuoisoi_A`));
@@ -67,7 +66,7 @@ const exportReport = async (reportType) => {
             
             dataList.forEach(d => {
                 let bMap = d.batches || {};
-                if(d.batch && d.qty) bMap[d.batch] = (bMap[d.batch]||0) + Number(d.qty); // Kéo dữ liệu cũ
+                if(d.batch && d.qty) bMap[d.batch] = (bMap[d.batch]||0) + Number(d.qty); 
                 Object.entries(bMap).forEach(([code, q]) => {
                     if(q > 0) csv += [toCSV(d.id), toCSV(code), toCSV(q)].join(';') + "\n";
                 });
@@ -130,7 +129,22 @@ const App = {
             onSnapshot(collection(db, `${ROOT_PATH}/${tbl}`), (snap) => {
                 snap.docChanges().forEach((change) => {
                     if (change.type === "added" && !snap.metadata.hasPendingWrites) {
-                        if(tbl === 'tasks' || tbl === 'chat') Utils.notifySound(); 
+                        if(tbl === 'tasks' || tbl === 'chat') {
+                            Utils.notifySound(); 
+                            
+                            // --- THÊM LOGIC ĐẨY THÔNG BÁO VỀ ĐIỆN THOẠI Ở ĐÂY ---
+                            // Kiểm tra an toàn: Trình duyệt có hỗ trợ Notification và đã cấp quyền chưa
+                            if (window.Notification && Notification.permission === "granted") {
+                                const d = change.doc.data();
+                                // Chỉ báo chuông nếu người gửi không phải là chính mình
+                                if (d.user !== currentUser?.name && d.by !== currentUser?.name) {
+                                    const title = tbl === 'chat' ? `💬 ${d.user || 'Team'} nhắn tin` : '🔔 Cập nhật công việc';
+                                    const body = d.message || d.title || 'Mở app để xem chi tiết';
+                                    new Notification(title, { body: body });
+                                }
+                            }
+                            // --------------------------------------------------
+                        }
                     }
                 });
                 appData[tbl] = snap.docs.map(d => ({ ...d.data(), id: d.id, _id: d.id }));
@@ -166,7 +180,6 @@ const App = {
         els.headerUser.innerText = currentUser.name;
         els.headerRole.innerText = (currentUser.role || 'Nhân viên').toUpperCase();
         
-        // KIỂM TRA QUYỀN VÀ HIỂN THỊ CHỨC NĂNG BÍ MẬT (Thêm "Tổ trưởng")
         const isManager = ['admin', 'giám đốc', 'quản lý', 'tổ trưởng'].some(r => (currentUser.role || '').toLowerCase().includes(r));
         if(isManager && els.btnSettings) els.btnSettings.classList.remove('hidden');
         
