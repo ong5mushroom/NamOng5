@@ -17,6 +17,47 @@ window.THDG_Action = {
                 Utils.toast("✅ Đã xóa sạch!");
             } catch(e) { alert("Lỗi: "+e.message); }
         }
+    },
+    // --- BỔ SUNG LỆNH HỦY NHẬT KÝ (ĐỂ HOÀN LẠI KHO) ---
+    delHarvest: async (id, detailsStr, area) => {
+        if(confirm("⚠️ Hủy phiếu Nhập này?\nSố lượng trong kho sẽ bị trừ đi tương ứng.")) {
+            try {
+                const details = JSON.parse(decodeURIComponent(detailsStr));
+                const batch = writeBatch(db);
+                batch.delete(doc(db, `${ROOT_PATH}/harvest_logs`, id));
+                
+                const pSnap = await getDocs(collection(db, `${ROOT_PATH}/products`));
+                let totalKg = 0;
+                Object.entries(details).forEach(([code, qty]) => {
+                    const pDoc = pSnap.docs.find(d => d.data().code === code);
+                    if(pDoc) batch.update(pDoc.ref, { stock: increment(-Number(qty)) });
+                    totalKg += Number(qty);
+                });
+
+                if(area && area !== 'MuaNgoai' && area !== 'Không rõ') {
+                    const hSnap = await getDocs(collection(db, `${ROOT_PATH}/houses`));
+                    const hDoc = hSnap.docs.find(d => d.data().name === area);
+                    if(hDoc) batch.update(hDoc.ref, { totalYield: increment(-totalKg) });
+                }
+                await batch.commit(); Utils.toast("Đã hủy phiếu nhập và trừ kho!");
+            } catch(e) { alert(e.message); }
+        }
+    },
+    delShipping: async (id, itemsStr) => {
+        if(confirm("⚠️ Hủy đơn Xuất bán này?\nSố lượng sẽ được hoàn lại vào kho.")) {
+            try {
+                const items = JSON.parse(decodeURIComponent(itemsStr));
+                const batch = writeBatch(db);
+                batch.delete(doc(db, `${ROOT_PATH}/shipping`, id));
+                
+                const pSnap = await getDocs(collection(db, `${ROOT_PATH}/products`));
+                items.forEach(item => {
+                    const pDoc = pSnap.docs.find(d => d.data().code === item.code);
+                    if(pDoc) batch.update(pDoc.ref, { stock: increment(Number(item.qty)) });
+                });
+                await batch.commit(); Utils.toast("Đã hủy đơn bán và hoàn kho!");
+            } catch(e) { alert(e.message); }
+        }
     }
 };
 
@@ -27,6 +68,14 @@ export const THDG = {
         const isManager = ['admin', 'giám đốc', 'quản lý'].some(r => role.includes(r));
         let products = (Array.isArray(data.products) ? data.products : []).sort((a,b) => (a.name||'').localeCompare(b.name||''));
         
+        // --- XỬ LÝ DỮ LIỆU NHẬT KÝ TỪ FIREBASE ---
+        const harvestLogs = Array.isArray(data.harvest_logs) ? data.harvest_logs : [];
+        const shippingLogs = Array.isArray(data.shipping) ? data.shipping : [];
+        let combinedLogs = [];
+        harvestLogs.forEach(h => combinedLogs.push({ ...h, _type: 'IMPORT' }));
+        shippingLogs.forEach(s => combinedLogs.push({ ...s, _type: 'EXPORT' }));
+        combinedLogs.sort((a,b) => b.time - a.time);
+
         const renderProductList = () => {
              const groups = {
                 '1': { title: '🍄 NẤM TƯƠI', color: 'green', items: products.filter(p => String(p.group) === '1') },
@@ -35,7 +84,6 @@ export const THDG = {
                 '4': { title: '🛠️ VẬT TƯ & KHÁC', color: 'blue', items: products.filter(p => !['1','2','3'].includes(String(p.group))) }
             };
 
-            // --- THAY ĐỔI GIAO DIỆN THẺ SẢN PHẨM Ở ĐÂY ---
             const renderRow = (p, color) => `
                 <div class="bg-white p-2 rounded border border-slate-200 shadow-sm relative flex flex-col gap-1">
                     <div class="flex justify-between items-start">
@@ -70,10 +118,10 @@ export const THDG = {
             </div>
 
             <div id="zone-harvest" class="animate-fade-in">
-                <div class="glass p-3 border-l-8 border-green-500 bg-green-50/30">
+                <div class="glass p-3 border-l-8 border-green-500 bg-green-50/30 shadow-sm rounded-r-xl">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-black text-green-800 text-xs uppercase"><i class="fas fa-warehouse"></i> NHẬP SẢN LƯỢNG</h3>
-                        ${isManager ? `<div class="flex gap-2"><button onclick="window.THDG_Action.resetAll()" class="text-[9px] font-bold text-red-500 border border-red-200 bg-white px-2 py-1 rounded">RESET</button><button id="btn-add" class="text-[9px] font-bold text-green-600 border border-green-200 bg-white px-2 py-1 rounded">+ MÃ</button></div>` : ''}
+                        ${isManager ? `<div class="flex gap-2"><button onclick="window.THDG_Action.resetAll()" class="text-[9px] font-bold text-red-500 border border-red-200 bg-white px-2 py-1 rounded shadow-sm">RESET</button><button id="btn-add" class="text-[9px] font-bold text-green-600 border border-green-200 bg-white px-2 py-1 rounded shadow-sm">+ MÃ</button></div>` : ''}
                     </div>
                     <div class="space-y-3">
                         <div class="flex gap-2 sticky top-0 z-10 bg-green-50/95 py-2 backdrop-blur-sm">
@@ -84,8 +132,8 @@ export const THDG = {
                                 <option value="MuaNgoai" data-name="Mua Ngoài">Mua Ngoài</option>
                             </select>
                         </div>
-                        <div id="product-groups-container"></div>
-                        <button id="btn-save-h" class="w-full py-3 bg-green-600 text-white rounded-lg font-bold text-xs shadow-lg shadow-green-200 active:scale-95 transition">LƯU KHO</button>
+                        <div id="product-groups-container" class="space-y-3"></div>
+                        <button id="btn-save-h" class="w-full py-3 bg-green-600 text-white rounded-lg font-bold text-xs shadow-md active:scale-95 transition">📥 LƯU VÀO KHO</button>
                     </div>
                 </div>
             </div>
@@ -93,16 +141,16 @@ export const THDG = {
             <div id="zone-sell" class="hidden animate-fade-in">
                 <div class="bg-white p-4 rounded-xl border border-orange-100 shadow-sm space-y-3">
                     <h3 class="font-black text-orange-600 text-xs uppercase mb-2 flex items-center gap-2"><i class="fas fa-file-invoice-dollar"></i> LẬP ĐƠN HÀNG</h3>
-                    <input id="s-cust" placeholder="Tên Khách Hàng (Bắt buộc)" class="w-full p-2.5 rounded border border-slate-300 text-sm font-bold focus:border-orange-500 outline-none">
-                    <div class="bg-orange-50 p-2 rounded border border-orange-100">
-                        <select id="s-prod" class="w-full p-2 mb-2 rounded border border-orange-200 text-xs font-bold bg-white"><option value="">-- Chọn sản phẩm --</option>${products.map(p => `<option value="${p.code}" data-name="${p.name}" data-price="${p.price||0}">${p.name} (Tồn: ${p.stock||0})</option>`).join('')}</select>
+                    <input id="s-cust" placeholder="Tên Khách Hàng (Bắt buộc)" class="w-full p-2.5 rounded border border-slate-300 text-sm font-bold focus:border-orange-500 outline-none bg-slate-50">
+                    <div class="bg-orange-50 p-2 rounded-xl border border-orange-100">
+                        <select id="s-prod" class="w-full p-2.5 mb-2 rounded border border-orange-200 text-xs font-bold bg-white outline-none"><option value="">-- Chọn sản phẩm --</option>${products.map(p => `<option value="${p.code}" data-name="${p.name}" data-price="${p.price||0}">${p.name} (Tồn: ${p.stock||0})</option>`).join('')}</select>
                         <div class="flex gap-2">
-                            <input id="s-qty" type="number" placeholder="SL" class="w-1/3 p-2 rounded border border-orange-200 text-xs text-center font-bold">
-                            <input id="s-price" type="number" placeholder="Giá bán" class="flex-1 p-2 rounded border border-orange-200 text-xs font-bold">
-                            <button id="btn-add-cart" class="bg-orange-500 text-white px-4 rounded font-bold text-lg shadow active:scale-90">+</button>
+                            <input id="s-qty" type="number" placeholder="Số lượng" class="w-1/3 p-2.5 rounded border border-orange-200 text-xs text-center font-bold outline-none focus:border-orange-400">
+                            <input id="s-price" type="number" placeholder="Giá bán" class="flex-1 p-2.5 rounded border border-orange-200 text-xs font-bold outline-none focus:border-orange-400">
+                            <button id="btn-add-cart" class="bg-orange-500 text-white px-4 rounded-lg font-bold text-lg shadow active:scale-90 transition">+</button>
                         </div>
                     </div>
-                    <div id="cart-list" class="space-y-1 pt-1 max-h-52 overflow-y-auto"></div>
+                    <div id="cart-list" class="space-y-1.5 pt-1 max-h-52 overflow-y-auto"></div>
                     <div class="flex justify-between items-center pt-3 border-t border-dashed border-slate-200">
                         <span class="text-xs font-bold text-slate-500">TỔNG CỘNG:</span>
                         <span class="text-xl font-black text-orange-600" id="cart-total">0đ</span>
@@ -113,7 +161,55 @@ export const THDG = {
                     <button id="btn-save-sell" class="py-3 bg-orange-600 text-white rounded-lg font-bold text-xs shadow-md active:scale-95 transition flex items-center justify-center gap-2"><i class="fas fa-save"></i> LƯU & TRỪ</button>
                 </div>
             </div>
-        </div>`;
+
+            <div class="mt-6 animate-fade-in">
+                <div class="text-[10px] font-bold text-slate-400 mb-2 uppercase pl-1 tracking-widest">Nhật ký Nhập/Xuất Kho</div>
+                <div class="max-h-72 overflow-y-auto space-y-2 pr-1">
+                    ${combinedLogs.length ? combinedLogs.slice(0, 50).map(l => {
+                        const isImport = l._type === 'IMPORT';
+                        const color = isImport ? 'text-purple-700 bg-purple-50 border-purple-100' : 'text-green-700 bg-green-50 border-green-100';
+                        const icon = isImport ? '📥' : '📤';
+                        const actionName = isImport ? 'NHẬP KHO' : 'XUẤT BÁN';
+                        const target = isImport ? `Nguồn: ${l.area || 'Không rõ'}` : `Khách: ${l.customer || 'Khách lẻ'}`;
+                        
+                        let detailsStr = '';
+                        let totalKg = 0;
+                        if(isImport && l.details) {
+                            const parts = [];
+                            Object.entries(l.details).forEach(([k,v]) => {
+                                const p = products.find(x => x.code === k);
+                                parts.push(`${p ? p.name : k}: ${v}`);
+                                totalKg += Number(v);
+                            });
+                            detailsStr = parts.join(', ');
+                        } else if (!isImport && l.items) {
+                            totalKg = l.items.reduce((sum, item) => sum + Number(item.qty||0), 0);
+                            detailsStr = l.items.map(i => `${i.name}: ${i.qty}`).join(', ');
+                        }
+
+                        const canCancel = isManager;
+                        const encodedData = encodeURIComponent(JSON.stringify(isImport ? l.details : l.items));
+                        const cancelAction = isImport ? `window.THDG_Action.delHarvest('${l.id}', '${encodedData}', '${l.area}')` : `window.THDG_Action.delShipping('${l.id}', '${encodedData}')`;
+
+                        return `
+                        <div class="flex justify-between items-center p-3 bg-white rounded-xl border ${color.split(' ')[2]} shadow-sm">
+                            <div class="flex-1 pr-2">
+                                <div class="flex items-center gap-1.5 mb-1">
+                                    <span class="font-black text-[9px] ${color} px-1.5 py-0.5 rounded border">${icon} ${actionName}</span>
+                                    <span class="text-[10px] font-bold text-slate-500">${target}</span>
+                                </div>
+                                <div class="text-xs font-black text-slate-700 mt-1 leading-snug">${detailsStr}</div>
+                                <div class="text-[9px] text-slate-400 mt-1.5">NV: ${l.user || '--'} • ${new Date(l.time).toLocaleString('vi-VN')}</div>
+                            </div>
+                            <div class="text-right pl-3 border-l border-slate-100 flex flex-col justify-center items-end">
+                                <span class="block font-black text-lg ${color.split(' ')[0]}">${isImport ? '+' : '-'}${totalKg} <span class="text-[10px] font-normal">SL</span></span>
+                                ${canCancel ? `<button onclick="${cancelAction}" class="text-slate-400 hover:text-red-500 text-[9px] font-bold underline mt-1">Hủy lệnh</button>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('') : '<div class="text-xs text-slate-400 italic text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">Chưa có giao dịch nhập/xuất nào</div>'}
+                </div>
+            </div>
+            </div>`;
         
         renderProductList();
         
@@ -168,13 +264,13 @@ export const THDG = {
                              if(aid && aid.length > 3) batch.update(doc(db, `${ROOT_PATH}/houses`, aid), { totalYield: increment(totalKg) });
                         }
                         await batch.commit(); 
-                        Utils.toast(`✅ Đã lưu ${totalKg}kg!`); 
+                        Utils.toast(`✅ Đã lưu ${totalKg} SL!`); 
                     } else { Utils.toast("Chưa nhập số!", "err"); }
                 } catch(err) { alert("Lỗi lưu: " + err.message); }
             };
             
             let cart=[]; 
-            const upC=()=>{ document.getElementById('cart-list').innerHTML=cart.map((i,x)=>`<div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100"><div class="text-[11px]"><div class="font-bold text-slate-700">${i.name}</div><div class="text-slate-500">${i.qty} x ${i.price.toLocaleString()}</div></div><div class="flex items-center gap-3"><span class="font-bold text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button onclick="document.getElementById('d-${x}').click()" class="text-red-400 hover:text-red-600 font-bold px-1">×</button></div><button id="d-${x}" class="hidden"></button></div>`).join(''); document.getElementById('cart-total').innerText=cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()+'đ'; cart.forEach((_,i)=>document.getElementById(`d-${i}`).onclick=()=>{cart.splice(i,1);upC()}) };
+            const upC=()=>{ document.getElementById('cart-list').innerHTML=cart.map((i,x)=>`<div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100 shadow-sm"><div class="text-[11px]"><div class="font-bold text-slate-700">${i.name}</div><div class="text-slate-500">${i.qty} x ${i.price.toLocaleString()}</div></div><div class="flex items-center gap-3"><span class="font-bold text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button onclick="document.getElementById('d-${x}').click()" class="text-red-400 hover:text-red-600 font-bold px-1 text-base">×</button></div><button id="d-${x}" class="hidden"></button></div>`).join(''); document.getElementById('cart-total').innerText=cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()+'đ'; cart.forEach((_,i)=>document.getElementById(`d-${i}`).onclick=()=>{cart.splice(i,1);upC()}) };
             document.getElementById('btn-add-cart').onclick=()=>{ const s=document.getElementById('s-prod'); if(s.value){cart.push({code:s.value,name:s.options[s.selectedIndex].getAttribute('data-name'),qty:Number(document.getElementById('s-qty').value),price:Number(document.getElementById('s-price').value)}); upC(); document.getElementById('s-qty').value='';} };
             document.getElementById('btn-save-sell').onclick=async()=>{ 
                 if(cart.length){ 
