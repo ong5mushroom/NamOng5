@@ -1,6 +1,9 @@
 import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, deleteDoc, increment, writeBatch, getDocs, query, where } from '../config.js';
 import { Utils } from '../utils.js';
 
+// Khai báo biến lưu trạng thái lọc công việc (để không bị mất khi load lại list)
+let currentTaskFilter = 'ALL';
+
 window.HR_Action = {
     addEmp: async () => {
         const name = prompt("Tên nhân viên mới:");
@@ -134,6 +137,30 @@ export const HR = {
         const employees = Array.isArray(data.employees) ? data.employees : [];
         const houses = Array.isArray(data.houses) ? data.houses : [];
 
+        // FIX: TẠO MÃ HTML ĐỒNG BỘ (Tránh hiện tượng nhấp nháy mất dữ liệu 100ms)
+        let list = tasks.filter(t => !t.type || t.type === 'TASK' || t.type === 'CHECKIN');
+        if(currentTaskFilter !== 'ALL') list = list.filter(t => t.to === currentTaskFilter);
+        if(!isAdmin) list = list.filter(t => t.to === user._id || t.by === user.name);
+        list.sort((a,b) => b.time - a.time);
+
+        const listHtml = list.length ? list.map(t => {
+            const isDone = t.status === 'DONE'; const emp = employees.find(e=>e._id===t.to); const empName = emp?.name || '...';
+            const tEnc = encodeURIComponent(t.title); const nameEnc = encodeURIComponent(empName);
+            
+            const timeStr = new Date(t.time).toLocaleString('vi-VN', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' });
+
+            let btns = ''; if(isAdmin) btns = `<div class="absolute top-2 right-2 flex flex-col items-end gap-1"><button onclick="window.HR_Action.task.del('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-times"></i></button>${!isDone ? `<button onclick="window.HR_Action.remind('${emp?._id}','${nameEnc}','${tEnc}','${t.status==='PENDING'?'ACCEPT':'REPORT'}')" class="text-[9px] border px-1 rounded">${t.status==='PENDING'?'🔔 -1đ':'⏰ -5đ'}</button>` : ''}</div>`;
+            let userAction = ''; if(!isDone && t.to === user._id) userAction = t.status !== 'DOING' ? `<button id="btn-act-${t.id}" onclick="window.HR_Action.task.accept('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">NHẬN VIỆC</button>` : `<button id="btn-act-${t.id}" onclick="window.HR_Action.task.finish('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded">BÁO CÁO XONG</button>`;
+            
+            const isCheckin = t.type === 'CHECKIN';
+            const boxColor = isCheckin ? 'border-purple-200 bg-purple-50/30' : (isDone ? 'opacity-50' : '');
+
+            return `<div id="task-${t.id}" class="bg-white p-3 rounded border shadow-sm relative ${boxColor}">
+                <div class="pr-8"><span class="text-xs font-bold ${isCheckin ? 'text-purple-700' : 'text-slate-700'} block ${isDone && !isCheckin ?'line-through':''}">${isCheckin ? '📍 ' : ''}${t.area?`[${t.area}] `:''}${t.title}</span><span class="text-[10px] text-slate-400">Nhân sự: <b>${empName}</b> • ${timeStr}</span>${t.note ? `<div class="mt-1 text-[10px] text-slate-500 italic bg-slate-50 p-1 rounded border border-slate-100">📝 ${t.note}</div>` : ''}</div>
+                ${btns} ${userAction}
+            </div>`;
+        }).join('') : '<div class="text-center text-slate-400 text-xs py-4">Chưa có dữ liệu</div>';
+
         c.innerHTML = `
         <div class="space-y-4 pb-24">
             ${isAdmin ? `
@@ -156,41 +183,27 @@ export const HR = {
                 </div>
                 <button id="btn-tsk" class="w-full bg-blue-600 text-white py-2 rounded text-xs font-bold">GIAO VIỆC NGAY</button>
             </div>` : ''}
-            <div><div class="flex justify-between items-center mb-2 px-1"><h2 class="font-black text-xs uppercase">NHẬT KÝ</h2><select id="filter-emp" class="text-[10px] border rounded p-1"><option value="ALL">Tất cả</option>${employees.map(e=>`<option value="${e._id}">${e.name}</option>`).join('')}</select></div><div id="lst" class="space-y-2"></div></div>
+            <div>
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <h2 class="font-black text-xs uppercase">NHẬT KÝ</h2>
+                    <select id="filter-emp" class="text-[10px] border rounded p-1">
+                        <option value="ALL" ${currentTaskFilter==='ALL'?'selected':''}>Tất cả</option>
+                        ${employees.map(e=>`<option value="${e._id}" ${currentTaskFilter===e._id?'selected':''}>${e.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div id="lst" class="space-y-2">${listHtml}</div>
+            </div>
         </div>`;
 
-        const renderList = () => {
-            const fid = document.getElementById('filter-emp').value;
-            // HIỂN THỊ CẢ GIAO VIỆC (TASK) VÀ CHẤM CÔNG (CHECKIN) Ở NHẬT KÝ
-            let list = tasks.filter(t => !t.type || t.type === 'TASK' || t.type === 'CHECKIN');
-            
-            if(fid !== 'ALL') list = list.filter(t => t.to === fid);
-            if(!isAdmin) list = list.filter(t => t.to === user._id || t.by === user.name);
-            list.sort((a,b) => b.time - a.time);
-
-            document.getElementById('lst').innerHTML = list.length ? list.map(t => {
-                const isDone = t.status === 'DONE'; const emp = employees.find(e=>e._id===t.to); const empName = emp?.name || '...';
-                const tEnc = encodeURIComponent(t.title); const nameEnc = encodeURIComponent(empName);
-                
-                const timeStr = new Date(t.time).toLocaleString('vi-VN', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' });
-
-                let btns = ''; if(isAdmin) btns = `<div class="absolute top-2 right-2 flex flex-col items-end gap-1"><button onclick="window.HR_Action.task.del('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-times"></i></button>${!isDone ? `<button onclick="window.HR_Action.remind('${emp?._id}','${nameEnc}','${tEnc}','${t.status==='PENDING'?'ACCEPT':'REPORT'}')" class="text-[9px] border px-1 rounded">${t.status==='PENDING'?'🔔 -1đ':'⏰ -5đ'}</button>` : ''}</div>`;
-                let userAction = ''; if(!isDone && t.to === user._id) userAction = t.status !== 'DOING' ? `<button id="btn-act-${t.id}" onclick="window.HR_Action.task.accept('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">NHẬN VIỆC</button>` : `<button id="btn-act-${t.id}" onclick="window.HR_Action.task.finish('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded">BÁO CÁO XONG</button>`;
-                
-                // Tô màu riêng cho dòng Chấm công
-                const isCheckin = t.type === 'CHECKIN';
-                const boxColor = isCheckin ? 'border-purple-200 bg-purple-50/30' : (isDone ? 'opacity-50' : '');
-
-                return `<div id="task-${t.id}" class="bg-white p-3 rounded border shadow-sm relative ${boxColor}">
-                    <div class="pr-8"><span class="text-xs font-bold ${isCheckin ? 'text-purple-700' : 'text-slate-700'} block ${isDone && !isCheckin ?'line-through':''}">${isCheckin ? '📍 ' : ''}${t.area?`[${t.area}] `:''}${t.title}</span><span class="text-[10px] text-slate-400">Nhân sự: <b>${empName}</b> • ${timeStr}</span>${t.note ? `<div class="mt-1 text-[10px] text-slate-500 italic bg-slate-50 p-1 rounded border border-slate-100">📝 ${t.note}</div>` : ''}</div>
-                    ${btns} ${userAction}
-                </div>`;
-            }).join('') : '<div class="text-center text-slate-400 text-xs py-4">Chưa có dữ liệu</div>';
-        };
-
         setTimeout(()=>{ 
-            renderList(); const dIn=document.getElementById('t-date'); if(dIn) dIn.valueAsDate=new Date();
-            const fSel=document.getElementById('filter-emp'); if(fSel) fSel.onchange=renderList;
+            const dIn=document.getElementById('t-date'); if(dIn) dIn.valueAsDate=new Date();
+            
+            const fSel=document.getElementById('filter-emp'); 
+            if(fSel) fSel.onchange = () => { 
+                currentTaskFilter = fSel.value; // Cập nhật biến lưu trữ trạng thái lọc
+                HR.renderTasks(data, user);     // Khởi động lại hàm Render hiện tại để tải danh sách mới
+            };
+            
             const chkAll=document.getElementById('check-all'); if(chkAll) chkAll.onchange=(e)=>document.querySelectorAll('.ec').forEach(cb=>cb.checked=e.target.checked);
             const chkAllHouses = document.getElementById('check-all-houses'); if(chkAllHouses) chkAllHouses.onchange=(e)=>document.querySelectorAll('.hc').forEach(cb=>cb.checked=e.target.checked);
 
@@ -227,7 +240,7 @@ export const HR = {
         const employees = (Array.isArray(data.employees) ? data.employees : []).sort((a,b) => (b.score||0) - (a.score||0));
         const chats = Array.isArray(data.chat) ? data.chat.sort((a,b)=>b.time-a.time).slice(0,50) : [];
         
-        // CHỈ LẤY XIN NGHỈ VÀ MUA HÀNG VÀO MỤC CẦN DUYỆT (Chấm công đã bỏ qua)
+        // CHỈ CÓ ĐƠN NGHỈ VÀ ĐƠN MUA HÀNG LÀ CẦN DUYỆT
         const pending = tasks.filter(t => t.status === 'PENDING' && ['LEAVE', 'BUY'].includes(t.type));
         
         const top3 = employees.slice(0, 3);
@@ -306,7 +319,6 @@ export const HR = {
         setTimeout(() => {
             const sendReq = async (t, type) => { await addDoc(collection(db,`${ROOT_PATH}/tasks`), {title:t, to:'ADMIN', by:user.name, type, status:'PENDING', time:Date.now()}); Utils.toast("Đã gửi!"); window.HR_Action.chat(user.name, `📝 Yêu cầu: ${t}`, true); };
             
-            // XỬ LÝ NÚT CHẤM CÔNG (TỰ ĐỘNG LƯU & BẮT ĐI TRỄ)
             const b1 = document.getElementById('btn-checkin'); 
             if(b1) b1.onclick = async () => { 
                 if(confirm("Xác nhận chấm công ngay bây giờ?")) { 
@@ -328,14 +340,12 @@ export const HR = {
                         titleMsg += " (Đi trễ -2đ)";
                         chatMsg += " ⏰ (Đi trễ, trừ 2đ)";
                         toastMsg = "⚠️ Đã chấm công (Đi trễ -2 điểm)!";
-                        // Tự động trừ 2 điểm nếu đi trễ
                         batch.update(doc(db, `${ROOT_PATH}/employees`, user._id), { score: increment(-2) });
                     } else {
                         titleMsg += " (Đúng giờ)";
                         chatMsg += " ☀️ (Đúng giờ)";
                     }
 
-                    // Lưu thẳng vào Nhật ký mà không cần duyệt
                     batch.set(doc(collection(db, `${ROOT_PATH}/tasks`)), { 
                         title: titleMsg, 
                         to: user._id, 
