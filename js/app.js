@@ -9,6 +9,9 @@ let currentUser = null;
 let currentTab = 'tasks';
 let appData = {}; 
 
+// FIX: Biến cờ hiệu để chặn việc app nổ chuông thông báo 50 tin nhắn cũ khi vừa load trang
+let isInitialLoad = { tasks: true, chat: true }; 
+
 const els = {}; 
 
 const toCSV = (data) => `"${String(data || '').replace(/"/g, '""')}"`;
@@ -127,26 +130,28 @@ const App = {
         const tables = ['employees', 'tasks', 'chat', 'houses', 'supplies', 'products', 'harvest_logs', 'shipping', 'nuoisoi_A'];
         tables.forEach(tbl => {
             onSnapshot(collection(db, `${ROOT_PATH}/${tbl}`), (snap) => {
-                snap.docChanges().forEach((change) => {
-                    if (change.type === "added" && !snap.metadata.hasPendingWrites) {
-                        if(tbl === 'tasks' || tbl === 'chat') {
-                            Utils.notifySound(); 
-                            
-                            // --- THÊM LOGIC ĐẨY THÔNG BÁO VỀ ĐIỆN THOẠI Ở ĐÂY ---
-                            // Kiểm tra an toàn: Trình duyệt có hỗ trợ Notification và đã cấp quyền chưa
-                            if (window.Notification && Notification.permission === "granted") {
-                                const d = change.doc.data();
-                                // Chỉ báo chuông nếu người gửi không phải là chính mình
-                                if (d.user !== currentUser?.name && d.by !== currentUser?.name) {
-                                    const title = tbl === 'chat' ? `💬 ${d.user || 'Team'} nhắn tin` : '🔔 Cập nhật công việc';
-                                    const body = d.message || d.title || 'Mở app để xem chi tiết';
-                                    new Notification(title, { body: body });
+                // FIX: Ngăn chặn việc nổ chuông thông báo hàng loạt lúc vừa tải trang
+                if (isInitialLoad[tbl]) {
+                    isInitialLoad[tbl] = false;
+                } else {
+                    snap.docChanges().forEach((change) => {
+                        if (change.type === "added" && !snap.metadata.hasPendingWrites) {
+                            if(tbl === 'tasks' || tbl === 'chat') {
+                                Utils.notifySound(); 
+                                if (window.Notification && Notification.permission === "granted") {
+                                    const d = change.doc.data();
+                                    // Không tự thông báo lại tin nhắn của chính mình vừa gửi
+                                    if (d.user !== currentUser?.name && d.by !== currentUser?.name) {
+                                        const title = tbl === 'chat' ? `💬 ${d.user || 'Team'} nhắn tin` : '🔔 Cập nhật công việc';
+                                        const body = d.message || d.title || 'Mở app để xem chi tiết';
+                                        new Notification(title, { body: body });
+                                    }
                                 }
                             }
-                            // --------------------------------------------------
                         }
-                    }
-                });
+                    });
+                }
+                
                 appData[tbl] = snap.docs.map(d => ({ ...d.data(), id: d.id, _id: d.id }));
                 App.render();
             });
@@ -188,7 +193,21 @@ const App = {
             nsBtn.style.display = isManager ? 'flex' : 'none';
         }
 
-        if(!isAuto) App.render();
+        // FIX: BỎ ẨN NGAY LẬP TỨC THẺ ĐANG CHỌN (KHẮC PHỤC LỖI TRẮNG TRANG KHI ĐĂNG NHẬP)
+        Object.values(els.views).forEach(e => { if(e) e.classList.add('hidden'); });
+        if(els.views[currentTab]) els.views[currentTab].classList.remove('hidden');
+
+        els.navBtns.forEach(b => {
+            b.classList.remove('active');
+            const icon = b.querySelector('i');
+            if(icon) icon.className = icon.className.replace(/text-\w+-\d+/g, 'text-slate-400');
+            if(b.getAttribute('data-tab') === currentTab) {
+                b.classList.add('active');
+                if(currentTab==='tasks') icon.classList.replace('text-slate-400','text-blue-600');
+            }
+        });
+
+        App.render(); // Bắt buộc render ngay và luôn
     },
 
     render: () => {
