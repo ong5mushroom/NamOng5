@@ -8,8 +8,6 @@ import { Utils } from './utils.js';
 let currentUser = null;
 let currentTab = 'tasks';
 let appData = {}; 
-
-// FIX: Biến cờ hiệu để chặn việc app nổ chuông thông báo 50 tin nhắn cũ khi vừa load trang
 let isInitialLoad = { tasks: true, chat: true }; 
 
 const els = {}; 
@@ -130,7 +128,6 @@ const App = {
         const tables = ['employees', 'tasks', 'chat', 'houses', 'supplies', 'products', 'harvest_logs', 'shipping', 'nuoisoi_A'];
         tables.forEach(tbl => {
             onSnapshot(collection(db, `${ROOT_PATH}/${tbl}`), (snap) => {
-                // FIX: Ngăn chặn việc nổ chuông thông báo hàng loạt lúc vừa tải trang
                 if (isInitialLoad[tbl]) {
                     isInitialLoad[tbl] = false;
                 } else {
@@ -138,13 +135,27 @@ const App = {
                         if (change.type === "added" && !snap.metadata.hasPendingWrites) {
                             if(tbl === 'tasks' || tbl === 'chat') {
                                 Utils.notifySound(); 
-                                if (window.Notification && Notification.permission === "granted") {
-                                    const d = change.doc.data();
-                                    // Không tự thông báo lại tin nhắn của chính mình vừa gửi
-                                    if (d.user !== currentUser?.name && d.by !== currentUser?.name) {
-                                        const title = tbl === 'chat' ? `💬 ${d.user || 'Team'} nhắn tin` : '🔔 Cập nhật công việc';
-                                        const body = d.message || d.title || 'Mở app để xem chi tiết';
-                                        new Notification(title, { body: body });
+                                const d = change.doc.data();
+                                
+                                // Nếu người nhắn không phải là tôi, thì nổ chuông và hiện bảng thông báo
+                                if (d.user !== currentUser?.name && d.by !== currentUser?.name) {
+                                    const title = tbl === 'chat' ? `💬 ${d.user || 'Team'} nhắn tin` : '🔔 Cập nhật công việc';
+                                    const body = d.message || d.title || 'Mở app để xem chi tiết';
+                                    
+                                    // 1. TẠO POPUP HIỂN THỊ NGAY TRONG MÀN HÌNH APP
+                                    Utils.toast(`${title}: ${body}`, "info");
+
+                                    // 2. ĐẨY RA NGOÀI HỆ ĐIỀU HÀNH (Nếu được cấp quyền)
+                                    if (window.Notification && Notification.permission === "granted") {
+                                        try {
+                                            navigator.serviceWorker.ready.then(reg => {
+                                                reg.showNotification(title, { body: body, icon: '/icon.png' });
+                                            }).catch(() => {
+                                                new Notification(title, { body: body });
+                                            });
+                                        } catch(e) {
+                                            new Notification(title, { body: body });
+                                        }
                                     }
                                 }
                             }
@@ -193,7 +204,6 @@ const App = {
             nsBtn.style.display = isManager ? 'flex' : 'none';
         }
 
-        // FIX: BỎ ẨN NGAY LẬP TỨC THẺ ĐANG CHỌN (KHẮC PHỤC LỖI TRẮNG TRANG KHI ĐĂNG NHẬP)
         Object.values(els.views).forEach(e => { if(e) e.classList.add('hidden'); });
         if(els.views[currentTab]) els.views[currentTab].classList.remove('hidden');
 
@@ -207,7 +217,7 @@ const App = {
             }
         });
 
-        App.render(); // Bắt buộc render ngay và luôn
+        App.render();
     },
 
     render: () => {
