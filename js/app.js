@@ -136,16 +136,12 @@ const App = {
                             if(tbl === 'tasks' || tbl === 'chat') {
                                 Utils.notifySound(); 
                                 const d = change.doc.data();
-                                
-                                // Nếu người nhắn không phải là tôi, thì nổ chuông và hiện bảng thông báo
                                 if (d.user !== currentUser?.name && d.by !== currentUser?.name) {
                                     const title = tbl === 'chat' ? `💬 ${d.user || 'Team'} nhắn tin` : '🔔 Cập nhật công việc';
                                     const body = d.message || d.title || 'Mở app để xem chi tiết';
                                     
-                                    // 1. TẠO POPUP HIỂN THỊ NGAY TRONG MÀN HÌNH APP
                                     Utils.toast(`${title}: ${body}`, "info");
 
-                                    // 2. ĐẨY RA NGOÀI HỆ ĐIỀU HÀNH (Nếu được cấp quyền)
                                     if (window.Notification && Notification.permission === "granted") {
                                         try {
                                             navigator.serviceWorker.ready.then(reg => {
@@ -196,9 +192,14 @@ const App = {
         els.headerUser.innerText = currentUser.name;
         els.headerRole.innerText = (currentUser.role || 'Nhân viên').toUpperCase();
         
+        // --- ĐÃ ĐIỀU CHỈNH: Tách biệt quyền xem Cài đặt (Báo cáo) và Quyền xem thẻ Nuôi sợi ---
         const isManager = ['admin', 'giám đốc', 'quản lý', 'tổ trưởng'].some(r => (currentUser.role || '').toLowerCase().includes(r));
-        if(isManager && els.btnSettings) els.btnSettings.classList.remove('hidden');
+        const isAccountant = (currentUser.role || '').toLowerCase().includes('kế toán');
         
+        // Mở nút bánh răng Cài đặt cho cả khối Quản lý và khối Kế toán
+        if((isManager || isAccountant) && els.btnSettings) els.btnSettings.classList.remove('hidden');
+        
+        // Thẻ vẽ sơ đồ giàn phôi Nuôi sợi chỉ hiển thị cho tổ sản xuất/quản lý
         const nsBtn = document.querySelector('[data-tab="nuoisoi"]');
         if(nsBtn) {
             nsBtn.style.display = isManager ? 'flex' : 'none';
