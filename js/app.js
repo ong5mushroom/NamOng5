@@ -17,20 +17,40 @@ const toCSV = (data) => `"${String(data || '').replace(/"/g, '""')}"`;
 const exportReport = async (reportType) => {
     try {
         Utils.toast("⏳ Đang xử lý dữ liệu...", "info");
-        // Ép chuẩn UTF-8 để không lỗi font tiếng Việt
         let csv = "data:text/csv;charset=utf-8,\uFEFF"; 
         const now = new Date();
         const timeFileName = `${now.getDate()}_${now.getMonth()+1}_${now.getFullYear()}`;
         let fileName = "";
 
-        // SỬA LỖI: Chuyển toàn bộ dấu chấm phẩy (;) thành dấu phẩy (,) và đóng ngoặc kép Header
+        // TÍNH NĂNG MỚI: Lấy danh sách Nhà để dịch Mã ID sang Tên Nhà Trồng
+        const hSnap = await getDocs(collection(db, `${ROOT_PATH}/houses`));
+        const houseMap = { 'KHO_TONG': 'Kho Tổng / Nguồn', 'HUY': 'Hủy Bỏ' };
+        hSnap.docs.forEach(d => { houseMap[d.id] = d.data().name; });
+
         if (reportType === 'PHOI') {
             fileName = `BaoCao_KhoPhoi_${timeFileName}.csv`;
-            csv += `"Ngày","Giờ","Loại","Mã Lô","Số Lượng","Từ/Đến (Nhà)","Người Thực Hiện"\n`;
+            csv += `"Ngày","Giờ","Loại","Mã Lô","Số Lượng","Từ (Nguồn)","Đến (Đích)","Ghi Chú","Người Thực Hiện"\n`;
+            
             const snap = await getDocs(collection(db, `${ROOT_PATH}/supplies`));
             snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
-                csv += [toCSV(date.toLocaleDateString('vi-VN')),toCSV(date.toLocaleTimeString('vi-VN')),toCSV(d.type === 'IMPORT' ? 'NHẬP' : 'XUẤT'),toCSV(d.code || ''),toCSV(d.qty || 0),toCSV(d.type === 'IMPORT' ? 'Kho Tổng' : (d.to || 'Hủy')),toCSV(d.user || 'Unknown')].join(',') + "\n";
+                const typeStr = d.type === 'IMPORT' ? 'NHẬP' : (d.type === 'DESTROY' ? 'HỦY' : 'XUẤT');
+                
+                // Dịch ID sang tên Nhà
+                const fromStr = houseMap[d.from] || d.from || '--';
+                const toStr = houseMap[d.to] || d.to || '--';
+
+                csv += [
+                    toCSV(date.toLocaleDateString('vi-VN')),
+                    toCSV(date.toLocaleTimeString('vi-VN')),
+                    toCSV(typeStr),
+                    toCSV(d.code || ''),
+                    toCSV(d.qty || 0),
+                    toCSV(fromStr),
+                    toCSV(toStr),
+                    toCSV(d.note || ''),
+                    toCSV(d.user || '--')
+                ].join(',') + "\n";
             });
         } else if (reportType === 'NAM_TUOI') {
             fileName = `BaoCao_NamTuoi_${timeFileName}.csv`;
