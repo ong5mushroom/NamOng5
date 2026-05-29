@@ -17,22 +17,24 @@ const toCSV = (data) => `"${String(data || '').replace(/"/g, '""')}"`;
 const exportReport = async (reportType) => {
     try {
         Utils.toast("⏳ Đang xử lý dữ liệu...", "info");
+        // Ép chuẩn UTF-8 để không lỗi font tiếng Việt
         let csv = "data:text/csv;charset=utf-8,\uFEFF"; 
         const now = new Date();
         const timeFileName = `${now.getDate()}_${now.getMonth()+1}_${now.getFullYear()}`;
         let fileName = "";
 
+        // SỬA LỖI: Chuyển toàn bộ dấu chấm phẩy (;) thành dấu phẩy (,) và đóng ngoặc kép Header
         if (reportType === 'PHOI') {
             fileName = `BaoCao_KhoPhoi_${timeFileName}.csv`;
-            csv += "Ngày;Giờ;Loại;Mã Lô;Số Lượng;Từ/Đến (Nhà);Người Thực Hiện\n";
+            csv += `"Ngày","Giờ","Loại","Mã Lô","Số Lượng","Từ/Đến (Nhà)","Người Thực Hiện"\n`;
             const snap = await getDocs(collection(db, `${ROOT_PATH}/supplies`));
             snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
-                csv += [toCSV(date.toLocaleDateString('vi-VN')),toCSV(date.toLocaleTimeString('vi-VN')),toCSV(d.type === 'IMPORT' ? 'NHẬP' : 'XUẤT'),toCSV(d.code || ''),toCSV(d.qty || 0),toCSV(d.type === 'IMPORT' ? 'Kho Tổng' : (d.to || 'Hủy')),toCSV(d.user || 'Unknown')].join(';') + "\n";
+                csv += [toCSV(date.toLocaleDateString('vi-VN')),toCSV(date.toLocaleTimeString('vi-VN')),toCSV(d.type === 'IMPORT' ? 'NHẬP' : 'XUẤT'),toCSV(d.code || ''),toCSV(d.qty || 0),toCSV(d.type === 'IMPORT' ? 'Kho Tổng' : (d.to || 'Hủy')),toCSV(d.user || 'Unknown')].join(',') + "\n";
             });
         } else if (reportType === 'NAM_TUOI') {
             fileName = `BaoCao_NamTuoi_${timeFileName}.csv`;
-            csv += "Ngày;Giờ;Loại;Chi Tiết;Tổng;Nguồn/Khách;Người Thực Hiện\n";
+            csv += `"Ngày","Giờ","Loại","Chi Tiết","Tổng","Nguồn/Khách","Người Thực Hiện"\n`;
             const [hSnap, sSnap] = await Promise.all([getDocs(collection(db, `${ROOT_PATH}/harvest_logs`)), getDocs(collection(db, `${ROOT_PATH}/shipping`))]);
             let combined = [];
             hSnap.forEach(d => combined.push({...d.data(), _type: 'NHAP'})); sSnap.forEach(d => combined.push({...d.data(), _type: 'XUAT'}));
@@ -40,27 +42,27 @@ const exportReport = async (reportType) => {
                 const date = new Date(d.time || Date.now());
                 let details = d._type === 'NHAP' ? Object.entries(d.details||{}).map(([k,v])=>`${k}: ${v}kg`).join(', ') : (d.items||[]).map(i=>`${i.name} (${i.qty})`).join(', ');
                 const totalText = d._type === 'NHAP' ? `${d.total || 0} kg` : `${Number(d.total || 0).toLocaleString('vi-VN')} đ`;
-                csv += [toCSV(date.toLocaleDateString('vi-VN')),toCSV(date.toLocaleTimeString('vi-VN')),toCSV(d._type === 'NHAP' ? 'THU HOẠCH' : 'BÁN HÀNG'),toCSV(details),toCSV(totalText),toCSV(d._type === 'NHAP' ? (d.area || '') : (d.customer || '')),toCSV(d.user || 'Unknown')].join(';') + "\n";
+                csv += [toCSV(date.toLocaleDateString('vi-VN')),toCSV(date.toLocaleTimeString('vi-VN')),toCSV(d._type === 'NHAP' ? 'THU HOẠCH' : 'BÁN HÀNG'),toCSV(details),toCSV(totalText),toCSV(d._type === 'NHAP' ? (d.area || '') : (d.customer || '')),toCSV(d.user || 'Unknown')].join(',') + "\n";
             });
         } else if (reportType === 'CHAM_CONG') {
             fileName = `Bang_ChamCong_${timeFileName}.csv`;
-            csv += "Ngày;Giờ;Nhân Viên;Loại;Ghi Chú\n";
+            csv += `"Ngày","Giờ","Nhân Viên","Loại","Ghi Chú"\n`;
             const snap = await getDocs(query(collection(db, `${ROOT_PATH}/tasks`), where("type", "in", ["CHECKIN", "LEAVE"])));
             snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
-                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by || ''), toCSV(d.type==='LEAVE'?'Xin nghỉ':'Chấm công'), toCSV(d.title || '')].join(';') + "\n";
+                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by || ''), toCSV(d.type==='LEAVE'?'Xin nghỉ':'Chấm công'), toCSV(d.title || '')].join(',') + "\n";
             });
         } else if (reportType === 'CONG_VIEC') {
             fileName = `NhatKy_CongViec_${timeFileName}.csv`;
-            csv += "Ngày;Giờ;Người Làm;Khu Vực;Nội Dung;Trạng Thái;Ghi Chú;Điểm\n";
+            csv += `"Ngày","Giờ","Người Làm","Khu Vực","Nội Dung","Trạng Thái","Ghi Chú","Điểm"\n`;
             const snap = await getDocs(collection(db, `${ROOT_PATH}/tasks`));
             snap.docs.map(d => d.data()).filter(d => !['CHECKIN', 'LEAVE', 'BUY'].includes(d.type)).sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
-                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by||d.to||''), toCSV(d.area||''), toCSV(d.title||''), toCSV(d.status||''), toCSV(d.note||''), toCSV(d.status==='DONE'?'Cộng':'')].join(';') + "\n";
+                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by||d.to||''), toCSV(d.area||''), toCSV(d.title||''), toCSV(d.status||''), toCSV(d.note||''), toCSV(d.status==='DONE'?'Cộng':'')].join(',') + "\n";
             });
         } else if (reportType === 'NUOI_SOI') {
             fileName = `BaoCao_TonKho_NuoiSoi_${timeFileName}.csv`;
-            csv += "Giàn;Mã Lô;Số Lượng Đang Tồn\n";
+            csv += `"Giàn","Mã Lô","Số Lượng Đang Tồn"\n`;
             const snap = await getDocs(collection(db, `${ROOT_PATH}/nuoisoi_A`));
             let dataList = snap.docs.map(d => ({id: d.id, ...d.data()}));
             dataList.sort((a,b) => a.id.localeCompare(b.id, 'en', {numeric: true}));
@@ -69,7 +71,7 @@ const exportReport = async (reportType) => {
                 let bMap = d.batches || {};
                 if(d.batch && d.qty) bMap[d.batch] = (bMap[d.batch]||0) + Number(d.qty); 
                 Object.entries(bMap).forEach(([code, q]) => {
-                    if(q > 0) csv += [toCSV(d.id), toCSV(code), toCSV(q)].join(';') + "\n";
+                    if(q > 0) csv += [toCSV(d.id), toCSV(code), toCSV(q)].join(',') + "\n";
                 });
             });
         }
@@ -192,14 +194,11 @@ const App = {
         els.headerUser.innerText = currentUser.name;
         els.headerRole.innerText = (currentUser.role || 'Nhân viên').toUpperCase();
         
-        // --- ĐÃ ĐIỀU CHỈNH: Tách biệt quyền xem Cài đặt (Báo cáo) và Quyền xem thẻ Nuôi sợi ---
         const isManager = ['admin', 'giám đốc', 'quản lý', 'tổ trưởng'].some(r => (currentUser.role || '').toLowerCase().includes(r));
         const isAccountant = (currentUser.role || '').toLowerCase().includes('kế toán');
         
-        // Mở nút bánh răng Cài đặt cho cả khối Quản lý và khối Kế toán
         if((isManager || isAccountant) && els.btnSettings) els.btnSettings.classList.remove('hidden');
         
-        // Thẻ vẽ sơ đồ giàn phôi Nuôi sợi chỉ hiển thị cho tổ sản xuất/quản lý
         const nsBtn = document.querySelector('[data-tab="nuoisoi"]');
         if(nsBtn) {
             nsBtn.style.display = isManager ? 'flex' : 'none';
