@@ -2,7 +2,6 @@ import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, deleteDoc, increment
 import { Utils } from '../utils.js';
 
 let currentTaskFilter = 'ALL';
-// DANH MỤC CÔNG VIỆC CÓ SẴN
 const STANDARD_TASKS = ['Thu hoạch', 'Nhận phôi', 'Tiêm nước', 'Xuất bán', 'Vệ sinh phôi', 'Kiểm tra nhà'];
 
 window.HR_Action = {
@@ -58,6 +57,28 @@ window.HR_Action = {
             await updateDoc(doc(db, `${ROOT_PATH}/tasks`, id), { status: isOk ? 'DONE' : 'REJECT' });
             window.HR_Action.chat("HỆ THỐNG", `${isOk ? "✅ DUYỆT" : "❌ TỪ CHỐI"} đơn: "${title}" của ${user}`, true);
             Utils.toast("Đã xử lý!");
+        }
+    },
+
+    // SỬA LỖI: Thêm kiểm tra an toàn nếu không lấy được ID nhân viên và thông báo rõ ràng hơn
+    remind: async (empId, nameEnc, titleEnc, type) => {
+        if (!empId || empId === 'undefined') {
+            return Utils.toast("Lỗi: Không xác định được nhân sự để nhắc nhở!", "err");
+        }
+        try {
+            const name = decodeURIComponent(nameEnc); 
+            const title = decodeURIComponent(titleEnc); 
+            const penalty = type === 'ACCEPT' ? -1 : -5;
+            
+            await updateDoc(doc(db, `${ROOT_PATH}/employees`, empId), { score: increment(penalty) }); 
+            
+            const scoreEl = document.getElementById(`score-${empId}`); 
+            if(scoreEl) scoreEl.innerText = (parseInt(scoreEl.innerText)||0) + penalty;
+            
+            Utils.toast(`Đã nhắc nhở và phạt ${Math.abs(penalty)} điểm!`); 
+            window.HR_Action.chat("NHẮC NHỞ", `⚠️ Nhắc @${name} ${type==='ACCEPT'?'nhận việc':'báo cáo'}: "${title}" (Phạt ${penalty}đ)`, true); 
+        } catch(e) { 
+            alert("Lỗi hệ thống khi nhắc nhở: " + e.message); 
         }
     },
 
@@ -136,8 +157,10 @@ export const HR = {
             const tEnc = encodeURIComponent(t.title); 
             const timeStr = new Date(t.time).toLocaleString('vi-VN', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' });
 
-            let btns = ''; if(isAdmin) btns = `<div class="absolute top-2 right-2 flex flex-col items-end gap-1"><button onclick="window.HR_Action.task.del('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-times"></i></button>${!isDone ? `<button onclick="window.HR_Action.remind('${emp?._id}','${encodeURIComponent(empName)}','${tEnc}','${t.status==='PENDING'?'ACCEPT':'REPORT'}')" class="text-[9px] border px-1 rounded">🔔 Nhắc</button>` : ''}</div>`;
-            let userAction = ''; if(!isDone && t.to === user._id) userAction = t.status !== 'DOING' ? `<button onclick="window.HR_Action.task.accept('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-2 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-lg">NHẬN VIỆC</button>` : `<button onclick="window.HR_Action.task.finish('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-2 bg-green-100 text-green-700 text-[10px] font-bold rounded-lg">BÁO CÁO XONG</button>`;
+            // SỬA LỖI: Thêm z-10 để nút không bị chìm xuống dưới, css rõ ràng hơn để bấm dễ trúng
+            let btns = ''; if(isAdmin) btns = `<div class="absolute top-2 right-2 flex flex-col items-end gap-1.5 z-10"><button onclick="window.HR_Action.task.del('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-times"></i></button>${!isDone ? `<button onclick="window.HR_Action.remind('${emp?._id}','${encodeURIComponent(empName)}','${tEnc}','${t.status==='PENDING'?'ACCEPT':'REPORT'}')" class="text-[9px] bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded shadow-sm active:scale-95 transition flex items-center gap-1"><i class="fas fa-bell"></i> Nhắc</button>` : ''}</div>`;
+            
+            let userAction = ''; if(!isDone && t.to === user._id) userAction = t.status !== 'DOING' ? `<button onclick="window.HR_Action.task.accept('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-2 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-lg z-10 relative">NHẬN VIỆC</button>` : `<button onclick="window.HR_Action.task.finish('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-2 bg-green-100 text-green-700 text-[10px] font-bold rounded-lg z-10 relative">BÁO CÁO XONG</button>`;
             
             const isCheckin = t.type === 'CHECKIN';
             let boxColor = isCheckin ? 'border-purple-200 bg-purple-50/30' : (isDone ? 'opacity-60' : '');
@@ -145,7 +168,7 @@ export const HR = {
             else if (t.result === 'INCOMPLETE') boxColor = 'border-orange-200 bg-orange-50/50';
 
             return `<div id="task-${t.id}" class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative ${boxColor} transition animate-fade-in">
-                <div class="pr-8"><span class="text-xs font-bold ${isCheckin ? 'text-purple-700' : 'text-slate-700'} block ${isDone && t.result==='DONE' ?'line-through':''}">${isCheckin ? '📍 ' : ''}${t.area?`[${t.area}] `:''}${t.title}</span><span class="text-[10px] text-slate-400">Người làm: <b>${empName}</b> • ${timeStr}</span>${t.note ? `<div class="mt-1.5 text-[10px] text-slate-600 italic bg-slate-50 p-1.5 rounded border border-slate-100">📝 ${t.note}</div>` : ''}</div>
+                <div class="pr-8 relative z-0"><span class="text-xs font-bold ${isCheckin ? 'text-purple-700' : 'text-slate-700'} block ${isDone && t.result==='DONE' ?'line-through':''}">${isCheckin ? '📍 ' : ''}${t.area?`[${t.area}] `:''}${t.title}</span><span class="text-[10px] text-slate-400">Người làm: <b>${empName}</b> • ${timeStr}</span>${t.note ? `<div class="mt-1.5 text-[10px] text-slate-600 italic bg-slate-50 p-1.5 rounded border border-slate-100">📝 ${t.note}</div>` : ''}</div>
                 ${btns} ${userAction}
             </div>`;
         }).join('') : '<div class="text-center text-slate-400 text-xs py-8">Chưa có công việc nào</div>';
