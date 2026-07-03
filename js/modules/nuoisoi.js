@@ -1,7 +1,6 @@
 import { doc, collection, db, ROOT_PATH, writeBatch, increment } from '../config.js';
 import { Utils } from '../utils.js';
 
-// CỖ MÁY IN PHIẾU ĐIỆN TỬ (Dùng chung cho toàn hệ thống)
 if (!window.showReceipt) {
     window.showReceipt = function(title, user, items, note, qrOrderCode = null) {
         const timeStr = new Date().toLocaleString('vi-VN');
@@ -194,7 +193,6 @@ window.NuoiSoi_Action = {
                 await batchDb.commit(); 
                 Utils.modal(null); Utils.toast("✅ Đã xếp phôi lên giàn!");
 
-                // XUẤT PHIẾU NHẬP
                 setTimeout(() => {
                     if(confirm("Bạn có muốn xuất PHIẾU NHẬP KHU NUÔI SỢI không?")) {
                         window.showReceipt("PHIẾU NHẬP KHU NUÔI SỢI", userName, [
@@ -216,7 +214,13 @@ window.NuoiSoi_Action = {
 
                 const totalExport = qDat + qTD + qHuy;
                 if(totalExport <= 0) return Utils.toast("Chưa nhập số lượng để xuất!", "err");
-                if(totalExport > batches[sourceBatch]) return Utils.toast(`Vượt quá số lượng tồn của Lô ${sourceBatch} trên giàn!`, "err");
+                
+                // --- TÍNH NĂNG CHẶN XUẤT QUÁ SỐ LƯỢNG KHI XUẤT PHÔI LÊN GIÀN ---
+                if(totalExport > batches[sourceBatch]) {
+                    alert(`❌ CẢNH BÁO: KHO KHÔNG ĐỦ PHÔI!\n\nLô ${sourceBatch} trên giàn chỉ còn ${batches[sourceBatch]} bịch.\nBạn đang cố gắng xuất ra ${totalExport} bịch.`);
+                    return Utils.toast(`Vượt quá số lượng tồn của Lô ${sourceBatch}!`, "err");
+                }
+                
                 if(qDat > 0 && !targetHouse) return Utils.toast("Vui lòng chọn Nhà Trồng cho phôi Đạt!", "err");
                 if(qTD > 0 && !targetHouseTD) return Utils.toast("Vui lòng chọn Nhà Trồng cho phôi Tận Dụng!", "err");
 
@@ -247,7 +251,6 @@ window.NuoiSoi_Action = {
 
                 await batchDb.commit(); Utils.modal(null); Utils.toast("🚀 Đã xuất và tạo mã lô tự động!");
 
-                // XUẤT PHIẾU XUẤT
                 setTimeout(() => {
                     if(confirm("Bạn có muốn xuất PHIẾU LỌC & CHUYỂN NHÀ không?")) {
                         let items = [{ label: "Xuất từ Giàn", value: id }, { label: "Mã Lô", value: sourceBatch }];
