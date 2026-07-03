@@ -304,7 +304,38 @@ export const THDG = {
             
             let cart=[]; 
             const upC=()=>{ document.getElementById('cart-list').innerHTML=cart.map((i,x)=>`<div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100 shadow-sm"><div class="text-[11px]"><div class="font-bold text-slate-700">${i.name}</div><div class="text-slate-500">${i.qty} x ${i.price.toLocaleString()}</div></div><div class="flex items-center gap-3"><span class="font-bold text-orange-600">${(i.qty*i.price).toLocaleString()}</span><button onclick="document.getElementById('d-${x}').click()" class="text-red-400 hover:text-red-600 font-bold px-1 text-base">×</button></div><button id="d-${x}" class="hidden"></button></div>`).join(''); document.getElementById('cart-total').innerText=cart.reduce((a,b)=>a+b.qty*b.price,0).toLocaleString()+'đ'; cart.forEach((_,i)=>document.getElementById(`d-${i}`).onclick=()=>{cart.splice(i,1);upC()}) };
-            document.getElementById('btn-add-cart').onclick=()=>{ const s=document.getElementById('s-prod'); if(s.value){cart.push({code:s.value,name:s.options[s.selectedIndex].getAttribute('data-name'),qty:Number(document.getElementById('s-qty').value),price:Number(document.getElementById('s-price').value)}); upC(); document.getElementById('s-qty').value='';} };
+            
+            // --- TÍNH NĂNG CHẶN XUẤT ÂM KHO KHI THÊM VÀO GIỎ ---
+            document.getElementById('btn-add-cart').onclick = () => { 
+                const s = document.getElementById('s-prod'); 
+                const reqQty = Number(document.getElementById('s-qty').value);
+                
+                if (s.value && reqQty > 0) {
+                    const pCode = s.value;
+                    const p = products.find(x => x.code === pCode);
+                    const currentStock = p ? (p.stock || 0) : 0;
+                    
+                    // Tính tổng số lượng sản phẩm này đang nằm chờ trong giỏ hàng
+                    const qtyInCart = cart.filter(i => i.code === pCode).reduce((sum, i) => sum + i.qty, 0);
+                    
+                    // KIỂM TRA CHẶN XUẤT ÂM KHO
+                    if (reqQty + qtyInCart > currentStock) {
+                        alert(`❌ CẢNH BÁO: KHO KHÔNG ĐỦ HÀNG!\n\nSản phẩm: ${p.name}\nTồn kho hiện tại: ${currentStock}\nĐã có trong giỏ: ${qtyInCart}\nBạn đang xuất quá số lượng cho phép.`);
+                        return Utils.toast("Vượt quá số lượng tồn kho!", "err");
+                    }
+
+                    cart.push({
+                        code: pCode,
+                        name: s.options[s.selectedIndex].getAttribute('data-name'),
+                        qty: reqQty,
+                        price: Number(document.getElementById('s-price').value)
+                    }); 
+                    upC(); 
+                    document.getElementById('s-qty').value = '';
+                } else {
+                    Utils.toast("Vui lòng nhập sản phẩm và số lượng > 0!", "err");
+                }
+            };
             
             document.getElementById('btn-save-sell').onclick=async()=>{ 
                 if(cart.length){ 
@@ -312,7 +343,7 @@ export const THDG = {
                     const batch = writeBatch(db); 
                     const orderRef = doc(collection(db, `${ROOT_PATH}/shipping`));
                     const totalAmount = cart.reduce((a,b)=>a+b.qty*b.price,0);
-                    const savedCart = [...cart]; // Lưu lại để in hóa đơn
+                    const savedCart = [...cart]; 
 
                     batch.set(orderRef, { customer: customerName, items: cart, total: totalAmount, user: user.name, time: Date.now() }); 
                     
@@ -325,17 +356,13 @@ export const THDG = {
                     }); 
                     await batch.commit(); Utils.toast("✅ Đã xuất bán thành công!"); 
 
-                    // HỎI CÓ IN HÓA ĐƠN KHÔNG
                     setTimeout(() => {
                         if(confirm("Bạn có muốn xuất HÓA ĐƠN BÁN HÀNG không?")) {
                             let items = [{ label: "Khách hàng", value: customerName }];
                             savedCart.forEach(i => { items.push({ label: `${i.name} (x${i.qty})`, value: `${(i.qty * i.price).toLocaleString()} đ` }); });
                             items.push({ label: "TỔNG TIỀN", value: `${totalAmount.toLocaleString()} đ` });
-                            
-                            // Gửi luôn ID của Đơn hàng để tạo mã QR trên Hóa Đơn
                             window.showReceipt("HÓA ĐƠN BÁN HÀNG", user.name, items, "Cảm ơn quý khách đã tin dùng Nấm Ông 5!", orderRef.id);
                         } else {
-                            // Nếu không in hóa đơn thì chỉ hiện bảng QR nhỏ
                             window.THDG_Action.showQR(orderRef.id, customerName);
                         }
                     }, 300);
