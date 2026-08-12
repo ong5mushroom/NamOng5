@@ -4,6 +4,25 @@ import { Utils } from '../utils.js';
 let currentTaskFilter = 'ALL';
 const STANDARD_TASKS = ['Thu hoạch', 'Nhận phôi', 'Tiêm nước', 'Xuất bán', 'Vệ sinh phôi', 'Kiểm tra nhà'];
 
+// KHO DANH NGÔN & ĐỘNG LỰC
+const MOTIVATIONAL_QUOTES = [
+    "Chăm nấm nấm mập, chăm làm ví dày. Chúc ngày mới bội thu! 🍄",
+    "Làm việc bằng tâm, ắt sẽ vươn tầm! 💪",
+    "Một nụ cười chào ngày mới, ngàn may mắn sẽ tới! ☀️",
+    "Hôm nay là một ngày tuyệt vời để gặt hái thành công! 🌟",
+    "Năng lượng tích cực sẽ hút tài lộc về tay! 💸",
+    "Cố gắng thêm chút nữa, mẻ nấm đẹp đang chờ! 🍄",
+    "Thành công bắt đầu từ việc bạn có mặt đúng giờ! ⏰"
+];
+
+const PENALTY_QUOTES = [
+    "Trừ xíu điểm để nhớ nhau hơn. Kéo lại phong độ nha! 🏃‍♂️",
+    "Nấm buồn vì bạn tới trễ đó. Lần sau chạy lẹ hơn nghen! 🍄",
+    "Không sao, sai thì sửa, trễ thì mai đi sớm! Chiến thôi! 💪",
+    "Lỡ ngủ quên xíu hả? Rửa mặt tỉnh táo rồi cày bù nha! 💦",
+    "Điểm số rớt chút xíu, nhưng tinh thần phải giữ vững nha! 🔥"
+];
+
 // CỖ MÁY IN PHIẾU ĐIỆN TỬ
 if (!window.showReceipt) {
     window.showReceipt = function(title, user, items, note, qrOrderCode = null) {
@@ -212,8 +231,23 @@ export const HR = {
         const tasks = Array.isArray(data.tasks) ? data.tasks : []; const employees = (Array.isArray(data.employees) ? data.employees : []).sort((a,b) => (b.score||0) - (a.score||0)); const chats = Array.isArray(data.chat) ? data.chat.sort((a,b)=>b.time-a.time).slice(0,50) : [];
         const pending = tasks.filter(t => t.status === 'PENDING' && ['LEAVE', 'BUY'].includes(t.type)); const top3 = employees.slice(0, 3); const adminEnc = encodeURIComponent(user.name);
 
+        // Lấy câu danh ngôn ngẫu nhiên
+        const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+
         c.innerHTML = `
         <div class="space-y-5 pb-24">
+            
+            <!-- BẢNG CHÀO BUỔI SÁNG -->
+            <div class="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-2xl border border-blue-100 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="text-3xl animate-bounce">☀️</div>
+                    <div>
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Chào ngày mới, ${user.name}!</div>
+                        <div class="text-xs font-black text-blue-700 italic">"${randomQuote}"</div>
+                    </div>
+                </div>
+            </div>
+
             ${isAdmin && pending.length ? `<div class="bg-red-50 p-3 rounded-2xl border border-red-200"><h3 class="font-bold text-red-600 text-[10px] mb-2 uppercase">CẦN DUYỆT (${pending.length})</h3><div class="space-y-2 max-h-40 overflow-y-auto">${pending.map(t=>{ 
                 const time = new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
                 return `<div id="task-${t.id}" class="bg-white p-2.5 rounded-xl flex justify-between items-center text-xs shadow-sm border border-red-100"><div><span class="text-[9px] bg-slate-100 text-slate-400 px-1 rounded mr-1">${time}</span><b class="text-slate-600">${t.by}</b>: ${t.title}</div><div class="flex gap-2"><button onclick="window.HR_Action.approve('${t.id}','${encodeURIComponent(t.title)}','${encodeURIComponent(t.by)}',true)" class="text-green-600 font-black px-2 py-1 bg-green-50 rounded-lg">OK</button><button onclick="window.HR_Action.approve('${t.id}','${encodeURIComponent(t.title)}','${encodeURIComponent(t.by)}',false)" class="text-red-600 font-black px-2 py-1 bg-red-50 rounded-lg">X</button></div></div>`; 
@@ -288,34 +322,66 @@ export const HR = {
             if(b1) b1.onclick = async () => { 
                 if(confirm("Xác nhận chấm công ngay?")) { 
                     const now = new Date();
-                    const isLate = (now.getHours() > 7) || (now.getHours() === 7 && now.getMinutes() > 30);
+                    const timeStr = now.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+                    
+                    const deadlineH = 7; const deadlineM = 30;
+                    const isLate = (now.getHours() > deadlineH) || (now.getHours() === deadlineH && now.getMinutes() > deadlineM);
                     const batch = writeBatch(db);
-                    let msg = `📍 ${user.name} chấm công lúc ${now.toLocaleTimeString('vi-VN')}`;
-                    if(isLate) { 
-                        msg += " ⏰ (TRỄ, trừ 2đ)"; batch.update(doc(db, `${ROOT_PATH}/employees`, user._id), { score: increment(-2) });
+                    let msg = `📍 ${user.name} chấm công lúc ${timeStr}`;
+                    
+                    // --- MÁY QUÉT KỶ LUẬT ---
+                    let targetDay = new Date(now);
+                    targetDay.setDate(now.getDate() - 1); 
+                    if (now.getDay() === 1) targetDay.setDate(now.getDate() - 2); 
+                    targetDay.setHours(0,0,0,0); const startOfTarget = targetDay.getTime();
+                    targetDay.setHours(23,59,59,999); const endOfTarget = targetDay.getTime();
+
+                    const userCheckins = tasks.filter(t => t.to === user._id && t.type === 'CHECKIN');
+                    const isFirstCheckin = userCheckins.length === 0;
+
+                    const hadActivity = tasks.some(t => t.to === user._id && (t.type === 'CHECKIN' || t.type === 'LEAVE') && t.time >= startOfTarget && t.time <= endOfTarget);
+                    const alreadyPunished = tasks.some(t => t.to === user._id && t.title.includes(`Nghỉ không phép (${targetDay.toLocaleDateString('vi-VN')})`));
+
+                    let unexcusedAbsence = false;
+                    if (!hadActivity && !alreadyPunished && now.getDay() !== 0 && !isFirstCheckin) {
+                        unexcusedAbsence = true;
+                        batch.update(doc(db, `${ROOT_PATH}/employees`, user._id), { score: increment(-5) });
+                        msg += `\n❌ (Bị phát hiện nghỉ ko phép ngày ${targetDay.toLocaleDateString('vi-VN')}: -5đ)`;
+                        batch.set(doc(collection(db, `${ROOT_PATH}/tasks`)), { title: `Nghỉ không phép (${targetDay.toLocaleDateString('vi-VN')})`, to: user._id, by: 'HỆ THỐNG', type: 'TASK', status: 'DONE', result: 'FAILED', note: 'Bắt lỗi tự động khi chấm công', time: now.getTime() - 1000 });
                     }
+
+                    if(isLate) { msg += " ⏰ (TRỄ, trừ 2đ)"; batch.update(doc(db, `${ROOT_PATH}/employees`, user._id), { score: increment(-2) }); }
                     batch.set(doc(collection(db, `${ROOT_PATH}/tasks`)), { title: "Chấm công " + (isLate?"trễ":"đúng giờ"), to: user._id, by: user.name, type: 'CHECKIN', status: 'DONE', time: now.getTime() }); 
-                    await batch.commit(); window.HR_Action.chat("HỆ THỐNG", msg, true); Utils.toast(isLate ? "⚠️ Chấm công TRỄ (-2đ)" : "✅ Chấm công thành công!"); 
+                    
+                    await batch.commit(); 
+                    window.HR_Action.chat("HỆ THỐNG", msg, true); 
+
+                    // --- BẢNG THÔNG BÁO CẢNH BÁO ĐỎ KÈM ĐỘNG LỰC ---
+                    let alertTitle = ""; let alertHtml = "";
+                    const pQuote = PENALTY_QUOTES[Math.floor(Math.random() * PENALTY_QUOTES.length)];
+
+                    if(unexcusedAbsence && isLate) {
+                        alertTitle = "⚠️ ÔI BẠN GẶP LỖI KÉP!";
+                        alertHtml = `<div class="text-center p-2"><div class="text-4xl mb-3">🏃‍♂️💨</div><div class="text-sm font-bold text-red-600 mb-4 leading-relaxed">- Vắng không phép hôm qua (-5đ)<br>- Hôm nay đi trễ (-2đ)<br>Tổng trừ: 7 điểm.</div><div class="text-xs font-bold text-slate-700 italic bg-red-50 p-3 rounded-xl border border-red-200 shadow-inner">"${pQuote}"</div></div>`;
+                    } else if (unexcusedAbsence) {
+                        alertTitle = "⚠️ PHÁT HIỆN NGHỈ KHÔNG PHÉP";
+                        alertHtml = `<div class="text-center p-2"><div class="text-4xl mb-3">🕵️‍♂️</div><div class="text-sm font-bold text-red-600 mb-4 leading-relaxed">Hôm qua (${targetDay.toLocaleDateString('vi-VN')}) bạn vắng không phép. Hệ thống tự động trừ 5 điểm thi đua.</div><div class="text-xs font-bold text-slate-700 italic bg-red-50 p-3 rounded-xl border border-red-200 shadow-inner">"${pQuote}"</div></div>`;
+                    } else if (isLate) {
+                        alertTitle = "⏰ ÔI BẠN ĐẾN TRỄ!";
+                        alertHtml = `<div class="text-center p-2"><div class="text-4xl mb-3">🏃‍♂️💨</div><div class="text-sm font-bold text-red-600 mb-4 leading-relaxed">Hệ thống ghi nhận bạn đi trễ và tự động trừ 2 điểm.</div><div class="text-xs font-bold text-slate-700 italic bg-red-50 p-3 rounded-xl border border-red-200 shadow-inner">"${pQuote}"</div></div>`;
+                    }
+
+                    if (alertHtml) {
+                         Utils.modal(alertTitle, alertHtml, [{id:'btn-ok-penalty', text:'XÁC NHẬN & CỐ GẮNG BÙ LẠI'}]);
+                         setTimeout(() => { document.getElementById('btn-ok-penalty').onclick = () => Utils.modal(null); }, 100);
+                    } else {
+                         Utils.toast("✅ Chấm công thành công! Chúc ngày mới vui vẻ!");
+                    }
                 } 
             };
             
-            document.getElementById('btn-leave').onclick = () => { Utils.modal("Xin Nghỉ", `<input id="l-r" class="w-full p-3 border rounded-xl text-sm" placeholder="Lý do nghỉ..."><div class="flex gap-2 mt-2"><input type="date" id="l-d" class="w-full p-2 border rounded-xl text-sm"><input type="number" id="l-n" class="w-full p-2 border rounded-xl text-sm" value="1" placeholder="Số ngày"></div>`, [{id:'s-ok',text:'Gửi đơn'}]); setTimeout(() => { document.getElementById('l-d').valueAsDate = new Date(); document.getElementById('s-ok').onclick = () => { const r=document.getElementById('l-r').value, d=document.getElementById('l-d').value, n=document.getElementById('l-n').value; if(r&&d&&n) { sendReq(`Nghỉ ${n} ngày (${new Date(d).toLocaleDateString('vi-VN')}): ${r}`, "LEAVE"); Utils.modal(null); 
-                // XUẤT PHIẾU XIN NGHỈ
-                setTimeout(() => {
-                    if(confirm("Bạn có muốn xuất ĐƠN XIN NGHỈ PHÉP không?")) {
-                        window.showReceipt("ĐƠN XIN NGHỈ PHÉP", user.name, [{ label: "Ngày bắt đầu", value: new Date(d).toLocaleDateString('vi-VN') }, { label: "Số ngày nghỉ", value: n }, { label: "Lý do", value: r }], "Chờ quản lý duyệt");
-                    }
-                }, 300);
-            } }; }, 100); };
-            
-            document.getElementById('btn-buy').onclick = () => { Utils.modal("Mua Hàng", `<input id="b-n" class="w-full p-3 border rounded-xl text-sm" placeholder="Tên món hàng..."><div class="flex gap-2 mt-2"><input type="number" id="b-q" class="w-full p-2 border rounded-xl text-sm" value="1" placeholder="SL"><input type="date" id="b-d" class="w-full p-2 border rounded-xl text-sm"></div>`, [{id:'s-ok',text:'Gửi đề xuất'}]); setTimeout(() => { document.getElementById('b-d').valueAsDate = new Date(); document.getElementById('s-ok').onclick = () => { const n=document.getElementById('b-n').value, q=document.getElementById('b-q').value, d=document.getElementById('b-d').value; if(n&&q&&d) { sendReq(`Mua ${q} ${n} (Cần ${new Date(d).toLocaleDateString('vi-VN')})`, "BUY"); Utils.modal(null);
-                // XUẤT PHIẾU MUA HÀNG
-                setTimeout(() => {
-                    if(confirm("Bạn có muốn xuất ĐỀ XUẤT MUA HÀNG không?")) {
-                        window.showReceipt("ĐỀ XUẤT MUA HÀNG", user.name, [{ label: "Tên vật tư/hàng hóa", value: n }, { label: "Số lượng", value: q }, { label: "Cần vào ngày", value: new Date(d).toLocaleDateString('vi-VN') }], "Chờ quản lý duyệt");
-                    }
-                }, 300);
-            } }; }, 100); };
+            document.getElementById('btn-leave').onclick = () => { Utils.modal("Xin Nghỉ", `<input id="l-r" class="w-full p-3 border rounded-xl text-sm" placeholder="Lý do nghỉ..."><div class="flex gap-2 mt-2"><input type="date" id="l-d" class="w-full p-2 border rounded-xl text-sm"><input type="number" id="l-n" class="w-full p-2 border rounded-xl text-sm" value="1" placeholder="Số ngày"></div>`, [{id:'s-ok',text:'Gửi đơn'}]); setTimeout(() => { document.getElementById('l-d').valueAsDate = new Date(); document.getElementById('s-ok').onclick = () => { const r=document.getElementById('l-r').value, d=document.getElementById('l-d').value, n=document.getElementById('l-n').value; if(r&&d&&n) { sendReq(`Nghỉ ${n} ngày (${new Date(d).toLocaleDateString('vi-VN')}): ${r}`, "LEAVE"); Utils.modal(null); setTimeout(() => { if(confirm("Bạn có muốn xuất ĐƠN XIN NGHỈ PHÉP không?")) { window.showReceipt("ĐƠN XIN NGHỈ PHÉP", user.name, [{ label: "Ngày bắt đầu", value: new Date(d).toLocaleDateString('vi-VN') }, { label: "Số ngày nghỉ", value: n }, { label: "Lý do", value: r }], "Chờ quản lý duyệt"); } }, 300); } }; }, 100); };
+            document.getElementById('btn-buy').onclick = () => { Utils.modal("Mua Hàng", `<input id="b-n" class="w-full p-3 border rounded-xl text-sm" placeholder="Tên món hàng..."><div class="flex gap-2 mt-2"><input type="number" id="b-q" class="w-full p-2 border rounded-xl text-sm" value="1" placeholder="SL"><input type="date" id="b-d" class="w-full p-2 border rounded-xl text-sm"></div>`, [{id:'s-ok',text:'Gửi đề xuất'}]); setTimeout(() => { document.getElementById('b-d').valueAsDate = new Date(); document.getElementById('s-ok').onclick = () => { const n=document.getElementById('b-n').value, q=document.getElementById('b-q').value, d=document.getElementById('b-d').value; if(n&&q&&d) { sendReq(`Mua ${q} ${n} (Cần ${new Date(d).toLocaleDateString('vi-VN')})`, "BUY"); Utils.modal(null); setTimeout(() => { if(confirm("Bạn có muốn xuất ĐỀ XUẤT MUA HÀNG không?")) { window.showReceipt("ĐỀ XUẤT MUA HÀNG", user.name, [{ label: "Tên vật tư/hàng hóa", value: n }, { label: "Số lượng", value: q }, { label: "Cần vào ngày", value: new Date(d).toLocaleDateString('vi-VN') }], "Chờ quản lý duyệt"); } }, 300); } }; }, 100); };
             
             const btnNotify = document.getElementById('btn-notify');
             if(btnNotify) btnNotify.onclick = () => {
