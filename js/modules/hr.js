@@ -11,7 +11,7 @@ const MOTIVATIONAL_QUOTES = [
     "Một nụ cười chào ngày mới, ngàn may mắn sẽ tới! ☀️",
     "Hôm nay là một ngày tuyệt vời để gặt hái thành công! 🌟",
     "Năng lượng tích cực sẽ hút tài lộc về tay! 💸",
-    "Cố gắng thêm chút nữa, mẻ nấm đẹp đang chờ! 🍄",
+    "Cố gắng thêm chút nữa, mẻ nấm đẹp đang chờ team Ông 5! 🍄",
     "Thành công bắt đầu từ việc bạn có mặt đúng giờ! ⏰"
 ];
 
@@ -231,7 +231,6 @@ export const HR = {
         const tasks = Array.isArray(data.tasks) ? data.tasks : []; const employees = (Array.isArray(data.employees) ? data.employees : []).sort((a,b) => (b.score||0) - (a.score||0)); const chats = Array.isArray(data.chat) ? data.chat.sort((a,b)=>b.time-a.time).slice(0,50) : [];
         const pending = tasks.filter(t => t.status === 'PENDING' && ['LEAVE', 'BUY'].includes(t.type)); const top3 = employees.slice(0, 3); const adminEnc = encodeURIComponent(user.name);
 
-        // Lấy câu danh ngôn ngẫu nhiên
         const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
 
         c.innerHTML = `
@@ -320,64 +319,88 @@ export const HR = {
             
             const b1 = document.getElementById('btn-checkin'); 
             if(b1) b1.onclick = async () => { 
-                if(confirm("Xác nhận chấm công ngay?")) { 
-                    const now = new Date();
-                    const timeStr = now.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
-                    
-                    const deadlineH = 7; const deadlineM = 30;
-                    const isLate = (now.getHours() > deadlineH) || (now.getHours() === deadlineH && now.getMinutes() > deadlineM);
-                    const batch = writeBatch(db);
-                    let msg = `📍 ${user.name} chấm công lúc ${timeStr}`;
-                    
-                    // --- MÁY QUÉT KỶ LUẬT ---
-                    let targetDay = new Date(now);
-                    targetDay.setDate(now.getDate() - 1); 
-                    if (now.getDay() === 1) targetDay.setDate(now.getDate() - 2); 
-                    targetDay.setHours(0,0,0,0); const startOfTarget = targetDay.getTime();
-                    targetDay.setHours(23,59,59,999); const endOfTarget = targetDay.getTime();
+                const now = new Date();
+                const currentH = now.getHours();
+                const currentM = now.getMinutes();
 
-                    const userCheckins = tasks.filter(t => t.to === user._id && t.type === 'CHECKIN');
-                    const isFirstCheckin = userCheckins.length === 0;
+                // 1. CHẶN CHẤM CÔNG TRƯỚC 07:00 (Tránh bấm khống ở nhà)
+                if (currentH < 7) {
+                    return Utils.toast("❌ Chưa đến giờ! Bạn chỉ được chấm công sau 07:00 sáng.", "err");
+                }
 
-                    const hadActivity = tasks.some(t => t.to === user._id && (t.type === 'CHECKIN' || t.type === 'LEAVE') && t.time >= startOfTarget && t.time <= endOfTarget);
-                    const alreadyPunished = tasks.some(t => t.to === user._id && t.title.includes(`Nghỉ không phép (${targetDay.toLocaleDateString('vi-VN')})`));
+                if(!confirm("Xác nhận chấm công ngay bây giờ?")) return;
 
-                    let unexcusedAbsence = false;
-                    if (!hadActivity && !alreadyPunished && now.getDay() !== 0 && !isFirstCheckin) {
-                        unexcusedAbsence = true;
-                        batch.update(doc(db, `${ROOT_PATH}/employees`, user._id), { score: increment(-5) });
-                        msg += `\n❌ (Bị phát hiện nghỉ ko phép ngày ${targetDay.toLocaleDateString('vi-VN')}: -5đ)`;
-                        batch.set(doc(collection(db, `${ROOT_PATH}/tasks`)), { title: `Nghỉ không phép (${targetDay.toLocaleDateString('vi-VN')})`, to: user._id, by: 'HỆ THỐNG', type: 'TASK', status: 'DONE', result: 'FAILED', note: 'Bắt lỗi tự động khi chấm công', time: now.getTime() - 1000 });
-                    }
+                const timeStr = now.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+                const deadlineH = 7; const deadlineM = 30;
+                const isLate = (currentH > deadlineH) || (currentH === deadlineH && currentM > deadlineM);
+                
+                Utils.toast("⏳ Đang ghi nhận chấm công...", "info");
+                const batch = writeBatch(db);
+                let msg = `📍 ${user.name} chấm công lúc ${timeStr}`;
+                
+                // --- MÁY QUÉT KỶ LUẬT ---
+                let targetDay = new Date(now);
+                targetDay.setDate(now.getDate() - 1); 
+                if (now.getDay() === 1) targetDay.setDate(now.getDate() - 2); 
+                targetDay.setHours(0,0,0,0); const startOfTarget = targetDay.getTime();
+                targetDay.setHours(23,59,59,999); const endOfTarget = targetDay.getTime();
 
-                    if(isLate) { msg += " ⏰ (TRỄ, trừ 2đ)"; batch.update(doc(db, `${ROOT_PATH}/employees`, user._id), { score: increment(-2) }); }
-                    batch.set(doc(collection(db, `${ROOT_PATH}/tasks`)), { title: "Chấm công " + (isLate?"trễ":"đúng giờ"), to: user._id, by: user.name, type: 'CHECKIN', status: 'DONE', time: now.getTime() }); 
-                    
-                    await batch.commit(); 
-                    window.HR_Action.chat("HỆ THỐNG", msg, true); 
+                const userCheckins = tasks.filter(t => t.to === user._id && t.type === 'CHECKIN');
+                const isFirstCheckin = userCheckins.length === 0;
 
-                    // --- BẢNG THÔNG BÁO CẢNH BÁO ĐỎ KÈM ĐỘNG LỰC ---
-                    let alertTitle = ""; let alertHtml = "";
-                    const pQuote = PENALTY_QUOTES[Math.floor(Math.random() * PENALTY_QUOTES.length)];
+                const hadActivity = tasks.some(t => t.to === user._id && (t.type === 'CHECKIN' || t.type === 'LEAVE') && t.time >= startOfTarget && t.time <= endOfTarget);
+                const alreadyPunished = tasks.some(t => t.to === user._id && t.title.includes(`Nghỉ không phép (${targetDay.toLocaleDateString('vi-VN')})`));
 
-                    if(unexcusedAbsence && isLate) {
-                        alertTitle = "⚠️ ÔI BẠN GẶP LỖI KÉP!";
-                        alertHtml = `<div class="text-center p-2"><div class="text-4xl mb-3">🏃‍♂️💨</div><div class="text-sm font-bold text-red-600 mb-4 leading-relaxed">- Vắng không phép hôm qua (-5đ)<br>- Hôm nay đi trễ (-2đ)<br>Tổng trừ: 7 điểm.</div><div class="text-xs font-bold text-slate-700 italic bg-red-50 p-3 rounded-xl border border-red-200 shadow-inner">"${pQuote}"</div></div>`;
-                    } else if (unexcusedAbsence) {
-                        alertTitle = "⚠️ PHÁT HIỆN NGHỈ KHÔNG PHÉP";
-                        alertHtml = `<div class="text-center p-2"><div class="text-4xl mb-3">🕵️‍♂️</div><div class="text-sm font-bold text-red-600 mb-4 leading-relaxed">Hôm qua (${targetDay.toLocaleDateString('vi-VN')}) bạn vắng không phép. Hệ thống tự động trừ 5 điểm thi đua.</div><div class="text-xs font-bold text-slate-700 italic bg-red-50 p-3 rounded-xl border border-red-200 shadow-inner">"${pQuote}"</div></div>`;
-                    } else if (isLate) {
-                        alertTitle = "⏰ ÔI BẠN ĐẾN TRỄ!";
-                        alertHtml = `<div class="text-center p-2"><div class="text-4xl mb-3">🏃‍♂️💨</div><div class="text-sm font-bold text-red-600 mb-4 leading-relaxed">Hệ thống ghi nhận bạn đi trễ và tự động trừ 2 điểm.</div><div class="text-xs font-bold text-slate-700 italic bg-red-50 p-3 rounded-xl border border-red-200 shadow-inner">"${pQuote}"</div></div>`;
-                    }
+                let unexcusedAbsence = false;
+                if (!hadActivity && !alreadyPunished && now.getDay() !== 0 && !isFirstCheckin) {
+                    unexcusedAbsence = true;
+                    batch.update(doc(db, `${ROOT_PATH}/employees`, user._id), { score: increment(-5) });
+                    msg += `\n❌ (Vắng ko phép ngày ${targetDay.toLocaleDateString('vi-VN')}: -5đ)`;
+                    batch.set(doc(collection(db, `${ROOT_PATH}/tasks`)), { title: `Nghỉ không phép (${targetDay.toLocaleDateString('vi-VN')})`, to: user._id, by: 'HỆ THỐNG', type: 'TASK', status: 'DONE', result: 'FAILED', note: 'Bắt lỗi tự động khi chấm công', time: now.getTime() - 1000 });
+                }
 
-                    if (alertHtml) {
-                         Utils.modal(alertTitle, alertHtml, [{id:'btn-ok-penalty', text:'XÁC NHẬN & CỐ GẮNG BÙ LẠI'}]);
-                         setTimeout(() => { document.getElementById('btn-ok-penalty').onclick = () => Utils.modal(null); }, 100);
-                    } else {
-                         Utils.toast("✅ Chấm công thành công! Chúc ngày mới vui vẻ!");
-                    }
-                } 
+                // --- TÍNH SỐ LẦN ĐI TRỄ TRONG THÁNG ---
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+                const lateCount = tasks.filter(t => t.to === user._id && t.type === 'CHECKIN' && t.time >= startOfMonth && t.title.includes('trễ')).length + 1; // +1 cho lần trễ hiện tại
+
+                if(isLate) { 
+                    msg += ` \n⏰ (TRỄ, trừ 2đ)`; 
+                    batch.update(doc(db, `${ROOT_PATH}/employees`, user._id), { score: increment(-2) }); 
+                }
+                
+                batch.set(doc(collection(db, `${ROOT_PATH}/tasks`)), { 
+                    title: "Chấm công " + (isLate?"trễ":"đúng giờ"), 
+                    to: user._id, 
+                    by: user.name, 
+                    type: 'CHECKIN', 
+                    status: 'DONE', 
+                    time: now.getTime() 
+                }); 
+                
+                await batch.commit(); 
+                window.HR_Action.chat("HỆ THỐNG", msg, true); 
+
+                // --- BẢNG THÔNG BÁO CẢNH BÁO ĐỎ KÈM ĐỘNG LỰC ---
+                let alertTitle = ""; let alertHtml = "";
+                const pQuote = PENALTY_QUOTES[Math.floor(Math.random() * PENALTY_QUOTES.length)];
+
+                if(unexcusedAbsence && isLate) {
+                    alertTitle = "⚠️ ÔI BẠN GẶP LỖI KÉP!";
+                    alertHtml = `<div class="text-center p-2"><div class="text-4xl mb-3">🏃‍♂️💨</div><div class="text-sm font-bold text-red-600 mb-3 leading-relaxed">- Vắng không phép hôm qua (-5đ)<br>- Hôm nay đi trễ (-2đ)<br>Tổng trừ: 7 điểm.</div><div class="text-xs font-bold text-orange-600 bg-orange-50 p-2 rounded border border-orange-200 mb-3">Tháng này bạn đã trễ ${lateCount} lần rồi nhé!</div><div class="text-xs font-bold text-slate-700 italic bg-red-50 p-3 rounded-xl border border-red-200 shadow-inner">"${pQuote}"</div></div>`;
+                } else if (unexcusedAbsence) {
+                    alertTitle = "⚠️ PHÁT HIỆN NGHỈ KHÔNG PHÉP";
+                    alertHtml = `<div class="text-center p-2"><div class="text-4xl mb-3">🕵️‍♂️</div><div class="text-sm font-bold text-red-600 mb-4 leading-relaxed">Hôm qua (${targetDay.toLocaleDateString('vi-VN')}) bạn vắng không phép. Hệ thống tự động trừ 5 điểm thi đua.</div><div class="text-xs font-bold text-slate-700 italic bg-red-50 p-3 rounded-xl border border-red-200 shadow-inner">"${pQuote}"</div></div>`;
+                } else if (isLate) {
+                    alertTitle = "⏰ ÔI BẠN ĐẾN TRỄ!";
+                    alertHtml = `<div class="text-center p-2"><div class="text-4xl mb-3">🏃‍♂️💨</div><div class="text-sm font-bold text-red-600 mb-3 leading-relaxed">Hệ thống ghi nhận bạn đi trễ và tự động trừ 2 điểm.</div><div class="text-xs font-bold text-orange-600 bg-orange-50 p-2 rounded border border-orange-200 mb-3">Hôm nay đã là lần thứ ${lateCount} bạn chấm công trễ trong tháng này rồi nhé!</div><div class="text-xs font-bold text-slate-700 italic bg-red-50 p-3 rounded-xl border border-red-200 shadow-inner mt-4">"${pQuote}"</div></div>`;
+                }
+
+                if (alertHtml) {
+                     Utils.modal(alertTitle, alertHtml, [{id:'btn-ok-penalty', text:'XÁC NHẬN & CỐ GẮNG BÙ LẠI'}]);
+                     setTimeout(() => { document.getElementById('btn-ok-penalty').onclick = () => Utils.modal(null); }, 100);
+                } else {
+                     Utils.toast("✅ Chấm công thành công! Chúc ngày mới vui vẻ!");
+                }
             };
             
             document.getElementById('btn-leave').onclick = () => { Utils.modal("Xin Nghỉ", `<input id="l-r" class="w-full p-3 border rounded-xl text-sm" placeholder="Lý do nghỉ..."><div class="flex gap-2 mt-2"><input type="date" id="l-d" class="w-full p-2 border rounded-xl text-sm"><input type="number" id="l-n" class="w-full p-2 border rounded-xl text-sm" value="1" placeholder="Số ngày"></div>`, [{id:'s-ok',text:'Gửi đơn'}]); setTimeout(() => { document.getElementById('l-d').valueAsDate = new Date(); document.getElementById('s-ok').onclick = () => { const r=document.getElementById('l-r').value, d=document.getElementById('l-d').value, n=document.getElementById('l-n').value; if(r&&d&&n) { sendReq(`Nghỉ ${n} ngày (${new Date(d).toLocaleDateString('vi-VN')}): ${r}`, "LEAVE"); Utils.modal(null); setTimeout(() => { if(confirm("Bạn có muốn xuất ĐƠN XIN NGHỈ PHÉP không?")) { window.showReceipt("ĐƠN XIN NGHỈ PHÉP", user.name, [{ label: "Ngày bắt đầu", value: new Date(d).toLocaleDateString('vi-VN') }, { label: "Số ngày nghỉ", value: n }, { label: "Lý do", value: r }], "Chờ quản lý duyệt"); } }, 300); } }; }, 100); };
