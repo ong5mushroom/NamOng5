@@ -54,6 +54,16 @@ if (!window.showReceipt) {
         overlay.className = 'fixed inset-0 bg-slate-900/80 z-[9999] flex items-center justify-center p-4 overflow-y-auto animate-fade-in';
         overlay.innerHTML = `<div class="w-full max-w-lg my-auto">${html}</div>`;
         document.body.appendChild(overlay);
+
+        if(qrOrderCode && typeof QRCode !== 'undefined') {
+            setTimeout(() => {
+                new QRCode(document.getElementById("receipt-qr"), {
+                    text: `https://app.ong5mushroom.com/trace.html?order=${qrOrderCode}`,
+                    width: 120, height: 120,
+                    colorDark : "#451a03", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
+                });
+            }, 100);
+        }
     };
 }
 
@@ -62,28 +72,37 @@ window.NuoiSoi_Action = {
         if(!confirm(`⚠️ GOM MÃ LÔ: "${batchCode}"\nHệ thống sẽ quét và hút toàn bộ phôi mã này từ các giàn khác về giàn ${targetRackId}. Bạn có chắc chắn?`)) return;
         const allRacks = window._tempNuoiSoiData || [];
         let totalToAdd = 0; const batchDb = writeBatch(db); let foundOther = false;
+        
         allRacks.forEach(r => {
             if(r.id !== targetRackId) {
                 let bMap = r.batches || {};
                 if (r.batch && r.qty) bMap[r.batch] = (bMap[r.batch]||0) + Number(r.qty); 
                 if(bMap[batchCode] && bMap[batchCode] > 0) {
-                    foundOther = true; totalToAdd += bMap[batchCode]; delete bMap[batchCode]; 
-                    let extra = { batches: bMap, time: Date.now() };
-                    if (r.batch === batchCode) { extra.batch = ''; extra.qty = 0; }
-                    batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, r.id), extra, { merge: true });
+                    foundOther = true; totalToAdd += bMap[batchCode]; 
+                    delete bMap[batchCode]; // Xóa mã lô khỏi giàn cũ
+                    
+                    // Ghi đè tuyệt đối (Bỏ merge: true) để áp dụng lệnh Xóa
+                    batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, r.id), { batches: bMap, time: Date.now(), batch: '', qty: 0 }); 
                 }
             }
         });
+
         if(foundOther) {
             let targetRack = allRacks.find(r => r.id === targetRackId) || { batches: {} };
             let tMap = targetRack.batches || {};
             if (targetRack.batch && targetRack.qty) tMap[targetRack.batch] = (tMap[targetRack.batch]||0) + Number(targetRack.qty);
             tMap[batchCode] = (tMap[batchCode] || 0) + totalToAdd; 
-            batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, targetRackId), { batches: tMap, batch: '', qty: 0, time: Date.now() }, { merge: true });
-            await batchDb.commit(); Utils.modal(null); Utils.toast(`✅ Đã gom thêm ${totalToAdd} bịch phôi về giàn ${targetRackId}!`);
-        } else { Utils.toast(`Không có giàn nào khác chứa mã ${batchCode} để gom.`, "info"); }
+            
+            // Ghi đè tuyệt đối cho giàn đích
+            batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, targetRackId), { batches: tMap, batch: '', qty: 0, time: Date.now() });
+            
+            await batchDb.commit(); 
+            Utils.modal(null); 
+            Utils.toast(`✅ Đã gom thêm ${totalToAdd} bịch phôi về giàn ${targetRackId}!`);
+        } else { 
+            Utils.toast(`Không có giàn nào khác chứa mã ${batchCode} để gom.`, "info"); 
+        }
     },
-    // NÂNG CẤP: Quét lịch sử để xuất phiếu tổng kết tỷ lệ Đạt/Tận Dụng/Hủy
     clearRack: async (id, rackDataStr, userName) => {
         if(!confirm(`⚠️ BẠN CHẮC CHẮN MUỐN XÓA SẠCH GIÀN ${id}?\nToàn bộ phôi trên giàn này sẽ bị xóa khỏi hệ thống.`)) return;
         try {
@@ -92,7 +111,6 @@ window.NuoiSoi_Action = {
             let batches = rack.batches || {};
             const batchKeys = Object.keys(batches);
             
-            // Lấy dữ liệu log để tính toán
             let allLogs = [];
             if(batchKeys.length > 0) {
                 const snap = await getDocs(collection(db, `${ROOT_PATH}/supplies`));
@@ -100,8 +118,10 @@ window.NuoiSoi_Action = {
             }
             
             const batchDb = writeBatch(db);
-            batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: {}, batch: '', qty: 0, time: Date.now() }, { merge: true });
+            // Ghi đè tuyệt đối để Xóa sạch các lô trên giàn
+            batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: {}, batch: '', qty: 0, time: Date.now() });
             await batchDb.commit(); 
+            
             Utils.modal(null); Utils.toast(`✅ Đã dọn sạch giàn ${id}!`);
 
             if(batchKeys.length > 0) {
@@ -117,8 +137,7 @@ window.NuoiSoi_Action = {
                             let tdQty = allLogs.filter(l => l.type === 'EXPORT' && (l.code||'').startsWith(bCode + 'TD-')).reduce((s, l) => s + Number(l.qty||0), 0);
                             let huyQty = allLogs.filter(l => l.type === 'DESTROY' && (l.code||'').startsWith(bCode + 'HUY-')).reduce((s, l) => s + Number(l.qty||0), 0);
                             
-                            // Tính cả số lượng còn kẹt lại trên giàn lúc bấm xóa coi như là Hủy
-                            huyQty += Number(batches[bCode]);
+                            huyQty += Number(batches[bCode]); // Cộng thêm số dư bị kẹt trên giàn
 
                             items.push({ label: `<span class="text-blue-700 underline text-base">MÃ LÔ: ${bCode}</span>`, value: "" });
                             items.push({ label: `Ngày lên giàn`, value: importTime });
@@ -219,11 +238,14 @@ window.NuoiSoi_Action = {
                 
                 batches[b] = (batches[b] || 0) + q;
                 const batchDb = writeBatch(db); 
-                batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 }, { merge: true });
+                
+                // Ghi đè tuyệt đối
+                batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 });
                 
                 const houseAId = houseA?.id || 'KHO_TONG';
                 batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type: 'IMPORT', to: houseAId, code: b, qty: q, user: userName, time: Date.now(), note: `Nhập lên Giàn ${id}` });
                 await batchDb.commit(); 
+                
                 Utils.modal(null); Utils.toast("✅ Đã xếp phôi lên giàn!");
 
                 setTimeout(() => {
@@ -260,8 +282,10 @@ window.NuoiSoi_Action = {
                 const houseAId = houseA?.id || 'KHO_TONG';
 
                 batches[sourceBatch] -= totalExport;
-                if(batches[sourceBatch] <= 0) delete batches[sourceBatch];
-                batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 }, { merge: true });
+                if(batches[sourceBatch] <= 0) delete batches[sourceBatch]; // Nếu về 0 thì xóa key
+                
+                // GHI ĐÈ TUYỆT ĐỐI -> Sẽ xóa hoàn toàn key ra khỏi Firebase
+                batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 });
 
                 const dObj = new Date();
                 const dateStr = ('0' + dObj.getDate()).slice(-2) + '/' + ('0' + (dObj.getMonth()+1)).slice(-2) + '/' + dObj.getFullYear().toString().slice(-2);
@@ -281,7 +305,8 @@ window.NuoiSoi_Action = {
                     batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'DESTROY', from:houseAId, to:'HUY', code:codeHuy, qty:qHuy, user:userName, time:Date.now() });
                 }
 
-                await batchDb.commit(); Utils.modal(null); Utils.toast("🚀 Đã xuất và tạo mã lô tự động!");
+                await batchDb.commit(); 
+                Utils.modal(null); Utils.toast("🚀 Đã xuất và tạo mã lô tự động!");
 
                 setTimeout(() => {
                     if(confirm("Bạn có muốn xuất PHIẾU LỌC & CHUYỂN NHÀ không?")) {
