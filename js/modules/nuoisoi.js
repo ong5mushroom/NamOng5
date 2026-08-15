@@ -70,37 +70,38 @@ if (!window.showReceipt) {
 window.NuoiSoi_Action = {
     merge: async (targetRackId, batchCode) => {
         if(!confirm(`⚠️ GOM MÃ LÔ: "${batchCode}"\nHệ thống sẽ quét và hút toàn bộ phôi mã này từ các giàn khác về giàn ${targetRackId}. Bạn có chắc chắn?`)) return;
-        const allRacks = window._tempNuoiSoiData || [];
-        let totalToAdd = 0; const batchDb = writeBatch(db); let foundOther = false;
-        
-        allRacks.forEach(r => {
-            if(r.id !== targetRackId) {
-                let bMap = r.batches || {};
-                if (r.batch && r.qty) bMap[r.batch] = (bMap[r.batch]||0) + Number(r.qty); 
-                if(bMap[batchCode] && bMap[batchCode] > 0) {
-                    foundOther = true; totalToAdd += bMap[batchCode]; 
-                    delete bMap[batchCode]; // Xóa mã lô khỏi giàn cũ
-                    
-                    // Ghi đè tuyệt đối (Bỏ merge: true) để áp dụng lệnh Xóa
-                    batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, r.id), { batches: bMap, time: Date.now(), batch: '', qty: 0 }); 
+        try {
+            const allRacks = window._tempNuoiSoiData || [];
+            let totalToAdd = 0; const batchDb = writeBatch(db); let foundOther = false;
+            
+            allRacks.forEach(r => {
+                if(r.id !== targetRackId) {
+                    let bMap = r.batches || {};
+                    if (r.batch && r.qty) bMap[r.batch] = (bMap[r.batch]||0) + Number(r.qty); 
+                    if(bMap[batchCode] && bMap[batchCode] > 0) {
+                        foundOther = true; totalToAdd += bMap[batchCode]; 
+                        delete bMap[batchCode]; 
+                        batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, r.id), { batches: bMap, time: Date.now(), batch: '', qty: 0 }); 
+                    }
                 }
-            }
-        });
+            });
 
-        if(foundOther) {
-            let targetRack = allRacks.find(r => r.id === targetRackId) || { batches: {} };
-            let tMap = targetRack.batches || {};
-            if (targetRack.batch && targetRack.qty) tMap[targetRack.batch] = (tMap[targetRack.batch]||0) + Number(targetRack.qty);
-            tMap[batchCode] = (tMap[batchCode] || 0) + totalToAdd; 
-            
-            // Ghi đè tuyệt đối cho giàn đích
-            batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, targetRackId), { batches: tMap, batch: '', qty: 0, time: Date.now() });
-            
-            await batchDb.commit(); 
-            Utils.modal(null); 
-            Utils.toast(`✅ Đã gom thêm ${totalToAdd} bịch phôi về giàn ${targetRackId}!`);
-        } else { 
-            Utils.toast(`Không có giàn nào khác chứa mã ${batchCode} để gom.`, "info"); 
+            if(foundOther) {
+                let targetRack = allRacks.find(r => r.id === targetRackId) || { batches: {} };
+                let tMap = targetRack.batches || {};
+                if (targetRack.batch && targetRack.qty) tMap[targetRack.batch] = (tMap[targetRack.batch]||0) + Number(targetRack.qty);
+                tMap[batchCode] = (tMap[batchCode] || 0) + totalToAdd; 
+                
+                batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, targetRackId), { batches: tMap, batch: '', qty: 0, time: Date.now() });
+                
+                await batchDb.commit(); 
+                Utils.modal(null); 
+                Utils.toast(`✅ Đã gom thêm ${totalToAdd} bịch phôi về giàn ${targetRackId}!`);
+            } else { 
+                Utils.toast(`Không có giàn nào khác chứa mã ${batchCode} để gom.`, "info"); 
+            }
+        } catch(error) {
+            Utils.toast("❌ Lỗi khi gom giàn: " + error.message, "err");
         }
     },
     clearRack: async (id, rackDataStr, userName) => {
@@ -118,7 +119,6 @@ window.NuoiSoi_Action = {
             }
             
             const batchDb = writeBatch(db);
-            // Ghi đè tuyệt đối để Xóa sạch các lô trên giàn
             batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: {}, batch: '', qty: 0, time: Date.now() });
             await batchDb.commit(); 
             
@@ -137,7 +137,7 @@ window.NuoiSoi_Action = {
                             let tdQty = allLogs.filter(l => l.type === 'EXPORT' && (l.code||'').startsWith(bCode + 'TD-')).reduce((s, l) => s + Number(l.qty||0), 0);
                             let huyQty = allLogs.filter(l => l.type === 'DESTROY' && (l.code||'').startsWith(bCode + 'HUY-')).reduce((s, l) => s + Number(l.qty||0), 0);
                             
-                            huyQty += Number(batches[bCode]); // Cộng thêm số dư bị kẹt trên giàn
+                            huyQty += Number(batches[bCode]); 
 
                             items.push({ label: `<span class="text-blue-700 underline text-base">MÃ LÔ: ${bCode}</span>`, value: "" });
                             items.push({ label: `Ngày lên giàn`, value: importTime });
@@ -150,7 +150,9 @@ window.NuoiSoi_Action = {
                     }
                 }, 300);
             }
-        } catch(e) { alert(e.message); }
+        } catch(e) { 
+            Utils.toast("❌ Lỗi dọn giàn: " + e.message, "err"); 
+        }
     },
     edit: (id, rackDataStr, userName) => {
         let rack = JSON.parse(decodeURIComponent(rackDataStr));
@@ -232,91 +234,107 @@ window.NuoiSoi_Action = {
             btnTXuat.onclick = () => { tabXuat.classList.remove('hidden'); tabNhap.classList.add('hidden'); btnTXuat.className = "flex-1 py-2 text-xs font-bold bg-white text-blue-600 rounded shadow-sm transition"; btnTNhap.className = "flex-1 py-2 text-xs font-bold text-slate-500 rounded transition"; };
 
             document.getElementById('btn-save-nhap').onclick = async () => {
-                const b = document.getElementById('ns-add-batch').value.toUpperCase().trim(); 
-                const q = Number(document.getElementById('ns-add-qty').value);
-                if(!b || q <= 0) return Utils.toast("Nhập thiếu Mã Lô hoặc Số Lượng!", "err");
-                
-                batches[b] = (batches[b] || 0) + q;
-                const batchDb = writeBatch(db); 
-                
-                // Ghi đè tuyệt đối
-                batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 });
-                
-                const houseAId = houseA?.id || 'KHO_TONG';
-                batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type: 'IMPORT', to: houseAId, code: b, qty: q, user: userName, time: Date.now(), note: `Nhập lên Giàn ${id}` });
-                await batchDb.commit(); 
-                
-                Utils.modal(null); Utils.toast("✅ Đã xếp phôi lên giàn!");
+                try {
+                    const b = document.getElementById('ns-add-batch').value.toUpperCase().trim(); 
+                    const q = Number(document.getElementById('ns-add-qty').value);
+                    if(!b || q <= 0) return Utils.toast("Nhập thiếu Mã Lô hoặc Số Lượng!", "err");
+                    
+                    document.getElementById('btn-save-nhap').disabled = true;
+                    batches[b] = (batches[b] || 0) + q;
+                    const batchDb = writeBatch(db); 
+                    
+                    batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 });
+                    
+                    const houseAId = houseA?.id || 'KHO_TONG';
+                    batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type: 'IMPORT', to: houseAId, code: b, qty: q, user: userName, time: Date.now(), note: `Nhập lên Giàn ${id}` });
+                    await batchDb.commit(); 
+                    
+                    Utils.modal(null); Utils.toast("✅ Đã xếp phôi lên giàn!");
 
-                setTimeout(() => {
-                    if(confirm("Bạn có muốn xuất PHIẾU NHẬP KHU NUÔI SỢI không?")) {
-                        window.showReceipt("PHIẾU NHẬP KHU NUÔI SỢI", userName, [
-                            { label: "Vị trí giàn", value: `Giàn ${id}` },
-                            { label: "Mã Lô", value: b },
-                            { label: "Số lượng nhập", value: `${q.toLocaleString()} bịch` }
-                        ], "Phôi được kiểm tra và xếp lên giàn chờ ủ tơ.");
-                    }
-                }, 300);
+                    setTimeout(() => {
+                        if(confirm("Bạn có muốn xuất PHIẾU NHẬP KHU NUÔI SỢI không?")) {
+                            window.showReceipt("PHIẾU NHẬP KHU NUÔI SỢI", userName, [
+                                { label: "Vị trí giàn", value: `Giàn ${id}` },
+                                { label: "Mã Lô", value: b },
+                                { label: "Số lượng nhập", value: `${q.toLocaleString()} bịch` }
+                            ], "Phôi được kiểm tra và xếp lên giàn chờ ủ tơ.");
+                        }
+                    }, 300);
+                } catch(error) {
+                    Utils.toast("❌ Lỗi lưu dữ liệu: " + error.message, "err");
+                    document.getElementById('btn-save-nhap').disabled = false;
+                }
             };
 
             document.getElementById('btn-save-xuat').onclick = async () => {
-                const sourceBatch = document.getElementById('ns-x-source').value;
-                if(!sourceBatch) return Utils.toast("Chưa chọn Mã Lô để xuất!", "err");
+                try {
+                    const sourceBatch = document.getElementById('ns-x-source').value;
+                    if(!sourceBatch) return Utils.toast("Chưa chọn Mã Lô để xuất!", "err");
 
-                const qDat = Number(document.getElementById('ns-x-dat').value) || 0; const targetHouse = document.getElementById('ns-x-house').value;
-                const qTD = Number(document.getElementById('ns-x-td').value) || 0; const targetHouseTD = document.getElementById('ns-x-td-house').value;
-                const qHuy = Number(document.getElementById('ns-x-huy').value) || 0;
+                    const qDat = Number(document.getElementById('ns-x-dat').value) || 0; const targetHouse = document.getElementById('ns-x-house').value;
+                    const qTD = Number(document.getElementById('ns-x-td').value) || 0; const targetHouseTD = document.getElementById('ns-x-td-house').value;
+                    const qHuy = Number(document.getElementById('ns-x-huy').value) || 0;
 
-                const totalExport = qDat + qTD + qHuy;
-                if(totalExport <= 0) return Utils.toast("Chưa nhập số lượng để xuất!", "err");
-                
-                if(totalExport > batches[sourceBatch]) {
-                    alert(`❌ CẢNH BÁO: KHO KHÔNG ĐỦ PHÔI!\n\nLô ${sourceBatch} trên giàn chỉ còn ${batches[sourceBatch]} bịch.\nBạn đang cố gắng xuất ra ${totalExport} bịch.`);
-                    return Utils.toast(`Vượt quá số lượng tồn của Lô ${sourceBatch}!`, "err");
-                }
-                
-                if(qDat > 0 && !targetHouse) return Utils.toast("Vui lòng chọn Nhà Trồng cho phôi Đạt!", "err");
-                if(qTD > 0 && !targetHouseTD) return Utils.toast("Vui lòng chọn Nhà Trồng cho phôi Tận Dụng!", "err");
-
-                const batchDb = writeBatch(db);
-                const houseAId = houseA?.id || 'KHO_TONG';
-
-                batches[sourceBatch] -= totalExport;
-                if(batches[sourceBatch] <= 0) delete batches[sourceBatch]; // Nếu về 0 thì xóa key
-                
-                // GHI ĐÈ TUYỆT ĐỐI -> Sẽ xóa hoàn toàn key ra khỏi Firebase
-                batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 });
-
-                const dObj = new Date();
-                const dateStr = ('0' + dObj.getDate()).slice(-2) + '/' + ('0' + (dObj.getMonth()+1)).slice(-2) + '/' + dObj.getFullYear().toString().slice(-2);
-
-                if(qDat > 0) {
-                    const codeDat = `${sourceBatch}D-${dateStr}`;
-                    batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseAId, to:targetHouse, code:codeDat, qty:qDat, user:userName, time:Date.now() });
-                    batchDb.update(doc(db, `${ROOT_PATH}/houses`, targetHouse), { status:'ACTIVE', batchQty: increment(qDat), currentBatch:codeDat });
-                }
-                if(qTD > 0) {
-                    const codeTD = `${sourceBatch}TD-${dateStr}`;
-                    batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseAId, to:targetHouseTD, code:codeTD, qty:qTD, user:userName, time:Date.now() });
-                    batchDb.update(doc(db, `${ROOT_PATH}/houses`, targetHouseTD), { status:'ACTIVE', batchQty: increment(qTD), currentBatch:codeTD });
-                }
-                if(qHuy > 0) {
-                    const codeHuy = `${sourceBatch}HUY-${dateStr}`;
-                    batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'DESTROY', from:houseAId, to:'HUY', code:codeHuy, qty:qHuy, user:userName, time:Date.now() });
-                }
-
-                await batchDb.commit(); 
-                Utils.modal(null); Utils.toast("🚀 Đã xuất và tạo mã lô tự động!");
-
-                setTimeout(() => {
-                    if(confirm("Bạn có muốn xuất PHIẾU LỌC & CHUYỂN NHÀ không?")) {
-                        let items = [{ label: "Xuất từ Giàn", value: id }, { label: "Mã Lô", value: sourceBatch }];
-                        if(qDat > 0) { const hName = houses.find(x=>x.id===targetHouse)?.name||''; items.push({ label: `Phôi đạt ➔ ${hName}`, value: `${qDat.toLocaleString()} bịch` }); }
-                        if(qTD > 0) { const hNameTD = houses.find(x=>x.id===targetHouseTD)?.name||''; items.push({ label: `Tận dụng ➔ ${hNameTD}`, value: `${qTD.toLocaleString()} bịch` }); }
-                        if(qHuy > 0) items.push({ label: `Hư hỏng ➔ Bãi Hủy`, value: `${qHuy.toLocaleString()} bịch` });
-                        window.showReceipt("PHIẾU LỌC & XUẤT PHÔI", userName, items, "Kiểm tra kỹ tình trạng nhiễm mốc trước khi xuất.");
+                    const totalExport = qDat + qTD + qHuy;
+                    if(totalExport <= 0) return Utils.toast("Chưa nhập số lượng để xuất!", "err");
+                    
+                    if(totalExport > batches[sourceBatch]) {
+                        alert(`❌ CẢNH BÁO: KHO KHÔNG ĐỦ PHÔI!\n\nLô ${sourceBatch} trên giàn chỉ còn ${batches[sourceBatch]} bịch.\nBạn đang cố gắng xuất ra ${totalExport} bịch.`);
+                        return Utils.toast(`Vượt quá số lượng tồn của Lô ${sourceBatch}!`, "err");
                     }
-                }, 300);
+                    
+                    if(qDat > 0 && !targetHouse) return Utils.toast("Vui lòng chọn Nhà Trồng cho phôi Đạt!", "err");
+                    if(qTD > 0 && !targetHouseTD) return Utils.toast("Vui lòng chọn Nhà Trồng cho phôi Tận Dụng!", "err");
+
+                    document.getElementById('btn-save-xuat').disabled = true;
+                    Utils.toast("⏳ Đang xử lý xuất phôi...", "info");
+
+                    const batchDb = writeBatch(db);
+                    const houseAId = houseA?.id || 'KHO_TONG';
+
+                    batches[sourceBatch] -= totalExport;
+                    if(batches[sourceBatch] <= 0) delete batches[sourceBatch]; 
+                    
+                    // Ghi đè tuyệt đối để loại bỏ rác
+                    batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 });
+
+                    const dObj = new Date();
+                    const dateStr = ('0' + dObj.getDate()).slice(-2) + '/' + ('0' + (dObj.getMonth()+1)).slice(-2) + '/' + dObj.getFullYear().toString().slice(-2);
+
+                    if(qDat > 0) {
+                        const codeDat = `${sourceBatch}D-${dateStr}`;
+                        batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseAId, to:targetHouse, code:codeDat, qty:qDat, user:userName, time:Date.now() });
+                        // SỬ DỤNG {merge: true} ĐỂ TRÁNH LỖI NẾU HỒ SƠ NHÀ BỊ THIẾU
+                        batchDb.set(doc(db, `${ROOT_PATH}/houses`, targetHouse), { status:'ACTIVE', batchQty: increment(qDat), currentBatch:codeDat }, { merge: true });
+                    }
+                    if(qTD > 0) {
+                        const codeTD = `${sourceBatch}TD-${dateStr}`;
+                        batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseAId, to:targetHouseTD, code:codeTD, qty:qTD, user:userName, time:Date.now() });
+                        // SỬ DỤNG {merge: true} 
+                        batchDb.set(doc(db, `${ROOT_PATH}/houses`, targetHouseTD), { status:'ACTIVE', batchQty: increment(qTD), currentBatch:codeTD }, { merge: true });
+                    }
+                    if(qHuy > 0) {
+                        const codeHuy = `${sourceBatch}HUY-${dateStr}`;
+                        batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'DESTROY', from:houseAId, to:'HUY', code:codeHuy, qty:qHuy, user:userName, time:Date.now() });
+                    }
+
+                    await batchDb.commit(); 
+                    Utils.modal(null); 
+                    Utils.toast("🚀 Đã xuất và tạo mã lô tự động!");
+
+                    setTimeout(() => {
+                        if(confirm("Bạn có muốn xuất PHIẾU LỌC & CHUYỂN NHÀ không?")) {
+                            let items = [{ label: "Xuất từ Giàn", value: id }, { label: "Mã Lô", value: sourceBatch }];
+                            if(qDat > 0) { const hName = houses.find(x=>x.id===targetHouse)?.name||''; items.push({ label: `Phôi đạt ➔ ${hName}`, value: `${qDat.toLocaleString()} bịch` }); }
+                            if(qTD > 0) { const hNameTD = houses.find(x=>x.id===targetHouseTD)?.name||''; items.push({ label: `Tận dụng ➔ ${hNameTD}`, value: `${qTD.toLocaleString()} bịch` }); }
+                            if(qHuy > 0) items.push({ label: `Hư hỏng ➔ Bãi Hủy`, value: `${qHuy.toLocaleString()} bịch` });
+                            window.showReceipt("PHIẾU LỌC & XUẤT PHÔI", userName, items, "Kiểm tra kỹ tình trạng nhiễm mốc trước khi xuất.");
+                        }
+                    }, 300);
+                } catch(error) {
+                    Utils.toast("❌ Lỗi: " + error.message, "err");
+                    document.getElementById('btn-save-xuat').disabled = false;
+                }
             };
         }, 100);
     }
