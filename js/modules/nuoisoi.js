@@ -1,4 +1,4 @@
-import { doc, collection, db, ROOT_PATH, writeBatch, increment } from '../config.js';
+import { doc, collection, db, ROOT_PATH, writeBatch, increment, getDocs } from '../config.js';
 import { Utils } from '../utils.js';
 
 if (!window.showReceipt) {
@@ -49,22 +49,11 @@ if (!window.showReceipt) {
             }
         </style>
         `;
-        
         const overlay = document.createElement('div');
         overlay.id = 'receipt-overlay';
         overlay.className = 'fixed inset-0 bg-slate-900/80 z-[9999] flex items-center justify-center p-4 overflow-y-auto animate-fade-in';
         overlay.innerHTML = `<div class="w-full max-w-lg my-auto">${html}</div>`;
         document.body.appendChild(overlay);
-
-        if(qrOrderCode && typeof QRCode !== 'undefined') {
-            setTimeout(() => {
-                new QRCode(document.getElementById("receipt-qr"), {
-                    text: `https://app.ong5mushroom.com/trace.html?order=${qrOrderCode}`,
-                    width: 120, height: 120,
-                    colorDark : "#451a03", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
-                });
-            }, 100);
-        }
     };
 }
 
@@ -94,11 +83,55 @@ window.NuoiSoi_Action = {
             await batchDb.commit(); Utils.modal(null); Utils.toast(`✅ Đã gom thêm ${totalToAdd} bịch phôi về giàn ${targetRackId}!`);
         } else { Utils.toast(`Không có giàn nào khác chứa mã ${batchCode} để gom.`, "info"); }
     },
-    clearRack: async (id) => {
+    // NÂNG CẤP: Quét lịch sử để xuất phiếu tổng kết tỷ lệ Đạt/Tận Dụng/Hủy
+    clearRack: async (id, rackDataStr, userName) => {
         if(!confirm(`⚠️ BẠN CHẮC CHẮN MUỐN XÓA SẠCH GIÀN ${id}?\nToàn bộ phôi trên giàn này sẽ bị xóa khỏi hệ thống.`)) return;
-        const batchDb = writeBatch(db);
-        batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: {}, batch: '', qty: 0, time: Date.now() }, { merge: true });
-        await batchDb.commit(); Utils.modal(null); Utils.toast(`✅ Đã dọn sạch giàn ${id}!`);
+        try {
+            Utils.toast("⏳ Đang dọn giàn và tính toán số liệu...", "info");
+            let rack = JSON.parse(decodeURIComponent(rackDataStr));
+            let batches = rack.batches || {};
+            const batchKeys = Object.keys(batches);
+            
+            // Lấy dữ liệu log để tính toán
+            let allLogs = [];
+            if(batchKeys.length > 0) {
+                const snap = await getDocs(collection(db, `${ROOT_PATH}/supplies`));
+                allLogs = snap.docs.map(d => d.data());
+            }
+            
+            const batchDb = writeBatch(db);
+            batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: {}, batch: '', qty: 0, time: Date.now() }, { merge: true });
+            await batchDb.commit(); 
+            Utils.modal(null); Utils.toast(`✅ Đã dọn sạch giàn ${id}!`);
+
+            if(batchKeys.length > 0) {
+                setTimeout(() => {
+                    if(confirm(`Bạn có muốn xuất PHIẾU TỔNG KẾT GIÀN ${id} không?`)) {
+                        let items = [];
+                        batchKeys.forEach(bCode => {
+                            let importLogs = allLogs.filter(l => l.type === 'IMPORT' && l.code === bCode);
+                            let totalImport = importLogs.reduce((s, l) => s + Number(l.qty||0), 0);
+                            let importTime = importLogs.length ? new Date(Math.min(...importLogs.map(l => l.time))).toLocaleDateString('vi-VN') : '--';
+                            
+                            let datQty = allLogs.filter(l => l.type === 'EXPORT' && (l.code||'').startsWith(bCode + 'D-')).reduce((s, l) => s + Number(l.qty||0), 0);
+                            let tdQty = allLogs.filter(l => l.type === 'EXPORT' && (l.code||'').startsWith(bCode + 'TD-')).reduce((s, l) => s + Number(l.qty||0), 0);
+                            let huyQty = allLogs.filter(l => l.type === 'DESTROY' && (l.code||'').startsWith(bCode + 'HUY-')).reduce((s, l) => s + Number(l.qty||0), 0);
+                            
+                            // Tính cả số lượng còn kẹt lại trên giàn lúc bấm xóa coi như là Hủy
+                            huyQty += Number(batches[bCode]);
+
+                            items.push({ label: `<span class="text-blue-700 underline text-base">MÃ LÔ: ${bCode}</span>`, value: "" });
+                            items.push({ label: `Ngày lên giàn`, value: importTime });
+                            items.push({ label: `Tổng nhập (A)`, value: `${totalImport.toLocaleString()} bịch` });
+                            items.push({ label: `✅ Đạt`, value: `${datQty.toLocaleString()} (${totalImport?Math.round(datQty/totalImport*100):0}%)` });
+                            items.push({ label: `♻️ Tận dụng`, value: `${tdQty.toLocaleString()} (${totalImport?Math.round(tdQty/totalImport*100):0}%)` });
+                            items.push({ label: `🗑️ Hủy/Hao hụt`, value: `${huyQty.toLocaleString()} (${totalImport?Math.round(huyQty/totalImport*100):0}%)` });
+                        });
+                        window.showReceipt(`TỔNG KẾT TỶ LỆ DỌN GIÀN ${id}`, userName, items, "Số liệu quét tự động từ lịch sử Nhập/Xuất của các mã lô.");
+                    }
+                }, 300);
+            }
+        } catch(e) { alert(e.message); }
     },
     edit: (id, rackDataStr, userName) => {
         let rack = JSON.parse(decodeURIComponent(rackDataStr));
@@ -143,7 +176,7 @@ window.NuoiSoi_Action = {
                     </div>
                     <button id="btn-save-nhap" class="w-full py-2.5 bg-blue-600 active:bg-blue-700 text-white font-bold rounded-lg mt-2 shadow-md flex justify-center items-center gap-2"><i class="fas fa-plus-circle"></i> CỘNG VÀO GIÀN NÀY</button>
                 </div>
-                <button onclick="window.NuoiSoi_Action.clearRack('${id}')" class="w-full py-2 bg-red-50 text-red-600 font-bold rounded-lg mt-2 border border-red-200 flex justify-center items-center gap-2 transition hover:bg-red-100"><i class="fas fa-trash-alt"></i> XÓA SẠCH GIÀN NÀY</button>
+                <button onclick="window.NuoiSoi_Action.clearRack('${id}', '${rackDataStr}', '${userName}')" class="w-full py-2 bg-red-50 text-red-600 font-bold rounded-lg mt-2 border border-red-200 flex justify-center items-center gap-2 transition hover:bg-red-100"><i class="fas fa-trash-alt"></i> XÓA SẠCH GIÀN NÀY</button>
             </div>
             <div id="tab-xuat" class="hidden space-y-3 animate-fade-in">
                 <div class="bg-blue-50 p-2.5 rounded-xl border border-blue-200 flex justify-between items-center mb-2 shadow-sm">
@@ -215,7 +248,6 @@ window.NuoiSoi_Action = {
                 const totalExport = qDat + qTD + qHuy;
                 if(totalExport <= 0) return Utils.toast("Chưa nhập số lượng để xuất!", "err");
                 
-                // --- TÍNH NĂNG CHẶN XUẤT QUÁ SỐ LƯỢNG KHI XUẤT PHÔI LÊN GIÀN ---
                 if(totalExport > batches[sourceBatch]) {
                     alert(`❌ CẢNH BÁO: KHO KHÔNG ĐỦ PHÔI!\n\nLô ${sourceBatch} trên giàn chỉ còn ${batches[sourceBatch]} bịch.\nBạn đang cố gắng xuất ra ${totalExport} bịch.`);
                     return Utils.toast(`Vượt quá số lượng tồn của Lô ${sourceBatch}!`, "err");
