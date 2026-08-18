@@ -17,7 +17,7 @@ if (!window.showReceipt) {
             </div>
             <h1 class="text-lg font-black text-center uppercase mb-6 text-slate-800">${title}</h1>
             <div class="text-xs mb-4 space-y-1 text-slate-700">
-                <div class="flex justify-between"><span>Thời gian:</span><span class="font-bold">${timeStr}</span></div>
+                <div class="flex justify-between"><span>Thời gian lập:</span><span class="font-bold">${timeStr}</span></div>
                 <div class="flex justify-between"><span>Người lập:</span><span class="font-bold">${user}</span></div>
             </div>
             <div class="border-t-2 border-slate-800 pt-2 mb-2 text-sm text-slate-800">
@@ -37,7 +37,7 @@ if (!window.showReceipt) {
             </div>
         </div>
         <div class="mt-4 flex gap-2 justify-center hide-on-print relative z-50">
-            <button onclick="window.print()" class="bg-blue-600 active:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2"><i class="fas fa-print"></i> IN / LƯU ẢNH</button>
+            <button onclick="window.print()" class="bg-blue-600 active:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2"><i class="fas fa-print"></i> IN / LƯU BÁO CÁO</button>
             <button onclick="document.getElementById('receipt-overlay').remove()" class="bg-slate-200 active:bg-slate-300 text-slate-700 px-5 py-3 rounded-xl font-bold shadow-md">ĐÓNG</button>
         </div>
         <style>
@@ -68,29 +68,42 @@ window.SX_Action = {
             } catch(e){alert(e.message)} 
         } 
     },
-    // NÂNG CẤP: Lấy dữ liệu để xuất phiếu tổng kết
-    reset0: async (hid, hName, userName, batchQty, injectCountStr, totalYield, startTime) => { 
+    
+    // NÂNG CẤP: Truyền thêm chuỗi batchMapStr để in phiếu chi tiết
+    reset0: async (hid, hName, userName, batchQty, injectCountStr, totalYield, startTime, batchMapStr) => { 
         if(confirm(`⚠️ XÁC NHẬN HẾT VỤ (DỌN SẠCH ${hName.toUpperCase()})?`)) { 
             try {
                 const injectCount = decodeURIComponent(injectCountStr);
+                const batchMap = JSON.parse(decodeURIComponent(batchMapStr));
+                
+                // Tính số ngày từ lúc lô phôi đầu tiên vào nhà cho đến lúc bấm dọn nhà
                 const days = Math.max(1, Math.round((Date.now() - startTime) / (1000 * 60 * 60 * 24)));
+                
+                // Chuyển danh sách lô thành chuỗi (VD: 049D: 1000 bịch)
+                let batchDetails = Object.entries(batchMap).filter(([k,v])=>v>0).map(([k,v])=>`${k} <span class="text-[10px] text-slate-500">(${v.toLocaleString()})</span>`).join('<br>') || 'Không rõ';
 
+                // LƯU CƠ SỞ DỮ LIỆU
                 await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),{ batchQty: 0, currentBatch: '', status: 'EMPTY', injectCount: '', totalYield: 0, lastClearTime: Date.now() }); 
                 Utils.toast("✅ Đã dọn sạch nhà!"); 
 
+                // IN PHIẾU BÁO CÁO NHÀ TRỒNG
                 setTimeout(() => {
-                    if(confirm(`Bạn có muốn xuất PHIẾU TỔNG KẾT VỤ cho ${hName} không?`)) {
-                        window.showReceipt(`TỔNG KẾT VỤ - ${hName}`, userName, [
-                            { label: "Số lượng phôi", value: `${batchQty.toLocaleString()} bịch` },
-                            { label: "Thời gian nuôi trồng", value: `${days} ngày` },
-                            { label: "Số lần tiêm nước", value: injectCount || '0 lần' },
-                            { label: "Tổng sản lượng nấm", value: `${totalYield.toLocaleString()} kg` }
-                        ], "Đã hoàn tất dọn vệ sinh, sẵn sàng cho vụ mới.");
+                    if(confirm(`Bạn có muốn xuất PHIẾU BÁO CÁO TỔNG KẾT VỤ cho ${hName} không?`)) {
+                        window.showReceipt(`BÁO CÁO HẾT VỤ - ${hName}`, userName, [
+                            { label: "Mã lô sử dụng", value: `<div class="text-right leading-relaxed">${batchDetails}</div>` },
+                            { label: "Tổng số phôi", value: `<span class="font-black text-blue-700">${batchQty.toLocaleString()} bịch</span>` },
+                            { label: "Ngày vào lô đầu", value: new Date(startTime).toLocaleDateString('vi-VN') },
+                            { label: "Ngày kết thúc", value: new Date().toLocaleDateString('vi-VN') },
+                            { label: "Thời gian khai thác", value: `<span class="font-black text-slate-700">${days} ngày</span>` },
+                            { label: "Số lần tiêm", value: injectCount || '0 lần' },
+                            { label: "TỔNG SẢN LƯỢNG", value: `<span class="text-lg font-black text-green-700">${totalYield.toLocaleString()} kg</span>` }
+                        ], "Giàn đã được dọn vệ sinh an toàn, sẵn sàng cho vụ mới.");
                     }
                 }, 300);
-            } catch(e) { alert(e.message); }
+            } catch(e) { alert("Lỗi khi dọn nhà: " + e.message); }
         } 
     },
+    
     adjust: async (hid, cQ) => { const v=prompt("Số lượng (+/-):"); if(v){ const n=Number(v), newQ=(cQ||0)+n, u={batchQty:increment(n)}; if(newQ<=0){u.status='EMPTY';u.currentBatch='';u.batchQty=0}else{u.status='ACTIVE'} await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),u); Utils.toast("Đã sửa!"); } },
     addHouse: async () => { const n=prompt("Tên nhà:"); if(n) { await addDoc(collection(db,`${ROOT_PATH}/houses`),{name:n,status:'EMPTY',batchQty:0,currentBatch:'',startDate:Date.now(),totalYield:0,injectCount:''}); Utils.toast("Đã thêm!"); } },
     setInject: async (hid, currentVal) => { const v = prompt("Nhập thông tin tiêm (VD: Lần 2 - 15/06):", currentVal || ""); if(v !== null) { await updateDoc(doc(db, `${ROOT_PATH}/houses`, hid), { injectCount: v }); Utils.toast("Đã lưu!"); } }
@@ -194,10 +207,17 @@ export const SX = {
                     ${houses.filter(h => h.id !== (houseA?.id)).map(h => {
                         const isRunning = (h.batchQty > 0);
                         const clearTime = h.lastClearTime || 0;
-                        const startTime = h.lastClearTime || h.startDate || Date.now();
+                        const fallbackStartTime = h.lastClearTime || h.startDate || Date.now();
                         const injectEnc = encodeURIComponent(h.injectCount || '0');
 
+                        // Tìm thời gian lô phôi đầu tiên vào nhà thực tế
                         const hLogs = supplies.filter(s => (s.to === h.id || s.from === h.id) && s.time >= clearTime);
+                        let actualStartTime = fallbackStartTime;
+                        let inLogs = hLogs.filter(s => s.to === h.id);
+                        if(inLogs.length > 0) {
+                            actualStartTime = Math.min(...inLogs.map(l => l.time));
+                        }
+
                         const batchMap = {};
                         hLogs.forEach(log => {
                             if(!log.code) return;
@@ -205,6 +225,7 @@ export const SX = {
                             if(log.to === h.id) batchMap[log.code] += Number(log.qty);
                             else if (log.from === h.id) batchMap[log.code] -= Number(log.qty);
                         });
+                        const batchMapStr = encodeURIComponent(JSON.stringify(batchMap));
                         
                         const detailBatches = Object.entries(batchMap).filter(([code, qty]) => qty > 0).map(([code, qty]) => {
                             let textColor = 'text-slate-700 font-bold';
@@ -220,7 +241,7 @@ export const SX = {
                                     <div class="font-black text-slate-700 text-sm">${h.name}</div>
                                     <div class="flex gap-2 items-center">
                                         ${isManager ? `
-                                        <button onclick="window.SX_Action.reset0('${h.id}', '${h.name}', '${user.name}', ${h.batchQty||0}, '${injectEnc}', ${h.totalYield||0}, ${startTime})" class="text-slate-300 hover:text-red-500" title="Dọn nhà (Hết vụ)"><i class="fas fa-broom text-[11px]"></i></button>
+                                        <button onclick="window.SX_Action.reset0('${h.id}', '${h.name}', '${user.name}', ${h.batchQty||0}, '${injectEnc}', ${h.totalYield||0}, ${actualStartTime}, '${batchMapStr}')" class="text-slate-300 hover:text-red-500" title="Dọn nhà (Hết vụ)"><i class="fas fa-broom text-[11px]"></i></button>
                                         <button onclick="window.SX_Action.adjust('${h.id}', ${h.batchQty||0})" class="text-slate-300 hover:text-blue-500" title="Sửa số lượng"><i class="fas fa-pen text-[10px]"></i></button>
                                         ` : ''}
                                     </div>
