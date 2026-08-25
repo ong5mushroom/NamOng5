@@ -1,7 +1,6 @@
-import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc, writeBatch } from '../config.js';
+import { addDoc, collection, db, ROOT_PATH, doc, updateDoc, increment, deleteDoc, writeBatch, getDocs } from '../config.js';
 import { Utils } from '../utils.js';
 
-// CỖ MÁY IN PHIẾU ĐIỆN TỬ
 if (!window.showReceipt) {
     window.showReceipt = function(title, user, items, note, qrOrderCode = null) {
         const timeStr = new Date().toLocaleString('vi-VN');
@@ -59,34 +58,91 @@ if (!window.showReceipt) {
 }
 
 window.SX_Action = {
-    delLog: async (id, adjustQty, houseId) => { 
-        if(confirm(`Hủy lệnh này? (Sẽ trừ lại số lượng trong Nhà Trồng)`)) { 
+    delLog: async (logStr, houseAId) => { 
+        const l = JSON.parse(decodeURIComponent(logStr));
+        if(confirm(`⚠️ HỦY LỆNH NÀY VÀ HOÀN KHO KÉP?\n\n- Xuất/Hủy: Trừ phôi ở đích đến và Trả lại Giàn Nuôi Sợi.\n- Nhập mới: Trừ phôi trên Giàn Nuôi Sợi.`)) { 
             try { 
-                const b = writeBatch(db); b.delete(doc(db,`${ROOT_PATH}/supplies`,id)); 
-                if(houseId && houseId !== 'HUY') b.update(doc(db,`${ROOT_PATH}/houses`,houseId), {batchQty: increment(adjustQty)}); 
-                await b.commit(); Utils.toast("Đã hủy lệnh!"); 
-            } catch(e){alert(e.message)} 
+                Utils.toast("⏳ Đang xử lý hoàn kho...", "info");
+                const b = writeBatch(db); 
+                
+                // 1. Xóa phiếu trong Nhật ký
+                b.delete(doc(db,`${ROOT_PATH}/supplies`, l._id || l.id)); 
+                
+                const snap = await getDocs(collection(db, `${ROOT_PATH}/nuoisoi_A`));
+                
+                if (l.type === 'EXPORT' || l.type === 'DESTROY') {
+                    // Trừ số lượng ở Nhà Trồng Đích
+                    if(l.to && l.to !== 'HUY') {
+                        b.update(doc(db,`${ROOT_PATH}/houses`, l.to), {batchQty: increment(-Number(l.qty))}); 
+                    }
+                    
+                    // Cộng trả lại cho Giàn Nuôi Sợi Nguồn
+                    let rackId = l.rackId;
+                    let sBatch = l.sourceBatch;
+                    
+                    if (!rackId || !sBatch) {
+                        rackId = prompt("Lệnh cũ không lưu Giàn. Nhập tên Giàn hoàn trả (VD: A1):");
+                        if(!rackId) throw new Error("Hủy thao tác do thiếu tên Giàn.");
+                        let guessBatch = l.code ? l.code.split('D-')[0].split('TD-')[0].split('HUY-')[0] : '';
+                        sBatch = prompt("Nhập mã lô gốc hoàn trả:", guessBatch);
+                        if(!sBatch) throw new Error("Hủy thao tác do thiếu Mã lô.");
+                    }
+                    rackId = rackId.toUpperCase().trim();
+                    sBatch = sBatch.toUpperCase().trim();
+
+                    const rackDoc = snap.docs.find(d => d.id === rackId);
+                    let batches = rackDoc && rackDoc.data().batches ? rackDoc.data().batches : {};
+                    // GIỮ NGUYÊN NGÀY LÊN GIÀN CŨ
+                    let originalTime = rackDoc && rackDoc.data().time ? rackDoc.data().time : Date.now();
+                    
+                    batches[sBatch] = (batches[sBatch] || 0) + Number(l.qty);
+                    
+                    b.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, rackId), { batches: batches, time: originalTime, batch: '', qty: 0 });
+
+                } else if (l.type === 'IMPORT' && l.to === houseAId) {
+                    // Trừ số lượng trên Giàn Nuôi Sợi (Vì vừa hủy lệnh Nhập)
+                    let rackId = l.rackId;
+                    let sBatch = l.code;
+                    if(!rackId) {
+                        const match = (l.note||'').match(/Giàn\s+([A-Z0-9]+)/i);
+                        rackId = match ? match[1] : prompt("Nhập tên Giàn để trừ phôi (VD: A1):");
+                        if(!rackId) throw new Error("Hủy thao tác do thiếu tên Giàn.");
+                    }
+                    rackId = rackId.toUpperCase().trim();
+                    
+                    const rackDoc = snap.docs.find(d => d.id === rackId);
+                    if(rackDoc && rackDoc.data().batches) {
+                        let batches = rackDoc.data().batches;
+                        let originalTime = rackDoc.data().time || Date.now();
+                        
+                        if(batches[sBatch]) {
+                            batches[sBatch] -= Number(l.qty);
+                            if(batches[sBatch] <= 0) delete batches[sBatch];
+                            b.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, rackId), { batches: batches, time: originalTime, batch:'', qty:0 }); 
+                        }
+                    }
+                }
+
+                await b.commit(); 
+                Utils.toast("✅ Đã hủy lệnh và hoàn kho thành công!"); 
+            } catch(e){
+                Utils.toast("❌ Hủy thất bại: " + e.message, "err");
+            } 
         } 
     },
     
-    // NÂNG CẤP: Truyền thêm chuỗi batchMapStr để in phiếu chi tiết
     reset0: async (hid, hName, userName, batchQty, injectCountStr, totalYield, startTime, batchMapStr) => { 
         if(confirm(`⚠️ XÁC NHẬN HẾT VỤ (DỌN SẠCH ${hName.toUpperCase()})?`)) { 
             try {
                 const injectCount = decodeURIComponent(injectCountStr);
                 const batchMap = JSON.parse(decodeURIComponent(batchMapStr));
                 
-                // Tính số ngày từ lúc lô phôi đầu tiên vào nhà cho đến lúc bấm dọn nhà
                 const days = Math.max(1, Math.round((Date.now() - startTime) / (1000 * 60 * 60 * 24)));
-                
-                // Chuyển danh sách lô thành chuỗi (VD: 049D: 1000 bịch)
                 let batchDetails = Object.entries(batchMap).filter(([k,v])=>v>0).map(([k,v])=>`${k} <span class="text-[10px] text-slate-500">(${v.toLocaleString()})</span>`).join('<br>') || 'Không rõ';
 
-                // LƯU CƠ SỞ DỮ LIỆU
                 await updateDoc(doc(db,`${ROOT_PATH}/houses`,hid),{ batchQty: 0, currentBatch: '', status: 'EMPTY', injectCount: '', totalYield: 0, lastClearTime: Date.now() }); 
                 Utils.toast("✅ Đã dọn sạch nhà!"); 
 
-                // IN PHIẾU BÁO CÁO NHÀ TRỒNG
                 setTimeout(() => {
                     if(confirm(`Bạn có muốn xuất PHIẾU BÁO CÁO TỔNG KẾT VỤ cho ${hName} không?`)) {
                         window.showReceipt(`BÁO CÁO HẾT VỤ - ${hName}`, userName, [
@@ -115,6 +171,7 @@ export const SX = {
         
         const role = (user.role || '').toLowerCase(); 
         const isManager = ['admin', 'giám đốc', 'quản lý', 'tổ trưởng'].some(r => role.includes(r));
+        const canCancel = isManager;
         
         const houses = (Array.isArray(data.houses) ? data.houses : []).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
         const supplies = Array.isArray(data.supplies) ? data.supplies : [];
@@ -177,7 +234,8 @@ export const SX = {
                             else { color = 'text-green-600 bg-green-50'; icon = '🍄'; }
                         }
 
-                        const canCancel = isManager && !isImport && l.to !== 'HUY';
+                        const encodedLog = encodeURIComponent(JSON.stringify(l));
+                        const cancelAction = `window.SX_Action.delLog('${encodedLog}', '${houseA.id}')`;
 
                         return `
                         <div class="flex justify-between items-center text-[10px] p-2.5 bg-white rounded-lg border border-slate-100 shadow-sm">
@@ -190,7 +248,7 @@ export const SX = {
                             </div>
                             <div class="text-right">
                                 <span class="block font-black text-lg ${color.split(' ')[0]}">${isImport ? '+' : '-'}${Number(l.qty).toLocaleString()}</span>
-                                ${canCancel ? `<button onclick="window.SX_Action.delLog('${l._id}', ${-l.qty}, '${l.to}')" class="text-slate-400 hover:text-red-600 text-[9px] underline font-bold mt-1 block">Hủy lệnh</button>` : ''}
+                                ${canCancel ? `<button onclick="${cancelAction}" class="text-slate-400 hover:text-red-600 text-[9px] underline font-bold mt-1 block">Hủy lệnh</button>` : ''}
                             </div>
                         </div>`;
                     }).join('') : '<div class="text-xs text-slate-400 italic text-center py-3">Chưa có dữ liệu</div>'}
@@ -210,7 +268,6 @@ export const SX = {
                         const fallbackStartTime = h.lastClearTime || h.startDate || Date.now();
                         const injectEnc = encodeURIComponent(h.injectCount || '0');
 
-                        // Tìm thời gian lô phôi đầu tiên vào nhà thực tế
                         const hLogs = supplies.filter(s => (s.to === h.id || s.from === h.id) && s.time >= clearTime);
                         let actualStartTime = fallbackStartTime;
                         let inLogs = hLogs.filter(s => s.to === h.id);
