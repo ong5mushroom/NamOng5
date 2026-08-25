@@ -4,6 +4,14 @@ import { Utils } from '../utils.js';
 let currentTaskFilter = 'ALL';
 const STANDARD_TASKS = ['Thu hoạch', 'Nhận phôi', 'Tiêm nước', 'Xuất bán', 'Vệ sinh phôi', 'Kiểm tra nhà'];
 
+// BẢO MẬT: Khử trùng văn bản chống XSS
+const sanitizeHTML = (str) => {
+    if (typeof str !== 'string' || !str) return str || '';
+    return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[tag] || tag));
+};
+
 // KHO DANH NGÔN & ĐỘNG LỰC
 const MOTIVATIONAL_QUOTES = [
     "Chăm nấm nấm mập, chăm làm ví dày. Chúc ngày mới bội thu! 🍄",
@@ -11,7 +19,7 @@ const MOTIVATIONAL_QUOTES = [
     "Một nụ cười chào ngày mới, ngàn may mắn sẽ tới! ☀️",
     "Hôm nay là một ngày tuyệt vời để gặt hái thành công! 🌟",
     "Năng lượng tích cực sẽ hút tài lộc về tay! 💸",
-    "Cố gắng thêm chút nữa, mẻ nấm đẹp đang chờ team Ông 5! 🍄",
+    "Cố gắng thêm chút nữa, mẻ nấm đẹp đang chờ! 🍄",
     "Thành công bắt đầu từ việc bạn có mặt đúng giờ! ⏰"
 ];
 
@@ -171,7 +179,14 @@ export const HR = {
         list.sort((a,b) => b.time - a.time);
 
         const listHtml = list.length ? list.map(t => {
-            const isDone = t.status === 'DONE'; const emp = employees.find(e=>e._id===t.to); const empName = emp?.name || '...'; const tEnc = encodeURIComponent(t.title); 
+            const isDone = t.status === 'DONE'; const emp = employees.find(e=>e._id===t.to); 
+            // KHỬ TRÙNG DỮ LIỆU
+            const empName = sanitizeHTML(emp?.name || '...'); 
+            const safeTitle = sanitizeHTML(t.title);
+            const safeNote = sanitizeHTML(t.note);
+            const safeArea = sanitizeHTML(t.area);
+
+            const tEnc = encodeURIComponent(t.title); 
             const timeStr = new Date(t.time).toLocaleString('vi-VN', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' });
             let btns = ''; if(isAdmin) btns = `<div class="absolute top-2 right-2 flex flex-col items-end gap-1.5 z-10"><button onclick="window.HR_Action.task.del('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-times"></i></button>${!isDone ? `<button onclick="window.HR_Action.remind('${emp?._id}','${encodeURIComponent(empName)}','${tEnc}','${t.status==='PENDING'?'ACCEPT':'REPORT'}')" class="text-[9px] bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded shadow-sm active:scale-95 transition flex items-center gap-1"><i class="fas fa-bell"></i> Nhắc</button>` : ''}</div>`;
             let userAction = ''; if(!isDone && t.to === user._id) userAction = t.status !== 'DOING' ? `<button onclick="window.HR_Action.task.accept('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-2 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-lg z-10 relative">NHẬN VIỆC</button>` : `<button onclick="window.HR_Action.task.finish('${t.id}','${tEnc}','${user.name}', '${user._id}')" class="w-full mt-2 py-2 bg-green-100 text-green-700 text-[10px] font-bold rounded-lg z-10 relative">BÁO CÁO XONG</button>`;
@@ -180,7 +195,7 @@ export const HR = {
             if (t.result === 'FAILED') boxColor = 'border-red-200 bg-red-50/50'; else if (t.result === 'INCOMPLETE') boxColor = 'border-orange-200 bg-orange-50/50';
 
             return `<div id="task-${t.id}" class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative ${boxColor} transition animate-fade-in">
-                <div class="pr-8 relative z-0"><span class="text-xs font-bold ${isCheckin ? 'text-purple-700' : 'text-slate-700'} block ${isDone && t.result==='DONE' ?'line-through':''}">${isCheckin ? '📍 ' : ''}${t.area?`[${t.area}] `:''}${t.title}</span><span class="text-[10px] text-slate-400">Người làm: <b>${empName}</b> • ${timeStr}</span>${t.note ? `<div class="mt-1.5 text-[10px] text-slate-600 italic bg-slate-50 p-1.5 rounded border border-slate-100">📝 ${t.note}</div>` : ''}</div>
+                <div class="pr-8 relative z-0"><span class="text-xs font-bold ${isCheckin ? 'text-purple-700' : 'text-slate-700'} block ${isDone && t.result==='DONE' ?'line-through':''}">${isCheckin ? '📍 ' : ''}${safeArea?`[${safeArea}] `:''}${safeTitle}</span><span class="text-[10px] text-slate-400">Người làm: <b>${empName}</b> • ${timeStr}</span>${safeNote ? `<div class="mt-1.5 text-[10px] text-slate-600 italic bg-slate-50 p-1.5 rounded border border-slate-100">📝 ${safeNote}</div>` : ''}</div>
                 ${btns} ${userAction}
             </div>`;
         }).join('') : '<div class="text-center text-slate-400 text-xs py-8">Chưa có công việc nào</div>';
@@ -192,20 +207,20 @@ export const HR = {
                 <h3 class="font-black text-blue-600 text-[10px] uppercase mb-3 tracking-widest">GIAO VIỆC NHANH</h3>
                 <div class="flex flex-wrap gap-1.5 mb-3">${STANDARD_TASKS.map(task => `<button onclick="document.getElementById('t-t').value = '${task}'" class="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded-full border border-slate-200 active:bg-blue-500 active:text-white">${task}</button>`).join('')}</div>
                 <textarea id="t-t" placeholder="Nội dung việc hoặc chọn mẫu ở trên..." class="w-full p-3 border border-slate-200 rounded-xl mb-3 text-sm outline-none focus:border-blue-400" rows="2"></textarea>
-                <div class="mb-3"><div class="text-[10px] font-bold text-slate-400 mb-1.5 uppercase">1. Chọn Khu Vực:</div><div class="bg-slate-50 p-2 rounded-xl border border-slate-100 flex flex-wrap gap-2 max-h-24 overflow-y-auto"><label class="flex items-center gap-1 text-[11px] bg-white px-2 py-1 rounded-lg border border-slate-200"><input type="checkbox" id="check-all-houses"> Tất cả</label>${houses.map(h=>`<label class="flex items-center gap-1 text-[11px] bg-white px-2 py-1 rounded-lg border border-slate-200"><input type="checkbox" class="hc" value="${h.name}"> ${h.name}</label>`).join('')}</div></div>
+                <div class="mb-3"><div class="text-[10px] font-bold text-slate-400 mb-1.5 uppercase">1. Chọn Khu Vực:</div><div class="bg-slate-50 p-2 rounded-xl border border-slate-100 flex flex-wrap gap-2 max-h-24 overflow-y-auto"><label class="flex items-center gap-1 text-[11px] bg-white px-2 py-1 rounded-lg border border-slate-200"><input type="checkbox" id="check-all-houses"> Tất cả</label>${houses.map(h=>`<label class="flex items-center gap-1 text-[11px] bg-white px-2 py-1 rounded-lg border border-slate-200"><input type="checkbox" class="hc" value="${sanitizeHTML(h.name)}"> ${sanitizeHTML(h.name)}</label>`).join('')}</div></div>
                 <div class="mb-4">
                     <div class="flex justify-between items-center mb-1.5">
                         <div class="text-[10px] font-bold text-slate-400 uppercase">2. Chọn Tổ / Nhân Viên:</div>
                         <div class="flex gap-1"><button onclick="document.querySelectorAll('.ec').forEach(cb=>cb.checked=false); document.querySelectorAll('.ec-nhanvien').forEach(cb=>cb.checked=true)" class="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-bold border border-blue-100">Tổ N.Viên</button><button onclick="document.querySelectorAll('.ec').forEach(cb=>cb.checked=false); document.querySelectorAll('.ec-totruong').forEach(cb=>cb.checked=true)" class="text-[9px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded-md font-bold border border-purple-100">Tổ Trưởng</button></div>
                     </div>
-                    <div class="bg-slate-50 p-2 rounded-xl border border-slate-100 grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">${employees.map(e=>`<label class="flex items-center gap-1.5 text-[11px]"><input type="checkbox" class="ec ec-${e.role.replace(/\s/g,'')}" value="${e._id}" data-name="${e.name}"> ${e.name}</label>`).join('')}</div>
+                    <div class="bg-slate-50 p-2 rounded-xl border border-slate-100 grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">${employees.map(e=>`<label class="flex items-center gap-1.5 text-[11px]"><input type="checkbox" class="ec ec-${e.role.replace(/\s/g,'')}" value="${e._id}" data-name="${sanitizeHTML(e.name)}"> ${sanitizeHTML(e.name)}</label>`).join('')}</div>
                 </div>
                 <button id="btn-tsk" class="w-full bg-blue-600 text-white py-3 rounded-xl text-xs font-bold shadow-lg shadow-blue-100 active:scale-95 transition">GIAO VIỆC NGAY</button>
             </div>` : ''}
             
             <div class="flex justify-between items-center px-1">
                 <h2 class="font-black text-xs uppercase text-slate-400 tracking-widest">NHẬT KÝ CÔNG VIỆC</h2>
-                <select id="filter-emp" class="text-[10px] border border-slate-200 rounded-lg p-1 outline-none bg-white font-bold text-slate-600"><option value="ALL">Tất cả nhân sự</option>${employees.map(e=>`<option value="${e._id}" ${currentTaskFilter===e._id?'selected':''}>${e.name}</option>`).join('')}</select>
+                <select id="filter-emp" class="text-[10px] border border-slate-200 rounded-lg p-1 outline-none bg-white font-bold text-slate-600"><option value="ALL">Tất cả nhân sự</option>${employees.map(e=>`<option value="${e._id}" ${currentTaskFilter===e._id?'selected':''}>${sanitizeHTML(e.name)}</option>`).join('')}</select>
             </div>
             <div id="lst" class="space-y-2">${listHtml}</div>
         </div>`;
@@ -236,12 +251,11 @@ export const HR = {
         c.innerHTML = `
         <div class="space-y-5 pb-24">
             
-            <!-- BẢNG CHÀO BUỔI SÁNG -->
             <div class="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-2xl border border-blue-100 shadow-sm">
                 <div class="flex items-center gap-3">
                     <div class="text-3xl animate-bounce">☀️</div>
                     <div>
-                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Chào ngày mới, ${user.name}!</div>
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Chào ngày mới, ${sanitizeHTML(user.name)}!</div>
                         <div class="text-xs font-black text-blue-700 italic">"${randomQuote}"</div>
                     </div>
                 </div>
@@ -249,15 +263,15 @@ export const HR = {
 
             ${isAdmin && pending.length ? `<div class="bg-red-50 p-3 rounded-2xl border border-red-200"><h3 class="font-bold text-red-600 text-[10px] mb-2 uppercase">CẦN DUYỆT (${pending.length})</h3><div class="space-y-2 max-h-40 overflow-y-auto">${pending.map(t=>{ 
                 const time = new Date(t.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
-                return `<div id="task-${t.id}" class="bg-white p-2.5 rounded-xl flex justify-between items-center text-xs shadow-sm border border-red-100"><div><span class="text-[9px] bg-slate-100 text-slate-400 px-1 rounded mr-1">${time}</span><b class="text-slate-600">${t.by}</b>: ${t.title}</div><div class="flex gap-2"><button onclick="window.HR_Action.approve('${t.id}','${encodeURIComponent(t.title)}','${encodeURIComponent(t.by)}',true)" class="text-green-600 font-black px-2 py-1 bg-green-50 rounded-lg">OK</button><button onclick="window.HR_Action.approve('${t.id}','${encodeURIComponent(t.title)}','${encodeURIComponent(t.by)}',false)" class="text-red-600 font-black px-2 py-1 bg-red-50 rounded-lg">X</button></div></div>`; 
+                return `<div id="task-${t.id}" class="bg-white p-2.5 rounded-xl flex justify-between items-center text-xs shadow-sm border border-red-100"><div><span class="text-[9px] bg-slate-100 text-slate-400 px-1 rounded mr-1">${time}</span><b class="text-slate-600">${sanitizeHTML(t.by)}</b>: ${sanitizeHTML(t.title)}</div><div class="flex gap-2"><button onclick="window.HR_Action.approve('${t.id}','${encodeURIComponent(t.title)}','${encodeURIComponent(t.by)}',true)" class="text-green-600 font-black px-2 py-1 bg-green-50 rounded-lg">OK</button><button onclick="window.HR_Action.approve('${t.id}','${encodeURIComponent(t.title)}','${encodeURIComponent(t.by)}',false)" class="text-red-600 font-black px-2 py-1 bg-red-50 rounded-lg">X</button></div></div>`; 
             }).join('')}</div></div>` : ''}
 
             <div class="bg-yellow-50 p-5 rounded-2xl border border-yellow-200 text-center shadow-sm relative overflow-hidden">
                 <h3 class="font-black text-yellow-600 text-xs uppercase mb-4 tracking-widest">🏆 TOP 3 XUẤT SẮC</h3>
                 <div class="flex justify-center items-end gap-3">
-                    ${top3[1] ? `<div class="flex flex-col items-center"><div class="w-10 h-10 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center font-bold text-slate-400 text-sm mb-1 shadow-sm">${top3[1].name.charAt(0)}</div><div class="h-14 w-14 bg-slate-200 rounded-t-xl flex flex-col justify-end pb-2 border-t-4 border-slate-300 shadow-sm"><span class="text-[10px] font-black text-slate-600">${Math.round(top3[1].score||0)}</span><span class="text-xs">🥈</span></div><div class="text-[9px] font-bold mt-1 text-slate-500 truncate w-14">${top3[1].name}</div></div>` : ''}
-                    ${top3[0] ? `<div class="flex flex-col items-center z-10"><div class="w-12 h-12 rounded-full bg-yellow-100 border-2 border-yellow-400 flex items-center justify-center font-black text-yellow-600 text-lg mb-1 shadow-md">${top3[0].name.charAt(0)}</div><div class="h-20 w-16 bg-gradient-to-t from-yellow-200 to-yellow-100 rounded-t-xl flex flex-col justify-end pb-2 border-t-4 border-yellow-400 shadow-lg"><span class="text-[11px] font-black text-yellow-700">${Math.round(top3[0].score||0)}</span><span class="text-lg">🥇</span></div><div class="text-[10px] font-black mt-1 text-yellow-700 truncate w-16">${top3[0].name}</div></div>` : '<div class="text-xs text-slate-400 italic">Chưa có dữ liệu</div>'}
-                    ${top3[2] ? `<div class="flex flex-col items-center"><div class="w-10 h-10 rounded-full bg-white border-2 border-orange-200 flex items-center justify-center font-bold text-orange-300 text-sm mb-1 shadow-sm">${top3[2].name.charAt(0)}</div><div class="h-10 w-14 bg-orange-100 rounded-t-xl flex flex-col justify-end pb-1 border-t-4 border-orange-300 shadow-sm"><span class="text-[10px] font-black text-orange-600">${Math.round(top3[2].score||0)}</span><span class="text-xs">🥉</span></div><div class="text-[9px] font-bold mt-1 text-orange-500 truncate w-14">${top3[2].name}</div></div>` : ''}
+                    ${top3[1] ? `<div class="flex flex-col items-center"><div class="w-10 h-10 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center font-bold text-slate-400 text-sm mb-1 shadow-sm">${sanitizeHTML(top3[1].name).charAt(0)}</div><div class="h-14 w-14 bg-slate-200 rounded-t-xl flex flex-col justify-end pb-2 border-t-4 border-slate-300 shadow-sm"><span class="text-[10px] font-black text-slate-600">${Math.round(top3[1].score||0)}</span><span class="text-xs">🥈</span></div><div class="text-[9px] font-bold mt-1 text-slate-500 truncate w-14">${sanitizeHTML(top3[1].name)}</div></div>` : ''}
+                    ${top3[0] ? `<div class="flex flex-col items-center z-10"><div class="w-12 h-12 rounded-full bg-yellow-100 border-2 border-yellow-400 flex items-center justify-center font-black text-yellow-600 text-lg mb-1 shadow-md">${sanitizeHTML(top3[0].name).charAt(0)}</div><div class="h-20 w-16 bg-gradient-to-t from-yellow-200 to-yellow-100 rounded-t-xl flex flex-col justify-end pb-2 border-t-4 border-yellow-400 shadow-lg"><span class="text-[11px] font-black text-yellow-700">${Math.round(top3[0].score||0)}</span><span class="text-lg">🥇</span></div><div class="text-[10px] font-black mt-1 text-yellow-700 truncate w-16">${sanitizeHTML(top3[0].name)}</div></div>` : '<div class="text-xs text-slate-400 italic">Chưa có dữ liệu</div>'}
+                    ${top3[2] ? `<div class="flex flex-col items-center"><div class="w-10 h-10 rounded-full bg-white border-2 border-orange-200 flex items-center justify-center font-bold text-orange-300 text-sm mb-1 shadow-sm">${sanitizeHTML(top3[2].name).charAt(0)}</div><div class="h-10 w-14 bg-orange-100 rounded-t-xl flex flex-col justify-end pb-1 border-t-4 border-orange-300 shadow-sm"><span class="text-[10px] font-black text-orange-600">${Math.round(top3[2].score||0)}</span><span class="text-xs">🥉</span></div><div class="text-[9px] font-bold mt-1 text-orange-500 truncate w-14">${sanitizeHTML(top3[2].name)}</div></div>` : ''}
                 </div>
             </div>
 
@@ -273,9 +287,13 @@ export const HR = {
                 <div id="chat-list" class="flex-1 overflow-y-auto p-3 space-y-3 flex flex-col-reverse bg-slate-50/50">
                     ${chats.map(m => {
                         const isMe = m.user === user.name; const isSys = m.type === 'NOTIFY';
-                        if(isSys) return `<div class="text-center"><span class="text-[9px] bg-gray-200 px-3 py-1 rounded-full text-gray-500 font-bold uppercase">${m.message}</span></div>`;
+                        // KHỬ TRÙNG TIN NHẮN
+                        const safeMsg = sanitizeHTML(m.message);
+                        const safeUser = sanitizeHTML(m.user);
+                        
+                        if(isSys) return `<div class="text-center"><span class="text-[9px] bg-gray-200 px-3 py-1 rounded-full text-gray-500 font-bold uppercase">${safeMsg}</span></div>`;
                         const time = new Date(m.time).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
-                        return `<div class="flex ${isMe?'justify-end':'justify-start'}"><div class="max-w-[85%] ${isMe?'bg-blue-600 text-white rounded-l-xl rounded-tr-xl':'bg-white border border-slate-200 text-slate-700 rounded-r-xl rounded-tl-xl'} px-3 py-2 text-xs shadow-sm"><div class="font-bold text-[9px] opacity-70 flex justify-between gap-3 mb-1"><span class="${isMe?'text-blue-200':'text-slate-400'}">${m.user}</span><span class="font-normal opacity-50">${time}</span></div>${m.message}</div></div>`;
+                        return `<div class="flex ${isMe?'justify-end':'justify-start'}"><div class="max-w-[85%] ${isMe?'bg-blue-600 text-white rounded-l-xl rounded-tr-xl':'bg-white border border-slate-200 text-slate-700 rounded-r-xl rounded-tl-xl'} px-3 py-2 text-xs shadow-sm"><div class="font-bold text-[9px] opacity-70 flex justify-between gap-3 mb-1"><span class="${isMe?'text-blue-200':'text-slate-400'}">${safeUser}</span><span class="font-normal opacity-50">${time}</span></div>${safeMsg}</div></div>`;
                     }).join('')}
                 </div>
                 <div class="p-2 border-t flex gap-2 bg-white rounded-b-2xl"><input id="chat-msg" class="flex-1 px-3 py-2 bg-slate-100 border-none rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-400" placeholder="Nhắn tin..."><button id="chat-send" class="bg-blue-600 text-white w-9 h-9 rounded-xl flex items-center justify-center active:scale-90 transition shadow-md shadow-blue-200"><i class="fas fa-paper-plane text-xs"></i></button></div>
@@ -292,11 +310,12 @@ export const HR = {
                 <div class="space-y-2.5">
                     ${employees.map(e => {
                         const nameEnc = encodeURIComponent(e.name);
+                        const safeName = sanitizeHTML(e.name);
                         return `<div id="emp-${e._id}" class="bg-white p-3 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm">
                             <div class="flex gap-3 items-center">
-                                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-black text-slate-400 text-xs border border-slate-200">${e.name.charAt(0)}</div>
+                                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-black text-slate-400 text-xs border border-slate-200">${safeName.charAt(0)}</div>
                                 <div>
-                                    <div class="font-bold text-xs text-slate-700 flex items-center gap-1.5">${e.name} <span class="text-[8px] font-bold text-white bg-slate-400 px-1.5 py-0.5 rounded uppercase">${e.role}</span></div>
+                                    <div class="font-bold text-xs text-slate-700 flex items-center gap-1.5">${safeName} <span class="text-[8px] font-bold text-white bg-slate-400 px-1.5 py-0.5 rounded uppercase">${e.role}</span></div>
                                     <div class="text-[10px] text-blue-500 font-black">Điểm: <span id="score-${e._id}">${Math.round(e.score||0)}</span></div>
                                 </div>
                             </div>
@@ -323,7 +342,6 @@ export const HR = {
                 const currentH = now.getHours();
                 const currentM = now.getMinutes();
 
-                // 1. CHẶN CHẤM CÔNG TRƯỚC 07:00 (Tránh bấm khống ở nhà)
                 if (currentH < 7) {
                     return Utils.toast("❌ Chưa đến giờ! Bạn chỉ được chấm công sau 07:00 sáng.", "err");
                 }
@@ -338,7 +356,6 @@ export const HR = {
                 const batch = writeBatch(db);
                 let msg = `📍 ${user.name} chấm công lúc ${timeStr}`;
                 
-                // --- MÁY QUÉT KỶ LUẬT ---
                 let targetDay = new Date(now);
                 targetDay.setDate(now.getDate() - 1); 
                 if (now.getDay() === 1) targetDay.setDate(now.getDate() - 2); 
@@ -359,9 +376,8 @@ export const HR = {
                     batch.set(doc(collection(db, `${ROOT_PATH}/tasks`)), { title: `Nghỉ không phép (${targetDay.toLocaleDateString('vi-VN')})`, to: user._id, by: 'HỆ THỐNG', type: 'TASK', status: 'DONE', result: 'FAILED', note: 'Bắt lỗi tự động khi chấm công', time: now.getTime() - 1000 });
                 }
 
-                // --- TÍNH SỐ LẦN ĐI TRỄ TRONG THÁNG ---
                 const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-                const lateCount = tasks.filter(t => t.to === user._id && t.type === 'CHECKIN' && t.time >= startOfMonth && t.title.includes('trễ')).length + 1; // +1 cho lần trễ hiện tại
+                const lateCount = tasks.filter(t => t.to === user._id && t.type === 'CHECKIN' && t.time >= startOfMonth && t.title.includes('trễ')).length + 1; 
 
                 if(isLate) { 
                     msg += ` \n⏰ (TRỄ, trừ 2đ)`; 
@@ -380,7 +396,6 @@ export const HR = {
                 await batch.commit(); 
                 window.HR_Action.chat("HỆ THỐNG", msg, true); 
 
-                // --- BẢNG THÔNG BÁO CẢNH BÁO ĐỎ KÈM ĐỘNG LỰC ---
                 let alertTitle = ""; let alertHtml = "";
                 const pQuote = PENALTY_QUOTES[Math.floor(Math.random() * PENALTY_QUOTES.length)];
 
