@@ -54,16 +54,6 @@ if (!window.showReceipt) {
         overlay.className = 'fixed inset-0 bg-slate-900/80 z-[9999] flex items-center justify-center p-4 overflow-y-auto animate-fade-in';
         overlay.innerHTML = `<div class="w-full max-w-lg my-auto">${html}</div>`;
         document.body.appendChild(overlay);
-
-        if(qrOrderCode && typeof QRCode !== 'undefined') {
-            setTimeout(() => {
-                new QRCode(document.getElementById("receipt-qr"), {
-                    text: `https://app.ong5mushroom.com/trace.html?order=${qrOrderCode}`,
-                    width: 120, height: 120,
-                    colorDark : "#451a03", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
-                });
-            }, 100);
-        }
     };
 }
 
@@ -81,7 +71,8 @@ window.NuoiSoi_Action = {
                     if(bMap[batchCode] && bMap[batchCode] > 0) {
                         foundOther = true; totalToAdd += bMap[batchCode]; 
                         delete bMap[batchCode]; 
-                        batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, r.id), { batches: bMap, time: Date.now(), batch: '', qty: 0 }); 
+                        // GIỮ NGUYÊN NGÀY LÊN GIÀN CŨ (r.time)
+                        batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, r.id), { batches: bMap, time: r.time || Date.now(), batch: '', qty: 0 }); 
                     }
                 }
             });
@@ -92,17 +83,15 @@ window.NuoiSoi_Action = {
                 if (targetRack.batch && targetRack.qty) tMap[targetRack.batch] = (tMap[targetRack.batch]||0) + Number(targetRack.qty);
                 tMap[batchCode] = (tMap[batchCode] || 0) + totalToAdd; 
                 
-                batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, targetRackId), { batches: tMap, batch: '', qty: 0, time: Date.now() });
+                let tTime = targetRack.time || Date.now();
+                batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, targetRackId), { batches: tMap, batch: '', qty: 0, time: tTime });
                 
                 await batchDb.commit(); 
-                Utils.modal(null); 
-                Utils.toast(`✅ Đã gom thêm ${totalToAdd} bịch phôi về giàn ${targetRackId}!`);
+                Utils.modal(null); Utils.toast(`✅ Đã gom thêm ${totalToAdd} bịch phôi về giàn ${targetRackId}!`);
             } else { 
                 Utils.toast(`Không có giàn nào khác chứa mã ${batchCode} để gom.`, "info"); 
             }
-        } catch(error) {
-            Utils.toast("❌ Lỗi khi gom giàn: " + error.message, "err");
-        }
+        } catch(error) { Utils.toast("❌ Lỗi khi gom giàn: " + error.message, "err"); }
     },
     clearRack: async (id, rackDataStr, userName) => {
         if(!confirm(`⚠️ BẠN CHẮC CHẮN MUỐN XÓA SẠCH GIÀN ${id}?\nToàn bộ phôi trên giàn này sẽ bị xóa khỏi hệ thống.`)) return;
@@ -150,14 +139,15 @@ window.NuoiSoi_Action = {
                     }
                 }, 300);
             }
-        } catch(e) { 
-            Utils.toast("❌ Lỗi dọn giàn: " + e.message, "err"); 
-        }
+        } catch(e) { Utils.toast("❌ Lỗi dọn giàn: " + e.message, "err"); }
     },
     edit: (id, rackDataStr, userName) => {
         let rack = JSON.parse(decodeURIComponent(rackDataStr));
         let batches = rack.batches || {};
         if(rack.batch && rack.qty) batches[rack.batch] = (batches[rack.batch]||0) + Number(rack.qty);
+
+        // KIỂM TRA GIÀN RỖNG ĐỂ CẬP NHẬT NGÀY MỚI NẾU NHẬP LÔ MỚI TINH
+        let wasEmpty = Object.keys(batches).length === 0;
 
         const batchKeys = Object.keys(batches).filter(k => batches[k] > 0);
         let firstBatchQty = batchKeys.length ? batches[batchKeys[0]] : 0;
@@ -243,12 +233,14 @@ window.NuoiSoi_Action = {
                     batches[b] = (batches[b] || 0) + q;
                     const batchDb = writeBatch(db); 
                     
-                    batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 });
+                    // CHỈ SET LẠI THỜI GIAN NẾU GIÀN ĐANG TRỐNG
+                    let saveTime = wasEmpty ? Date.now() : (rack.time || Date.now());
+                    batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: saveTime, batch: '', qty: 0 });
                     
                     const houseAId = houseA?.id || 'KHO_TONG';
-                    batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type: 'IMPORT', to: houseAId, code: b, qty: q, user: userName, time: Date.now(), note: `Nhập lên Giàn ${id}` });
-                    await batchDb.commit(); 
+                    batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type: 'IMPORT', to: houseAId, code: b, qty: q, user: userName, time: Date.now(), note: `Nhập lên Giàn ${id}`, rackId: id });
                     
+                    await batchDb.commit(); 
                     Utils.modal(null); Utils.toast("✅ Đã xếp phôi lên giàn!");
 
                     setTimeout(() => {
@@ -282,7 +274,6 @@ window.NuoiSoi_Action = {
                         alert(`❌ CẢNH BÁO: KHO KHÔNG ĐỦ PHÔI!\n\nLô ${sourceBatch} trên giàn chỉ còn ${batches[sourceBatch]} bịch.\nBạn đang cố gắng xuất ra ${totalExport} bịch.`);
                         return Utils.toast(`Vượt quá số lượng tồn của Lô ${sourceBatch}!`, "err");
                     }
-                    
                     if(qDat > 0 && !targetHouse) return Utils.toast("Vui lòng chọn Nhà Trồng cho phôi Đạt!", "err");
                     if(qTD > 0 && !targetHouseTD) return Utils.toast("Vui lòng chọn Nhà Trồng cho phôi Tận Dụng!", "err");
 
@@ -295,27 +286,25 @@ window.NuoiSoi_Action = {
                     batches[sourceBatch] -= totalExport;
                     if(batches[sourceBatch] <= 0) delete batches[sourceBatch]; 
                     
-                    // Ghi đè tuyệt đối để loại bỏ rác
-                    batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: Date.now(), batch: '', qty: 0 });
+                    // GIỮ NGUYÊN NGÀY LÊN GIÀN CŨ KHI XUẤT (rack.time)
+                    batchDb.set(doc(db, `${ROOT_PATH}/nuoisoi_A`, id), { batches: batches, time: rack.time || Date.now(), batch: '', qty: 0 });
 
                     const dObj = new Date();
                     const dateStr = ('0' + dObj.getDate()).slice(-2) + '/' + ('0' + (dObj.getMonth()+1)).slice(-2) + '/' + dObj.getFullYear().toString().slice(-2);
 
                     if(qDat > 0) {
                         const codeDat = `${sourceBatch}D-${dateStr}`;
-                        batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseAId, to:targetHouse, code:codeDat, qty:qDat, user:userName, time:Date.now() });
-                        // SỬ DỤNG {merge: true} ĐỂ TRÁNH LỖI NẾU HỒ SƠ NHÀ BỊ THIẾU
+                        batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseAId, to:targetHouse, code:codeDat, qty:qDat, user:userName, time:Date.now(), rackId: id, sourceBatch: sourceBatch });
                         batchDb.set(doc(db, `${ROOT_PATH}/houses`, targetHouse), { status:'ACTIVE', batchQty: increment(qDat), currentBatch:codeDat }, { merge: true });
                     }
                     if(qTD > 0) {
                         const codeTD = `${sourceBatch}TD-${dateStr}`;
-                        batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseAId, to:targetHouseTD, code:codeTD, qty:qTD, user:userName, time:Date.now() });
-                        // SỬ DỤNG {merge: true} 
+                        batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'EXPORT', from:houseAId, to:targetHouseTD, code:codeTD, qty:qTD, user:userName, time:Date.now(), rackId: id, sourceBatch: sourceBatch });
                         batchDb.set(doc(db, `${ROOT_PATH}/houses`, targetHouseTD), { status:'ACTIVE', batchQty: increment(qTD), currentBatch:codeTD }, { merge: true });
                     }
                     if(qHuy > 0) {
                         const codeHuy = `${sourceBatch}HUY-${dateStr}`;
-                        batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'DESTROY', from:houseAId, to:'HUY', code:codeHuy, qty:qHuy, user:userName, time:Date.now() });
+                        batchDb.set(doc(collection(db, `${ROOT_PATH}/supplies`)), { type:'DESTROY', from:houseAId, to:'HUY', code:codeHuy, qty:qHuy, user:userName, time:Date.now(), rackId: id, sourceBatch: sourceBatch });
                     }
 
                     await batchDb.commit(); 
@@ -384,7 +373,7 @@ export const NuoiSoi = {
                         qtyHtml = `<span class="text-blue-600 font-black">${totalQ.toLocaleString()}</span>`;
                     }
                 }
-                const rackDataStr = encodeURIComponent(JSON.stringify({ batches: bMap }));
+                const rackDataStr = encodeURIComponent(JSON.stringify({ batches: bMap, time: rack.time }));
                 return `<div style="grid-column: ${col}; grid-row: ${row};" onclick="window.NuoiSoi_Action.edit('${id}', '${rackDataStr}', '${user.name}')" class="bg-white border ${cellClass} p-1.5 rounded cursor-pointer active:scale-95 transition flex flex-col justify-center min-h-[45px] hover:border-purple-400"><div class="flex justify-between items-center border-b border-slate-100 pb-0.5 mb-1"><span class="text-[10px] font-black text-slate-700">Giàn ${id}</span>${badgeHtml}</div><div class="text-[10px] text-slate-500 font-bold">SL: ${qtyHtml}</div></div>`;
             };
             grid += renderCell(bId, bData, 1, currentRow); grid += renderCell(aId, aData, 3, currentRow); 
