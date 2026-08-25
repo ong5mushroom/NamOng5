@@ -9,10 +9,19 @@ let currentUser = null;
 let currentTab = 'tasks';
 let appData = {}; 
 let isInitialLoad = { tasks: true, chat: true }; 
+let loadedEmployees = []; // Biến bí mật lưu danh sách nhân viên và PIN
 
 const els = {}; 
 
 const toCSV = (data) => `"${String(data || '').replace(/"/g, '""')}"`;
+
+// Lưới lọc mã độc cơ bản
+const escapeHTML = (str) => {
+    if (!str) return '';
+    return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[tag] || tag));
+};
 
 const exportReport = async (reportType) => {
     try {
@@ -22,7 +31,6 @@ const exportReport = async (reportType) => {
         const timeFileName = `${now.getDate()}_${now.getMonth()+1}_${now.getFullYear()}`;
         let fileName = "";
 
-        // TÍNH NĂNG MỚI: Lấy danh sách Nhà để dịch Mã ID sang Tên Nhà Trồng
         const hSnap = await getDocs(collection(db, `${ROOT_PATH}/houses`));
         const houseMap = { 'KHO_TONG': 'Kho Tổng / Nguồn', 'HUY': 'Hủy Bỏ' };
         hSnap.docs.forEach(d => { houseMap[d.id] = d.data().name; });
@@ -35,21 +43,12 @@ const exportReport = async (reportType) => {
             snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
                 const typeStr = d.type === 'IMPORT' ? 'NHẬP' : (d.type === 'DESTROY' ? 'HỦY' : 'XUẤT');
-                
-                // Dịch ID sang tên Nhà
                 const fromStr = houseMap[d.from] || d.from || '--';
                 const toStr = houseMap[d.to] || d.to || '--';
 
                 csv += [
-                    toCSV(date.toLocaleDateString('vi-VN')),
-                    toCSV(date.toLocaleTimeString('vi-VN')),
-                    toCSV(typeStr),
-                    toCSV(d.code || ''),
-                    toCSV(d.qty || 0),
-                    toCSV(fromStr),
-                    toCSV(toStr),
-                    toCSV(d.note || ''),
-                    toCSV(d.user || '--')
+                    toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(typeStr),
+                    toCSV(d.code || ''), toCSV(d.qty || 0), toCSV(fromStr), toCSV(toStr), toCSV(d.note || ''), toCSV(d.user || '--')
                 ].join(',') + "\n";
             });
         } else if (reportType === 'NAM_TUOI') {
@@ -70,7 +69,7 @@ const exportReport = async (reportType) => {
             const snap = await getDocs(query(collection(db, `${ROOT_PATH}/tasks`), where("type", "in", ["CHECKIN", "LEAVE"])));
             snap.docs.map(d => d.data()).sort((a,b) => b.time - a.time).forEach(d => {
                 const date = new Date(d.time || Date.now());
-                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by || ''), toCSV(d.type==='LEAVE'?'Xin nghỉ':'Chấm công'), toCSV(d.title || '')].join(',') + "\n";
+                csv += [toCSV(date.toLocaleDateString('vi-VN')), toCSV(date.toLocaleTimeString('vi-VN')), toCSV(d.by || ''), toCSV(d.type==='LEAVE'?'Xin nghỉ':'Chấm công'), toCSV(d.title || ''), toCSV(d.note || '')].join(',') + "\n";
             });
         } else if (reportType === 'CONG_VIEC') {
             fileName = `NhatKy_CongViec_${timeFileName}.csv`;
@@ -191,20 +190,43 @@ const App = {
         try {
             if(els.userSelect.options.length > 1) return;
             const s = await getDocs(collection(db, `${ROOT_PATH}/employees`));
+            
+            // BẢO MẬT: Lưu data vào mảng ẩn, chỉ đưa tên và ID ra HTML
+            loadedEmployees = s.docs.map(d => ({ id: d.id, ...d.data() }));
             els.userSelect.innerHTML = '<option value="">-- Chọn NV --</option>' + 
-                s.docs.map(d=>`<option value="${d.id}" data-pin="${d.data().pin}" data-role="${d.data().role}">${d.data().name}</option>`).join('');
-        } catch(e) {}
+                loadedEmployees.map(e => `<option value="${e.id}">${escapeHTML(e.name)}</option>`).join('');
+        } catch(e) { console.error("Lỗi tải danh sách NV:", e); }
     },
 
-    login: () => {
+    login: async () => {
         const uid = els.userSelect.value;
         const pin = els.pinInput.value;
         const manualName = document.getElementById('manual-name')?.value;
-        if(manualName && (pin === '1234' || pin === '9999')) { currentUser = { _id: 'manual', name: manualName, role: 'admin' }; App.loginSuccess(); return; }
+        
+        if(manualName && (pin === '1234' || pin === '9999')) { 
+            currentUser = { _id: 'manual', name: manualName, role: 'admin' }; 
+            App.loginSuccess(); return; 
+        }
+        
         if(!uid) return Utils.toast("Chưa chọn nhân viên!", "err");
-        const opt = els.userSelect.options[els.userSelect.selectedIndex];
-        if(pin !== opt.getAttribute('data-pin')) { els.pinInput.value = ''; return Utils.toast("Sai mã PIN!", "err"); }
-        currentUser = { _id: uid, name: opt.text, role: opt.getAttribute('data-role') };
+
+        // BẢO MẬT: Kiểm tra PIN ở mảng ẩn
+        let emp = loadedEmployees.find(e => e.id === uid);
+        
+        if(!emp) {
+            // Failsafe: Nếu mảng chưa kịp tải (mạng chậm), tải lại ngay lập tức
+            Utils.toast("Đang tải dữ liệu...", "info");
+            await App.loadUsers();
+            emp = loadedEmployees.find(e => e.id === uid);
+            if(!emp) return Utils.toast("Lỗi hệ thống. Vui lòng tải lại trang!", "err");
+        }
+
+        if(pin !== emp.pin) { 
+            els.pinInput.value = ''; 
+            return Utils.toast("Sai mã PIN!", "err"); 
+        }
+        
+        currentUser = { _id: uid, name: emp.name, role: emp.role };
         App.loginSuccess();
     },
 
