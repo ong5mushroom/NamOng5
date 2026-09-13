@@ -9,7 +9,6 @@ let currentUser = null;
 let currentTab = 'tasks';
 let appData = {}; 
 let isInitialLoad = { tasks: true, chat: true }; 
-let loadedEmployees = []; // Biến bí mật lưu danh sách nhân viên và PIN
 
 const els = {}; 
 
@@ -143,8 +142,16 @@ const App = {
         }
 
         onAuthStateChanged(auth, (user) => {
-            if (user) { App.loadUsers(); App.listenRealtime(); } 
-            else { signInAnonymously(auth).catch(console.error); }
+            if (user) { 
+                // XÓA BỎ HÀM TẢI MỘT LẦN, ĐƯA THẲNG VÀO LUỒNG REALTIME
+                App.listenRealtime(); 
+            } 
+            else { 
+                signInAnonymously(auth).catch((e) => {
+                    console.error("Lỗi ẩn danh:", e);
+                    alert("Không thể kết nối máy chủ xác thực: " + e.message);
+                }); 
+            }
         });
         App.bindEvents();
     },
@@ -185,26 +192,29 @@ const App = {
                 }
                 
                 appData[tbl] = snap.docs.map(d => ({ ...d.data(), id: d.id, _id: d.id }));
+                
+                // NÂNG CẤP: Bơm trực tiếp danh sách NV từ luồng Realtime vào ô chọn
+                if (tbl === 'employees' && els.loginOverlay && !els.loginOverlay.classList.contains('hidden')) {
+                    const currentVal = els.userSelect.value;
+                    els.userSelect.innerHTML = '<option value="">-- Chọn NV --</option>' + 
+                        appData.employees.map(e => `<option value="${e.id}">${escapeHTML(e.name)}</option>`).join('');
+                    if(currentVal) els.userSelect.value = currentVal;
+                }
+
                 App.render();
+
+            }, (error) => {
+                console.error(`Lỗi tải bảng ${tbl}:`, error);
+                // BỘ PHÁT HIỆN LỖI FIREBASE TỰ ĐỘNG
+                if (tbl === 'employees' && els.loginOverlay && !els.loginOverlay.classList.contains('hidden')) {
+                    alert(`Firebase từ chối kết nối!\nChi tiết lỗi: ${error.message}\n\nVui lòng kiểm tra lại Firebase Rules hoặc kết nối mạng!`);
+                }
             });
         });
     },
 
-    loadUsers: async () => {
-        try {
-            // SỬA LỖI 1: Bắt buộc kiểm tra mảng thực tế `loadedEmployees`, KHÔNG kiểm tra HTML
-            if(loadedEmployees.length > 0) return; 
-            
-            const s = await getDocs(collection(db, `${ROOT_PATH}/employees`));
-            loadedEmployees = s.docs.map(d => ({ id: d.id, ...d.data() }));
-            
-            els.userSelect.innerHTML = '<option value="">-- Chọn NV --</option>' + 
-                loadedEmployees.map(e => `<option value="${e.id}">${escapeHTML(e.name)}</option>`).join('');
-        } catch(e) { console.error("Lỗi tải danh sách NV:", e); }
-    },
-
     login: async (e) => {
-        // SỬA LỖI 2: Chặn cứng hành vi Refresh trang tự động của Form HTML
+        // Chặn trình duyệt tự động Refresh trang gây trắng màn hình
         if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
         try {
@@ -223,21 +233,16 @@ const App = {
                 return;
             }
 
-            let emp = loadedEmployees.find(e => e.id === uid);
+            // Đọc thẳng từ appData (dữ liệu sạch chuẩn 100% từ luồng Realtime)
+            let employeesList = appData.employees || [];
+            let emp = employeesList.find(e => e.id === uid);
             
-            // Xử lý nạp lại dữ liệu nếu mạng chậm hoặc mảng chưa kịp tải
             if(!emp) {
-                if(window.Utils && Utils.toast) Utils.toast("Đang đồng bộ dữ liệu...", "info");
-                await App.loadUsers();
-                emp = loadedEmployees.find(e => e.id === uid);
-                
-                if(!emp) {
-                    alert("Lỗi dữ liệu: Không tìm thấy tài khoản này trên máy chủ. Vui lòng tải lại trang!");
-                    return; 
-                }
+                alert("Dữ liệu đang được đồng bộ, vui lòng chờ 2 giây rồi bấm Đăng Nhập lại!");
+                return;
             }
 
-            // Ép kiểu chống lỗi
+            // Ép kiểu chống mọi lỗi Number/String
             const inputPin = String(pin).trim();
             const dbPin = String(emp.pin).trim();
 
@@ -252,7 +257,7 @@ const App = {
             App.loginSuccess();
 
         } catch (error) {
-            console.error("Lỗi đăng nhập:", error);
+            console.error("Lỗi xử lý đăng nhập:", error);
             alert("Lỗi hệ thống: " + error.message);
             localStorage.removeItem('ong5_user');
         }
@@ -297,22 +302,10 @@ const App = {
         }
     },
 
-    render: () => {
-        if(!currentUser) return;
-        const v = els.views[currentTab];
-        if(v && !v.classList.contains('hidden')) {
-            if(currentTab === 'tasks') HR.renderTasks(appData, currentUser);
-            if(currentTab === 'sx') SX.render(appData, currentUser);
-            if(currentTab === 'nuoisoi') NuoiSoi.render(appData, currentUser);
-            if(currentTab === 'th') THDG.render(appData, currentUser);
-            if(currentTab === 'team') HR.renderTeam(appData, currentUser);
-        }
-    },
-
     bindEvents: () => {
-        // Truyền đối tượng Event (e) vào hàm login để ngăn chặn Form Submit
         els.loginBtn.onclick = (e) => App.login(e);
         
+        // Hỗ trợ bấm phím Enter để đăng nhập
         if (els.pinInput) {
             els.pinInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') { 
