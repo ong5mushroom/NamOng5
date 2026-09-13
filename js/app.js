@@ -136,8 +136,15 @@ const App = {
             team: document.getElementById('view-team')
         };
 
-        const savedUser = localStorage.getItem('ong5_user');
-        if(savedUser) { currentUser = JSON.parse(savedUser); App.loginSuccess(true); }
+        // BẢO VỆ 1: Chống treo app nếu LocalStorage bị lỗi
+        try {
+            const savedUser = localStorage.getItem('ong5_user');
+            if(savedUser) { currentUser = JSON.parse(savedUser); App.loginSuccess(true); }
+        } catch (error) {
+            localStorage.removeItem('ong5_user'); // Tự động dọn rác
+            console.error("Đã dọn dẹp cache đăng nhập lỗi.");
+        }
+
         onAuthStateChanged(auth, (user) => {
             if (user) { App.loadUsers(); App.listenRealtime(); } 
             else { signInAnonymously(auth).catch(console.error); }
@@ -199,67 +206,87 @@ const App = {
     },
 
     login: async () => {
-        const uid = els.userSelect.value;
-        const pin = els.pinInput.value;
-        const manualName = document.getElementById('manual-name')?.value;
-        
-        if(manualName && (pin === '1234' || pin === '9999')) { 
-            currentUser = { _id: 'manual', name: manualName, role: 'admin' }; 
-            App.loginSuccess(); return; 
-        }
-        
-        if(!uid) return Utils.toast("Chưa chọn nhân viên!", "err");
+        // BẢO VỆ TỔNG THỂ KHU VỰC ĐĂNG NHẬP
+        try {
+            const uid = els.userSelect.value;
+            const pin = els.pinInput.value;
+            const manualName = document.getElementById('manual-name')?.value;
+            
+            if(manualName && (pin === '1234' || pin === '9999')) { 
+                currentUser = { _id: 'manual', name: manualName, role: 'admin' }; 
+                App.loginSuccess(); return; 
+            }
+            
+            if(!uid) return Utils.toast("Chưa chọn nhân viên!", "err");
 
-        // BẢO MẬT: Kiểm tra PIN ở mảng ẩn
-        let emp = loadedEmployees.find(e => e.id === uid);
-        
-        if(!emp) {
-            // Failsafe: Nếu mảng chưa kịp tải (mạng chậm), tải lại ngay lập tức
-            Utils.toast("Đang tải dữ liệu...", "info");
-            await App.loadUsers();
-            emp = loadedEmployees.find(e => e.id === uid);
-            if(!emp) return Utils.toast("Lỗi hệ thống. Vui lòng tải lại trang!", "err");
-        }
+            // BẢO MẬT: Kiểm tra PIN ở mảng ẩn
+            let emp = loadedEmployees.find(e => e.id === uid);
+            
+            if(!emp) {
+                // Failsafe: Nếu mảng chưa kịp tải (mạng chậm), tải lại ngay lập tức
+                Utils.toast("Đang tải dữ liệu...", "info");
+                await App.loadUsers();
+                emp = loadedEmployees.find(e => e.id === uid);
+                if(!emp) return Utils.toast("Lỗi mạng! Vui lòng tải lại trang.", "err");
+            }
 
-        if(pin !== emp.pin) { 
-            els.pinInput.value = ''; 
-            return Utils.toast("Sai mã PIN!", "err"); 
+            // BẢO VỆ 2: Ép kiểu toàn bộ về CHỮ (String) và cắt khoảng trắng để chống lỗi Number vs String của Firebase
+            const inputPin = String(pin).trim();
+            const dbPin = String(emp.pin).trim();
+
+            if(inputPin !== dbPin) { 
+                els.pinInput.value = ''; 
+                return Utils.toast("Sai mã PIN!", "err"); 
+            }
+            
+            currentUser = { _id: uid, name: emp.name, role: emp.role || 'nhân viên' };
+            App.loginSuccess();
+
+        } catch (error) {
+            console.error("Lỗi xử lý đăng nhập:", error);
+            Utils.toast("Lỗi đăng nhập. Đang làm mới hệ thống...", "err");
+            localStorage.removeItem('ong5_user');
+            setTimeout(() => window.location.reload(), 1000);
         }
-        
-        currentUser = { _id: uid, name: emp.name, role: emp.role };
-        App.loginSuccess();
     },
 
     loginSuccess: (isAuto = false) => {
-        localStorage.setItem('ong5_user', JSON.stringify(currentUser));
-        els.loginOverlay.classList.add('hidden');
-        els.headerUser.innerText = currentUser.name;
-        els.headerRole.innerText = (currentUser.role || 'Nhân viên').toUpperCase();
-        
-        const isManager = ['admin', 'giám đốc', 'quản lý', 'tổ trưởng'].some(r => (currentUser.role || '').toLowerCase().includes(r));
-        const isAccountant = (currentUser.role || '').toLowerCase().includes('kế toán');
-        
-        if((isManager || isAccountant) && els.btnSettings) els.btnSettings.classList.remove('hidden');
-        
-        const nsBtn = document.querySelector('[data-tab="nuoisoi"]');
-        if(nsBtn) {
-            nsBtn.style.display = isManager ? 'flex' : 'none';
-        }
-
-        Object.values(els.views).forEach(e => { if(e) e.classList.add('hidden'); });
-        if(els.views[currentTab]) els.views[currentTab].classList.remove('hidden');
-
-        els.navBtns.forEach(b => {
-            b.classList.remove('active');
-            const icon = b.querySelector('i');
-            if(icon) icon.className = icon.className.replace(/text-\w+-\d+/g, 'text-slate-400');
-            if(b.getAttribute('data-tab') === currentTab) {
-                b.classList.add('active');
-                if(currentTab==='tasks') icon.classList.replace('text-slate-400','text-blue-600');
+        try {
+            localStorage.setItem('ong5_user', JSON.stringify(currentUser));
+            els.loginOverlay.classList.add('hidden');
+            els.headerUser.innerText = currentUser.name;
+            els.headerRole.innerText = (currentUser.role || 'Nhân viên').toUpperCase();
+            
+            const isManager = ['admin', 'giám đốc', 'quản lý', 'tổ trưởng'].some(r => (currentUser.role || '').toLowerCase().includes(r));
+            const isAccountant = (currentUser.role || '').toLowerCase().includes('kế toán');
+            
+            if((isManager || isAccountant) && els.btnSettings) els.btnSettings.classList.remove('hidden');
+            
+            const nsBtn = document.querySelector('[data-tab="nuoisoi"]');
+            if(nsBtn) {
+                nsBtn.style.display = isManager ? 'flex' : 'none';
             }
-        });
 
-        App.render();
+            Object.values(els.views).forEach(e => { if(e) e.classList.add('hidden'); });
+            if(els.views[currentTab]) els.views[currentTab].classList.remove('hidden');
+
+            els.navBtns.forEach(b => {
+                b.classList.remove('active');
+                const icon = b.querySelector('i');
+                if(icon) icon.className = icon.className.replace(/text-\w+-\d+/g, 'text-slate-400');
+                if(b.getAttribute('data-tab') === currentTab) {
+                    b.classList.add('active');
+                    if(currentTab==='tasks') icon.classList.replace('text-slate-400','text-blue-600');
+                }
+            });
+
+            App.render();
+        } catch (error) {
+            console.error("Lỗi Render:", error);
+            localStorage.removeItem('ong5_user');
+            Utils.toast("Dữ liệu bộ nhớ bị lỗi. Hãy đăng nhập lại!", "err");
+            els.loginOverlay.classList.remove('hidden');
+        }
     },
 
     render: () => {
@@ -276,6 +303,14 @@ const App = {
 
     bindEvents: () => {
         els.loginBtn.onclick = App.login;
+        
+        // BẢO VỆ 3: Bắt sự kiện bấm phím Enter ở ô nhập PIN để trải nghiệm mượt mà hơn
+        if (els.pinInput) {
+            els.pinInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') { App.login(); }
+            });
+        }
+
         if(els.btnSettings) {
             els.btnSettings.onclick = () => {
                 const isBoss = ['admin','quản lý','giám đốc','tổ trưởng','kế toán'].some(r => (currentUser?.role||'').toLowerCase().includes(r));
