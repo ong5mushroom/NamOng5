@@ -9,6 +9,7 @@ let currentUser = null;
 let currentTab = 'tasks';
 let appData = {}; 
 let isInitialLoad = { tasks: true, chat: true }; 
+let loadedEmployees = []; // Biến bí mật lưu danh sách nhân viên và PIN
 
 const els = {}; 
 
@@ -143,7 +144,6 @@ const App = {
 
         onAuthStateChanged(auth, (user) => {
             if (user) { 
-                // XÓA BỎ HÀM TẢI MỘT LẦN, ĐƯA THẲNG VÀO LUỒNG REALTIME
                 App.listenRealtime(); 
             } 
             else { 
@@ -193,11 +193,11 @@ const App = {
                 
                 appData[tbl] = snap.docs.map(d => ({ ...d.data(), id: d.id, _id: d.id }));
                 
-                // NÂNG CẤP: Bơm trực tiếp danh sách NV từ luồng Realtime vào ô chọn
                 if (tbl === 'employees' && els.loginOverlay && !els.loginOverlay.classList.contains('hidden')) {
                     const currentVal = els.userSelect.value;
+                    loadedEmployees = appData.employees || []; // Đồng bộ biến bảo mật
                     els.userSelect.innerHTML = '<option value="">-- Chọn NV --</option>' + 
-                        appData.employees.map(e => `<option value="${e.id}">${escapeHTML(e.name)}</option>`).join('');
+                        loadedEmployees.map(e => `<option value="${e.id}">${escapeHTML(e.name)}</option>`).join('');
                     if(currentVal) els.userSelect.value = currentVal;
                 }
 
@@ -205,7 +205,6 @@ const App = {
 
             }, (error) => {
                 console.error(`Lỗi tải bảng ${tbl}:`, error);
-                // BỘ PHÁT HIỆN LỖI FIREBASE TỰ ĐỘNG
                 if (tbl === 'employees' && els.loginOverlay && !els.loginOverlay.classList.contains('hidden')) {
                     alert(`Firebase từ chối kết nối!\nChi tiết lỗi: ${error.message}\n\nVui lòng kiểm tra lại Firebase Rules hoặc kết nối mạng!`);
                 }
@@ -214,7 +213,6 @@ const App = {
     },
 
     login: async (e) => {
-        // Chặn trình duyệt tự động Refresh trang gây trắng màn hình
         if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
         try {
@@ -233,16 +231,13 @@ const App = {
                 return;
             }
 
-            // Đọc thẳng từ appData (dữ liệu sạch chuẩn 100% từ luồng Realtime)
-            let employeesList = appData.employees || [];
-            let emp = employeesList.find(e => e.id === uid);
+            let emp = loadedEmployees.find(e => e.id === uid);
             
             if(!emp) {
                 alert("Dữ liệu đang được đồng bộ, vui lòng chờ 2 giây rồi bấm Đăng Nhập lại!");
                 return;
             }
 
-            // Ép kiểu chống mọi lỗi Number/String
             const inputPin = String(pin).trim();
             const dbPin = String(emp.pin).trim();
 
@@ -295,17 +290,29 @@ const App = {
 
             App.render();
         } catch (error) {
-            console.error("Lỗi Render:", error);
+            console.error("Lỗi LoginSuccess:", error);
             localStorage.removeItem('ong5_user');
             if(window.Utils && Utils.toast) Utils.toast("Dữ liệu bộ nhớ bị lỗi. Hãy đăng nhập lại!", "err");
             els.loginOverlay.classList.remove('hidden');
         }
     },
 
+    // ĐÂY LÀ HÀM TÔI ĐÃ LỠ TAY XÓA MẤT Ở LẦN TRƯỚC - NAY ĐÃ ĐƯỢC PHỤC HỒI
+    render: () => {
+        if(!currentUser) return;
+        const v = els.views[currentTab];
+        if(v && !v.classList.contains('hidden')) {
+            if(currentTab === 'tasks') HR.renderTasks(appData, currentUser);
+            if(currentTab === 'sx') SX.render(appData, currentUser);
+            if(currentTab === 'nuoisoi') NuoiSoi.render(appData, currentUser);
+            if(currentTab === 'th') THDG.render(appData, currentUser);
+            if(currentTab === 'team') HR.renderTeam(appData, currentUser);
+        }
+    },
+
     bindEvents: () => {
         els.loginBtn.onclick = (e) => App.login(e);
         
-        // Hỗ trợ bấm phím Enter để đăng nhập
         if (els.pinInput) {
             els.pinInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') { 
