@@ -15,7 +15,6 @@ const els = {};
 
 const toCSV = (data) => `"${String(data || '').replace(/"/g, '""')}"`;
 
-// Lưới lọc mã độc cơ bản
 const escapeHTML = (str) => {
     if (!str) return '';
     return String(str).replace(/[&<>'"]/g, tag => ({
@@ -136,13 +135,11 @@ const App = {
             team: document.getElementById('view-team')
         };
 
-        // BẢO VỆ 1: Chống treo app nếu LocalStorage bị lỗi
         try {
             const savedUser = localStorage.getItem('ong5_user');
             if(savedUser) { currentUser = JSON.parse(savedUser); App.loginSuccess(true); }
         } catch (error) {
-            localStorage.removeItem('ong5_user'); // Tự động dọn rác
-            console.error("Đã dọn dẹp cache đăng nhập lỗi.");
+            localStorage.removeItem('ong5_user');
         }
 
         onAuthStateChanged(auth, (user) => {
@@ -195,18 +192,21 @@ const App = {
 
     loadUsers: async () => {
         try {
-            if(els.userSelect.options.length > 1) return;
-            const s = await getDocs(collection(db, `${ROOT_PATH}/employees`));
+            // SỬA LỖI 1: Bắt buộc kiểm tra mảng thực tế `loadedEmployees`, KHÔNG kiểm tra HTML
+            if(loadedEmployees.length > 0) return; 
             
-            // BẢO MẬT: Lưu data vào mảng ẩn, chỉ đưa tên và ID ra HTML
+            const s = await getDocs(collection(db, `${ROOT_PATH}/employees`));
             loadedEmployees = s.docs.map(d => ({ id: d.id, ...d.data() }));
+            
             els.userSelect.innerHTML = '<option value="">-- Chọn NV --</option>' + 
                 loadedEmployees.map(e => `<option value="${e.id}">${escapeHTML(e.name)}</option>`).join('');
         } catch(e) { console.error("Lỗi tải danh sách NV:", e); }
     },
 
-    login: async () => {
-        // BẢO VỆ TỔNG THỂ KHU VỰC ĐĂNG NHẬP
+    login: async (e) => {
+        // SỬA LỖI 2: Chặn cứng hành vi Refresh trang tự động của Form HTML
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+
         try {
             const uid = els.userSelect.value;
             const pin = els.pinInput.value;
@@ -217,36 +217,44 @@ const App = {
                 App.loginSuccess(); return; 
             }
             
-            if(!uid) return Utils.toast("Chưa chọn nhân viên!", "err");
-
-            // BẢO MẬT: Kiểm tra PIN ở mảng ẩn
-            let emp = loadedEmployees.find(e => e.id === uid);
-            
-            if(!emp) {
-                // Failsafe: Nếu mảng chưa kịp tải (mạng chậm), tải lại ngay lập tức
-                Utils.toast("Đang tải dữ liệu...", "info");
-                await App.loadUsers();
-                emp = loadedEmployees.find(e => e.id === uid);
-                if(!emp) return Utils.toast("Lỗi mạng! Vui lòng tải lại trang.", "err");
+            if(!uid) {
+                if(window.Utils && Utils.toast) Utils.toast("Chưa chọn nhân viên!", "err");
+                else alert("Vui lòng chọn tên nhân viên!");
+                return;
             }
 
-            // BẢO VỆ 2: Ép kiểu toàn bộ về CHỮ (String) và cắt khoảng trắng để chống lỗi Number vs String của Firebase
+            let emp = loadedEmployees.find(e => e.id === uid);
+            
+            // Xử lý nạp lại dữ liệu nếu mạng chậm hoặc mảng chưa kịp tải
+            if(!emp) {
+                if(window.Utils && Utils.toast) Utils.toast("Đang đồng bộ dữ liệu...", "info");
+                await App.loadUsers();
+                emp = loadedEmployees.find(e => e.id === uid);
+                
+                if(!emp) {
+                    alert("Lỗi dữ liệu: Không tìm thấy tài khoản này trên máy chủ. Vui lòng tải lại trang!");
+                    return; 
+                }
+            }
+
+            // Ép kiểu chống lỗi
             const inputPin = String(pin).trim();
             const dbPin = String(emp.pin).trim();
 
             if(inputPin !== dbPin) { 
                 els.pinInput.value = ''; 
-                return Utils.toast("Sai mã PIN!", "err"); 
+                if(window.Utils && Utils.toast) Utils.toast("Sai mã PIN!", "err");
+                else alert("Mã PIN không chính xác!");
+                return;
             }
             
             currentUser = { _id: uid, name: emp.name, role: emp.role || 'nhân viên' };
             App.loginSuccess();
 
         } catch (error) {
-            console.error("Lỗi xử lý đăng nhập:", error);
-            Utils.toast("Lỗi đăng nhập. Đang làm mới hệ thống...", "err");
+            console.error("Lỗi đăng nhập:", error);
+            alert("Lỗi hệ thống: " + error.message);
             localStorage.removeItem('ong5_user');
-            setTimeout(() => window.location.reload(), 1000);
         }
     },
 
@@ -284,7 +292,7 @@ const App = {
         } catch (error) {
             console.error("Lỗi Render:", error);
             localStorage.removeItem('ong5_user');
-            Utils.toast("Dữ liệu bộ nhớ bị lỗi. Hãy đăng nhập lại!", "err");
+            if(window.Utils && Utils.toast) Utils.toast("Dữ liệu bộ nhớ bị lỗi. Hãy đăng nhập lại!", "err");
             els.loginOverlay.classList.remove('hidden');
         }
     },
@@ -302,12 +310,15 @@ const App = {
     },
 
     bindEvents: () => {
-        els.loginBtn.onclick = App.login;
+        // Truyền đối tượng Event (e) vào hàm login để ngăn chặn Form Submit
+        els.loginBtn.onclick = (e) => App.login(e);
         
-        // BẢO VỆ 3: Bắt sự kiện bấm phím Enter ở ô nhập PIN để trải nghiệm mượt mà hơn
         if (els.pinInput) {
             els.pinInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') { App.login(); }
+                if (e.key === 'Enter') { 
+                    e.preventDefault(); 
+                    App.login(e); 
+                }
             });
         }
 
